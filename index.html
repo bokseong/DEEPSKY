@@ -216,7 +216,7 @@ function showSlides(n) {
     slides[slideIndex].classList.add("active");
 }
 function changeSlide(n) { showSlides(slideIndex + n); resetTimer(); }
-let slideTimer = setInterval(() => changeSlide(1), 5000);
+let slideTimer = setInterval(() => changeSlide(1), 3000);
 function resetTimer() { clearInterval(slideTimer); slideTimer = setInterval(() => changeSlide(1), 5000); }
 
 // 로그인 상태 감지 및 UI 제어 (핵심 수정 부분)
@@ -304,3 +304,4 @@ function logout() {
 </script>
 </body>
 </html>
+
