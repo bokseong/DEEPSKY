@@ -15,7 +15,6 @@
             overflow-x: hidden;
         }
 
-        /* 클래스 기반 제어 (!important로 확실히 제어) */
         .hidden { display: none !important; }
 
         /* 2. 상단 바 */
@@ -55,11 +54,34 @@
         .header-text h1 { margin: 0; font-size: 2.8rem; font-weight: bold; color: white; letter-spacing: 2px; }
         .header-text p { margin: 5px 0 0; font-size: 1.1rem; color: #7fc7ff; font-weight: bold; }
 
-        /* 4. 내비게이션 */
-        nav { background: #11153a; border-bottom: 1px solid #2d367a; overflow-x: auto; white-space: nowrap; }
-        nav .nav-inner { max-width: 1000px; margin: 0 auto; text-align: center; }
-        nav a { display: inline-block; color: white; padding: 18px 25px; text-decoration: none; font-weight: bold; font-size: 15px; }
-        nav a:hover { color: #7fc7ff; }
+        /* 4. 내비게이션 (한번에 다 나오도록 수정됨) */
+        nav { 
+            background: #11153a; 
+            border-bottom: 1px solid #2d367a; 
+            padding: 10px 0;
+        }
+        nav .nav-inner { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            gap: 5px; 
+        }
+        nav a { 
+            display: inline-block; 
+            color: white; 
+            padding: 12px 18px; 
+            text-decoration: none; 
+            font-weight: bold; 
+            font-size: 15px; 
+            transition: 0.2s;
+            border-radius: 8px;
+        }
+        nav a:hover { 
+            background: rgba(127, 199, 255, 0.1);
+            color: #7fc7ff; 
+        }
 
         /* 5. 메인 컨텐츠 & 카드 */
         .container { max-width: 1000px; margin: 35px auto; padding: 0 20px; }
@@ -106,8 +128,9 @@
 
         @media (max-width: 600px) {
             .logo-area span { font-size: 16px; }
-            nav a { padding: 12px 10px; font-size: 13px; }
+            nav a { padding: 10px 12px; font-size: 13px; }
             header h1 { font-size: 22px; }
+            .header-logo { width: 100px; height: 100px; }
         }
     </style>
 </head>
@@ -207,7 +230,6 @@ const auth = firebase.auth();
 const db = firebase.database();
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-// 슬라이드 로직
 let slideIndex = 0;
 const slides = document.querySelectorAll(".slide-item");
 function showSlides(n) {
@@ -220,48 +242,39 @@ function changeSlide(n) { showSlides(slideIndex + n); resetTimer(); }
 let slideTimer = setInterval(() => changeSlide(1), 3000);
 function resetTimer() { clearInterval(slideTimer); slideTimer = setInterval(() => changeSlide(1), 3000); }
 
-// 로그인 상태 감지 및 UI 제어 (핵심 수정 부분)
 auth.onAuthStateChanged(user => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtn = document.getElementById("logoutBtn");
-    const deleteBtn = document.getElementById("deleteBtn");
     const adminBox = document.getElementById("adminBox");
 
     if (user) {
-        // 실시간 이름 연동
         db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
             const finalName = snapshot.val() || user.displayName || user.email.split('@')[0];
             status.innerText = `${finalName}님`;
         });
 
-        // UI 토글
         loginBtn.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
-        deleteBtn.classList.remove("hidden"); // 관리자 포함 모두에게 노출
 
-        if (user.email === ADMIN_EMAIL) {
+        if (user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
             adminBox.classList.remove("hidden");
         } else {
             adminBox.classList.add("hidden");
         }
     } else {
-        // 비로그인 상태
         status.innerText = "로그인 해주세요";
         loginBtn.classList.remove("hidden");
         logoutBtn.classList.add("hidden");
-        deleteBtn.classList.add("hidden");
         adminBox.classList.add("hidden");
     }
 });
 
-// 공지사항 로드
 db.ref("weekProgram").on("value", snapshot => {
     const data = snapshot.val();
     document.getElementById("weekProgramText").innerText = data ? data.text : "공지가 없습니다.";
 });
 
-// 공지사항 저장
 function saveProgram() {
     const txt = document.getElementById("weekProgramInput").value;
     if(!txt.trim()) return alert("내용을 입력하세요.");
