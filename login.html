@@ -173,7 +173,8 @@
                 user.updateProfile({ displayName: name });
                 db.ref('users/' + user.uid).set({
                     name: name,
-                    email: email
+                    email: email,
+                    uid: user.uid
                 });
                 return user.sendEmailVerification();
             })
@@ -204,7 +205,7 @@
             .catch(err => alert("로그인 실패: " + err.message));
     }
 
-    // 5. 비밀번호 재설정
+    // 5. 비밀번호 찾기
     function resetPassword() {
         const email = document.getElementById("email").value.trim();
         if (!email) return alert("이메일을 먼저 입력해주세요.");
