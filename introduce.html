@@ -87,7 +87,6 @@
         <span id="userStatus">불러오는 중...</span>
         <button id="loginBtn" onclick="location.href='login.html'">로그인</button>
         <button id="logoutBtn" class="hidden" onclick="logout()">로그아웃</button>
-        <button id="deleteBtn" class="hidden" onclick="deleteAccount()" style="background: #ff4d4d;">회원탈퇴</button>
     </div>
 </div>
 
@@ -100,6 +99,7 @@
     <a href="activity.html">활동 사진</a>
     <a href="resource.html">자료실</a>
     <a href="weather.html">기상 정보</a>
+    <a href="mypage.html">정보 수정</a>
 </nav>
 
 <div class="container">
@@ -125,12 +125,12 @@
             </div>
             <div class="meaning-item">
                 <b>별자리</b>
-                상상력을 통해 만든 별자리는 창의력을 의미합니다.
+                실존하지 않는 순수 상상력을 통해 만든 별자리는 창의력을 의미합니다.
             </div>
         </div> -->
     </div>
 
-    <div class="intro-card">
+     <div class="intro-card">
         <h2>DEEP SKY는?</h2>
         <p>복성고등학교 천문&항공우주 동아리 <b>DEEP SKY</b>는 미지의 영역인 우주와 그와 관련된 과학에 열정을 가진 학생들의 모임입니다.</p>
         <p>우리는 단순히 <b>이론</b>으로만 배워온 것을 직접 <b>실험</b>을 통해 이론을 검증할 수 있도록 최선을 다할 것입니다.</p>
@@ -209,36 +209,6 @@ function logout() {
         auth.signOut().then(() => { location.reload(); });
     }
 }
-
-// 3. 회원 탈퇴 (전체 일괄 적용)
-function deleteAccount() {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    if (confirm("정말로 탈퇴하시겠습니까? 계정과 프로필 정보가 영구적으로 삭제됩니다.")) {
-        const uid = user.uid;
-        db.ref('users/' + uid).remove()
-            .then(() => {
-                return user.delete();
-            })
-            .then(() => {
-                alert("탈퇴가 완료되었습니다.");
-                location.href = "index.html";
-            })
-            .catch(err => {
-                if (err.code === 'auth/requires-recent-login') {
-                    alert("보안을 위해 다시 로그인한 직후에만 탈퇴가 가능합니다.");
-                } else {
-                    alert("탈퇴 오류: " + err.message);
-                }
-            });
-    }
-}
 </script>
 </body>
 </html>
-
-
-
-
-
