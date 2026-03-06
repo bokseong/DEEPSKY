@@ -24,24 +24,41 @@
         .auth-bar { font-size: 14px; display: flex; align-items: center; gap: 10px; }
         .auth-bar button { padding: 5px 12px; border-radius: 5px; border: none; background: #3a5aff; color: white; cursor: pointer; font-weight: bold; }
         
-        /* 3. 내비게이션 */
+        /* 3. 내비게이션 (메인 페이지와 동일하게 수정) */
         header { background: linear-gradient(to right, #0d1b52, #1b2f80); padding: 40px 20px; text-align: center; }
-        nav { background: #11153a; padding: 0 10px; text-align: center; border-bottom: 1px solid #2d367a; overflow-x: auto; white-space: nowrap; }
-        nav a { display: inline-block; color: white; padding: 15px 20px; text-decoration: none; font-weight: bold; font-size: 15px; }
-        nav a:hover { color: #7fc7ff; }
+        nav { 
+            background: #11153a; 
+            border-bottom: 1px solid #2d367a; 
+            padding: 10px 0;
+        }
+        nav .nav-inner { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            gap: 5px; 
+        }
+        nav a { 
+            display: inline-block; 
+            color: white; 
+            padding: 12px 18px; 
+            text-decoration: none; 
+            font-weight: bold; 
+            font-size: 15px; 
+            border-radius: 8px;
+        }
+        nav a:hover { background: rgba(127, 199, 255, 0.1); color: #7fc7ff; }
     
         /* 4. 본문 컨테이너 */
         .container { max-width: 900px; margin: 30px auto; padding: 0 20px 100px; }
         
-        /* 검색 상자 */
         .search-box { margin-bottom: 20px; }
         .search-box input { 
             width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #1b2f80; 
             background: #161b4a; color: white; font-size: 15px; outline: none;
         }
-        .search-box input:focus { border-color: #3a5aff; }
 
-        /* 질문 작성 카드 */
         .write-card { background: #161b4a; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #2d367a; }
         .write-card input { 
             width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #1b2f80; 
@@ -49,19 +66,16 @@
         }
         .btn-main { width: 100%; padding: 12px; background: #3a5aff; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         
-        /* 질문 카드 디자인 */
         .q-card { background: #161b4a; padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #2d367a; }
         .q-meta { font-size: 12px; color: #7fc7ff; margin-bottom: 8px; }
         .q-text { font-weight: bold; font-size: 16px; margin-bottom: 15px; display: block; border-bottom: 1px solid #2d367a; padding-bottom: 10px; color: #fff; }
         
-        /* 답글 영역 */
         .replies-container { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
         .ans-box { background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 8px; border-left: 3px solid #28a745; position: relative; }
         .ans-content { font-size: 14px; color: #eee; line-height: 1.4; padding-right: 30px; }
         .ans-author { font-size: 11px; color: #7fc7ff; margin-top: 5px; display: block; font-weight: bold; }
         .btn-ans-del { position: absolute; top: 10px; right: 10px; background: transparent; color: #ff4d4d; border: none; cursor: pointer; font-size: 12px; font-weight: bold; }
 
-        /* 답글 입력 및 삭제 버튼 */
         .answer-controls { margin-top: 20px; padding-top: 15px; border-top: 1px dashed #2d367a; display: flex; gap: 5px; }
         .answer-controls input { flex: 1; padding: 10px; border-radius: 5px; border: 1px solid #1b2f80; background: #0b0f2b; color: white; outline: none; }
         .btn-ans { background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
@@ -71,7 +85,7 @@
 
         @media (max-width: 600px) {
             .logo-area span { font-size: 16px; }
-            nav a { padding: 12px 10px; font-size: 13px; }
+            nav a { padding: 10px 12px; font-size: 13px; }
             .answer-controls { flex-direction: column; }
         }
     </style>
@@ -93,13 +107,15 @@
 <header><h1>질문 게시판</h1></header>
 
 <nav>
-    <a href="index.html">홈</a>
-    <a href="introduce.html">동아리 소개</a>
-    <a href="question.html">질문 게시판</a>
-    <a href="activity.html">활동 사진</a>
-    <a href="resource.html">자료실</a>
-    <a href="weather.html">기상 정보</a>
-    <a href="mypage.html">정보 수정</a>
+    <div class="nav-inner">
+        <a href="index.html">홈</a>
+        <a href="introduce.html">동아리 소개</a>
+        <a href="question.html">질문 게시판</a>
+        <a href="activity.html">활동 사진</a>
+        <a href="resource.html">자료실</a>
+        <a href="weather.html">기상 정보</a>
+        <a href="mypage.html">정보 수정</a>
+    </div>
 </nav>
 
 <div class="container">
@@ -124,7 +140,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-// 1. 파이어베이스 설정
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -142,15 +157,13 @@ const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
 let currentUser = null;
 let currentUserName = "익명";
-let cachedData = null; // 실시간 검색을 위한 데이터 캐싱
+let cachedData = null;
 
-// 2. 로그인 상태 감지
 auth.onAuthStateChanged(user => {
     currentUser = user;
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtn = document.getElementById("logoutBtn");
-    const deleteBtn = document.getElementById("deleteBtn");
 
     if (user) {
         db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
@@ -159,18 +172,15 @@ auth.onAuthStateChanged(user => {
         });
         loginBtn.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
-        deleteBtn.classList.remove("hidden");
     } else {
         currentUserName = "익명";
         status.innerText = "로그인 해주세요";
         loginBtn.classList.remove("hidden");
         logoutBtn.classList.add("hidden");
-        deleteBtn.classList.add("hidden");
     }
-    loadQuestions();
+    loadQuestions(); // 상태 확인 후 질문 로드
 });
 
-// 3. 질문 등록
 function addQuestion() {
     const text = document.getElementById("qInput").value.trim();
     if(!text) return alert("질문을 입력해주세요.");
@@ -185,10 +195,9 @@ function addQuestion() {
     });
 }
 
-// 4. 질문 목록 실시간 리스너 및 렌더링
 function loadQuestions() {
     db.ref("questions").on("value", snapshot => {
-        cachedData = snapshot.val(); // 전체 데이터 캐싱
+        cachedData = snapshot.val();
         renderList(cachedData);
     });
 }
@@ -208,10 +217,9 @@ function renderList(data) {
 
     keys.forEach(qKey => {
         const q = data[qKey];
-        const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+        const isAdmin = currentUser && currentUser.email && currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
         const isAuthor = currentUser && currentUser.email === q.email;
         
-        // 검색 필터링 (질문 본문, 작성자, 답글 전체 검색)
         const repliesText = q.replies ? Object.values(q.replies).map(r => r.text + r.author).join(" ") : "";
         const searchPool = (q.text + q.author + repliesText).toLowerCase();
         
@@ -254,12 +262,10 @@ function renderList(data) {
     }
 }
 
-// 5. 검색 실행 (입력 시마다 호출)
 function filterQuestions() {
     renderList(cachedData);
 }
 
-// 6. 답글 저장
 function saveAnswer(qKey) {
     const ansText = document.getElementById("ans_"+qKey).value.trim();
     if(!ansText) return alert("내용을 입력하세요.");
@@ -274,7 +280,6 @@ function saveAnswer(qKey) {
     });
 }
 
-// 7. 삭제 및 탈퇴 기능
 function deleteQuestion(qKey) {
     if(confirm("이 질문과 모든 답글이 삭제됩니다.")) db.ref("questions/"+qKey).remove();
 }
