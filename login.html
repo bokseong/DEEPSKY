@@ -26,9 +26,8 @@
         .btn-login { background: #3a5aff; color: white; }
         .btn-signup { background: transparent; color: #7fc7ff; border: 1px solid #3a5aff; }
         .btn-google { background: white; color: #444; border: 1px solid #ddd; }
-        /* GitHub 버튼 스타일 추가 */
         .btn-github { background: #24292e; color: white; }
-        .btn-github img { filter: invert(1); } /* GitHub 로고를 흰색으로 */
+        .btn-github img { filter: invert(1); }
         
         .link-group { margin-top: 15px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
         .sub-link { color: #7fc7ff; font-size: 13px; text-decoration: none; cursor: pointer; }
@@ -79,7 +78,6 @@
         
         <div class="link-group">
             <a class="sub-link" onclick="resetPassword()">비밀번호 찾기</a>
-            <a class="sub-link" onclick="updateEmail()">이메일 변경</a>
         </div>
 
         <p class="info-text">
@@ -111,69 +109,50 @@
     const auth = firebase.auth();
     const db = firebase.database();
     
-    // Provider 정의
     const googleProvider = new firebase.auth.GoogleAuthProvider();
     const githubProvider = new firebase.auth.GithubAuthProvider();
 
-// 1. 구글 로그인
-function googleLogin() {
-    auth.signInWithPopup(googleProvider)
-        .then((result) => {
-            const user = result.user;
-            
-            // 데이터베이스 저장 로직을 변수에 담아 실행 보장
-            const updates = {};
-            updates['/users/' + user.uid] = {
-                name: user.displayName || "구글 사용자",
-                email: user.email,
-                lastLogin: new Date().toLocaleString()
-            };
+    // 1. 구글 로그인
+    function googleLogin() {
+        auth.signInWithPopup(googleProvider)
+            .then((result) => {
+                const user = result.user;
+                const updates = {};
+                updates['/users/' + user.uid] = {
+                    name: user.displayName || "구글 사용자",
+                    email: user.email,
+                    lastLogin: new Date().toLocaleString()
+                };
+                return db.ref().update(updates).then(() => {
+                    alert(user.displayName + "님, 환영합니다!");
+                    location.href = "index.html";
+                });
+            })
+            .catch((error) => handleAuthError(error));
+    }
 
-            // ref().update()를 사용하여 데이터 유실 방지
-            return db.ref().update(updates).then(() => {
-                alert(user.displayName + "님, 환영합니다!");
-                location.href = "index.html";
-            });
-        })
-        .catch((error) => handleAuthError(error));
-}
+    // 2. 깃허브 로그인
+    function githubLogin() {
+        auth.signInWithPopup(githubProvider)
+            .then((result) => {
+                const user = result.user;
+                const userName = user.displayName || "GitHub 유저";
+                const userEmail = user.email || "Private Email";
+                const userData = {
+                    name: userName,
+                    email: userEmail,
+                    lastLogin: new Date().toLocaleString()
+                };
+                return db.ref('users/' + user.uid).update(userData).then(() => {
+                    alert(userName + "님, 환영합니다! (GitHub)");
+                    location.href = "index.html";
+                });
+            })
+            .catch((error) => handleAuthError(error));
+    }
 
-// 2. 깃허브 로그인
-function githubLogin() {
-    auth.signInWithPopup(githubProvider)
-        .then((result) => {
-            const user = result.user;
-
-            // 깃허브에서 정보를 못 가져올 경우를 대비한 대체값 설정
-            const userName = user.displayName || "GitHub 유저";
-            const userEmail = user.email || "Private Email"; // 이메일이 없어도 에러 안 나게 함
-
-            const userData = {
-                name: userName,
-                email: userEmail,
-                lastLogin: new Date().toLocaleString()
-            };
-
-            // DB에 저장 시도
-            return db.ref('users/' + user.uid).update(userData).then(() => {
-                alert(userName + "님, 환영합니다! (GitHub)");
-                location.href = "index.html";
-            });
-        })
-        .catch((error) => {
-            console.error("GitHub 에러 상세:", error); // 에러 원인을 콘솔에 찍음
-            handleAuthError(error);
-        });
-}
-
-    // 공통 에러 핸들러
     function handleAuthError(error) {
-        console.error("Auth Error:", error);
-        if (error.code === 'auth/operation-not-allowed') {
-            alert("Firebase 콘솔에서 해당 로그인 수단이 활성화되어 있는지 확인하세요.");
-        } else if (error.code === 'auth/unauthorized-domain') {
-            alert("이 도메인이 Firebase 승인된 도메인에 등록되어 있지 않습니다.");
-        } else if (error.code === 'auth/account-exists-with-different-credential') {
+        if (error.code === 'auth/account-exists-with-different-credential') {
             alert("이미 다른 로그인 방식으로 가입된 이메일입니다.");
         } else {
             alert("오류 발생: " + error.message);
@@ -182,33 +161,28 @@ function githubLogin() {
 
     // 3. 이메일 회원가입
     function signup() {
-    const name = document.getElementById("name").value.trim();
-    const email = document.getElementById("email").value.trim();
-    const pw = document.getElementById("password").value.trim();
+        const name = document.getElementById("name").value.trim();
+        const email = document.getElementById("email").value.trim();
+        const pw = document.getElementById("password").value.trim();
 
-    if(!name || !email || !pw) return alert("모든 항목을 입력해주세요.");
+        if(!name || !email || !pw) return alert("모든 항목을 입력해주세요.");
 
-    auth.createUserWithEmailAndPassword(email, pw)
-        .then(result => {
-            const user = result.user;
-            // 1. Auth 프로필에 이름 저장 (인증 콘솔용)
-            user.updateProfile({ displayName: name });
-
-            // 2. [핵심] Realtime Database에 이름 저장 (관리자 수정용)
-            // users/UID/name 경로에 저장합니다.
-            db.ref('users/' + user.uid).set({
-                name: name,
-                email: email
-            });
-
-            return user.sendEmailVerification();
-        })
-        .then(() => {
-            alert("가입 성공! 메일함을 확인하여 인증을 완료해주세요.");
-            location.href = "index.html";
-        })
-        .catch(err => alert("가입 실패: " + err.message));
-}
+        auth.createUserWithEmailAndPassword(email, pw)
+            .then(result => {
+                const user = result.user;
+                user.updateProfile({ displayName: name });
+                db.ref('users/' + user.uid).set({
+                    name: name,
+                    email: email
+                });
+                return user.sendEmailVerification();
+            })
+            .then(() => {
+                alert("가입 성공! 메일함을 확인하여 인증을 완료해주세요.");
+                location.href = "index.html";
+            })
+            .catch(err => alert("가입 실패: " + err.message));
+    }
 
     // 4. 이메일 로그인
     function login() {
@@ -238,24 +212,6 @@ function githubLogin() {
             .then(() => alert("비밀번호 재설정 메일을 보냈습니다."))
             .catch(err => alert("에러: " + err.message));
     }
-
-    // 6. 이메일 변경
-    function updateEmail() {
-        const user = auth.currentUser;
-        if (!user) return alert("로그인이 필요합니다.");
-
-        const newEmail = prompt("새로운 이메일 주소:");
-        if (newEmail) {
-            user.updateEmail(newEmail)
-                .then(() => {
-                    user.sendEmailVerification();
-                    alert("이메일이 변경되었습니다. 다시 인증해주세요.");
-                })
-                .catch(err => alert("에러: " + err.message));
-        }
-    }
-
-    
 </script>
 
 </body>
