@@ -181,6 +181,7 @@ auth.onAuthStateChanged(user => {
     const logoutBtn = document.getElementById("logoutBtn");
 
     if (user) {
+        // DB에서 이름 실시간 동기화
         db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
             currentUserName = snapshot.val() || user.displayName || user.email.split('@')[0];
             status.innerText = `${currentUserName}님`;
@@ -190,6 +191,7 @@ auth.onAuthStateChanged(user => {
         logoutBtn.classList.remove("hidden");
         loadResources();
     } else {
+        // 비로그인 시 경고 후 로그인 페이지로 리다이렉트
         alert("자료실은 회원만 이용 가능합니다. 로그인을 해주세요!");
         location.href = "login.html";
     }
@@ -209,8 +211,11 @@ function loadResources() {
 
         Object.keys(data).reverse().forEach(key => {
             const res = data[key];
-            const isAdmin = auth.currentUser && auth.currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-            const isOwner = auth.currentUser && auth.currentUser.email === res.ownerEmail;
+            const user = auth.currentUser;
+            
+            // 관리자이거나, UID 또는 이메일이 일치하는 작성자 본인인 경우 삭제 허용
+            const isAdmin = user && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+            const isOwner = user && (user.uid === res.ownerUid || user.email === res.ownerEmail);
             
             const row = document.createElement("tr");
             row.innerHTML = `
@@ -226,7 +231,7 @@ function loadResources() {
     });
 }
 
-// 3. 자료 업로드
+// 3. 자료 업로드 (보안 규칙 연동을 위해 ownerUid 추가)
 function uploadResource() {
     const title = document.getElementById("newResTitle").value.trim();
     const url = document.getElementById("newResUrl").value.trim();
@@ -241,11 +246,14 @@ function uploadResource() {
         url: url,
         ownerName: currentUserName,
         ownerEmail: user.email,
+        ownerUid: user.uid, // [중요] 보안 규칙 확인용 UID 추가
         timestamp: firebase.database.ServerValue.TIMESTAMP
     }).then(() => {
         alert("자료가 등록되었습니다!");
         document.getElementById("newResTitle").value = "";
         document.getElementById("newResUrl").value = "";
+    }).catch(err => {
+        alert("등록 실패: " + err.message);
     });
 }
 
@@ -261,15 +269,22 @@ function filterResources() {
 
 // 5. 삭제 기능
 function deleteRes(key) {
-    if(confirm("이 자료를 삭제하시겠습니까?")) db.ref("resources/" + key).remove();
+    if(confirm("이 자료를 삭제하시겠습니까?")) {
+        db.ref("resources/" + key).remove()
+            .then(() => alert("삭제되었습니다."))
+            .catch(err => alert("삭제 권한이 없습니다: " + err.message));
+    }
 }
 
-// 6. 로그아웃
+// 6. 로그아웃 (홈으로 이동)
 function logout() {
     if(confirm("로그아웃 하시겠습니까?")) {
-        auth.signOut().then(() => location.href = "index.html");
+        auth.signOut().then(() => {
+            location.href = "index.html"; // 홈으로 이동
+        });
     }
 }
 </script>
 </body>
 </html>
+
