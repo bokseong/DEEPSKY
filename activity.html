@@ -128,7 +128,8 @@
 
 <div class="container">
     <div id="uploadSection" class="upload-card hidden">
-        <h3 style="margin-top:0; color:#7fc7ff;">새 사진 등록</h3>
+        <h3 style="margin-top:0; color:#7fc7ff;">새 사진 등록</h3><br>
+        <p>imgbb에 사진 업로드 후 https://~.jpg(또는 .png)형식의 링크를 넣어 주세요!</p>
         <input type="text" id="imageUrl" placeholder="이미지 직접 링크 (https://...jpg)">
         <input type="text" id="imageTitle" placeholder="사진 제목">
         <button class="btn-upload" onclick="uploadPhoto()">갤러리에 올리기</button>
@@ -163,7 +164,7 @@ const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
 let currentUserName = "익명";
 
-// 1. 상태 관리 및 이름 실시간 연동
+// 1. [핵심] 상태 관리 및 접근 제어
 auth.onAuthStateChanged(user => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
@@ -171,6 +172,7 @@ auth.onAuthStateChanged(user => {
     const uploadSection = document.getElementById("uploadSection");
 
     if (user) {
+        // 로그인 된 경우: 이름 실시간 연동 및 UI 활성화
         db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
             currentUserName = snapshot.val() || user.displayName || user.email.split('@')[0];
             status.innerText = `${currentUserName}님`;
@@ -178,18 +180,20 @@ auth.onAuthStateChanged(user => {
         loginBtn.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
         uploadSection.classList.remove("hidden");
+        
+        // 데이터 로드는 로그인이 확인된 후에만 시작
+        loadPhotos();
     } else {
-        status.innerText = "로그인 해주세요";
-        loginBtn.classList.remove("hidden");
-        logoutBtn.classList.add("hidden");
-        uploadSection.classList.add("hidden");
+        // [수정] 비로그인 사용자: 경고 후 로그인 페이지로 리다이렉트
+        alert("활동 사진은 동아리 회원만 열람할 수 있습니다. 로그인을 해주세요.");
+        location.href = "login.html";
     }
-    loadPhotos();
 });
 
 // 2. 사진 불러오기
 function loadPhotos() {
     const grid = document.getElementById("photoGrid");
+    // 보안 규칙에서 .read: auth != null 로 설정했으므로 로그인 상태에서만 작동함
     db.ref('photos_link').orderByChild('createdAt').on('value', snapshot => {
         grid.innerHTML = "";
         const data = snapshot.val();
@@ -200,7 +204,12 @@ function loadPhotos() {
 
         Object.keys(data).reverse().forEach(key => {
             const item = data[key];
-            const isAdmin = auth.currentUser && (auth.currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase() || auth.currentUser.email === item.ownerEmail);
+            // 관리자이거나 글 작성자 본인(UID 또는 Email 일치)인 경우 삭제 버튼 노출
+            const isAdmin = auth.currentUser && (
+                auth.currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase() || 
+                auth.currentUser.uid === item.ownerUid ||
+                auth.currentUser.email === item.ownerEmail
+            );
             
             const card = document.createElement("div");
             card.className = "photo-card";
@@ -217,35 +226,53 @@ function loadPhotos() {
             `;
             grid.appendChild(card);
         });
+    }, error => {
+        if(error.code === "PERMISSION_DENIED") {
+            grid.innerHTML = "<p style='grid-column:1/-1; text-align:center; color:#ff4d4d;'>접근 권한이 없습니다.</p>";
+        }
     });
 }
 
-// 3. 사진 등록
+// 3. 사진 등록 (보안 규칙 준수를 위해 ownerUid 추가)
 function uploadPhoto() {
+    const user = auth.currentUser;
     const url = document.getElementById("imageUrl").value.trim();
     const title = document.getElementById("imageTitle").value.trim();
+    
+    if(!user) return alert("로그인이 필요합니다.");
     if(!url || !title) return alert("이미지 링크와 제목을 모두 입력해주세요.");
 
     db.ref('photos_link').push({
         url: url,
         title: title,
         ownerName: currentUserName,
-        ownerEmail: auth.currentUser.email,
+        ownerEmail: user.email,
+        ownerUid: user.uid,
         createdAt: firebase.database.ServerValue.TIMESTAMP
     }).then(() => {
         alert("사진이 등록되었습니다!");
         document.getElementById("imageUrl").value = "";
         document.getElementById("imageTitle").value = "";
+    }).catch(err => {
+        alert("등록 권한이 없습니다: " + err.message);
     });
 }
 
 function deletePhoto(key) { 
-    if(confirm("사진을 삭제하시겠습니까?")) db.ref('photos_link/' + key).remove(); 
+    if(confirm("사진을 삭제하시겠습니까?")) {
+        db.ref('photos_link/' + key).remove()
+            .then(() => alert("삭제되었습니다."))
+            .catch(err => alert("삭제 실패: " + err.message));
+    }
 }
 
 function logout() { 
-    if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); 
+    if(confirm("로그아웃 하시겠습니까?")) {
+        auth.signOut().then(() => {
+            location.href = "index.html";
+        });
+    }
 }
-</script>
-</body>
+</script></body>
 </html>
+
