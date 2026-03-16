@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>글 보기 - DEEP SKY</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: "Pretendard", sans-serif; background: #0b0f2b; color: white; }
+        .hidden { display: none !important; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 0 30px; background: #070a1d; border-bottom: 1px solid #1b2f80; height: 65px; }
+        .logo-area { display: flex; align-items: center; text-decoration: none; color: white; font-weight: bold; }
+        .logo-area img { width: 40px; border-radius: 50%; margin-right: 12px; }
+
+        .container { max-width: 800px; margin: 40px auto; padding: 0 20px 100px; }
+        .view-card { background: #161b4a; padding: 40px; border-radius: 15px; border: 1px solid #2d367a; }
+        .post-header { border-bottom: 1px solid #2d367a; margin-bottom: 25px; padding-bottom: 20px; }
+        .post-title { font-size: 28px; color: #7fc7ff; margin: 0 0 15px 0; }
+        .post-info { font-size: 14px; color: #aaa; display: flex; justify-content: space-between; }
+        .post-content { line-height: 1.8; min-height: 300px; white-space: pre-wrap; font-size: 17px; color: #eee; }
+        
+        .btn-group { margin-top: 40px; display: flex; justify-content: space-between; align-items: center; }
+        .btn { padding: 12px 25px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .btn-list { background: #3a5aff; color: white; }
+        .btn-delete { background: #ff4d4d; color: white; }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <a href="index.html" class="logo-area">
+        <img src="logo.png" onerror="this.src='https://via.placeholder.com/40'">
+        <span>DEEP SKY</span>
+    </a>
+    <div id="userStatus" style="font-size:14px;">불러오는 중...</div>
+</div>
+
+<div class="container">
+    <div id="postArea" class="view-card hidden">
+        <div class="post-header">
+            <h2 id="viewTitle" class="post-title"></h2>
+            <div class="post-info">
+                <span id="viewAuthor"></span>
+                <span id="viewDate"></span>
+            </div>
+        </div>
+        <div id="viewContent" class="post-content"></div>
+        
+        <div class="btn-group">
+            <button class="btn btn-list" onclick="location.href='board.html'">목록으로 돌아가기</button>
+            <button id="deleteBtn" class="btn btn-delete hidden" onclick="deletePost()">이 글 삭제하기</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
+    authDomain: "bokseong-deep-sky.firebaseapp.com",
+    databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "bokseong-deep-sky",
+    storageBucket: "bokseong-deep-sky.firebasestorage.app",
+    messagingSenderId: "800777151311",
+    appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+const ADMIN_EMAIL = "leader.deepsky@gmail.com";
+
+const urlParams = new URLSearchParams(window.location.search);
+const postId = urlParams.get('id');
+
+auth.onAuthStateChanged(user => {
+    if (user) document.getElementById("userStatus").innerText = user.email.split('@')[0] + "님 로그인 중";
+    else document.getElementById("userStatus").innerText = "비로그인 상태";
+    loadPost(user);
+});
+
+function loadPost(user) {
+    if(!postId) return alert("게시글 ID가 없습니다.");
+
+    db.ref("freeboard/" + postId).on("value", snapshot => {
+        const post = snapshot.val();
+        if(!post) {
+            // 이미 삭제된 경우 처리
+            document.getElementById("postArea").innerHTML = "<p style='text-align:center;'>삭제된 게시글입니다.</p>";
+            return;
+        }
+
+        document.getElementById("postArea").classList.remove("hidden");
+        document.getElementById("viewTitle").innerText = post.title;
+        document.getElementById("viewAuthor").innerText = "작성자: " + post.author;
+        document.getElementById("viewDate").innerText = new Date(post.createdAt).toLocaleString();
+        document.getElementById("viewContent").innerText = post.content;
+
+        // 🚨 권한 체크: 현재 접속자가 작성자(uid 일치)거나 관리자 이메일인 경우 삭제 버튼 표시
+        if(user && (user.uid === post.uid || user.email === ADMIN_EMAIL)) {
+            document.getElementById("deleteBtn").classList.remove("hidden");
+        }
+    });
+}
+
+function deletePost() {
+    if(confirm("정말로 이 게시글을 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.")) {
+        db.ref("freeboard/" + postId).remove()
+        .then(() => {
+            alert("게시글이 삭제되었습니다.");
+            location.href = 'board.html';
+        })
+        .catch(err => alert("삭제 권한이 없거나 오류가 발생했습니다."));
+    }
+}
+</script>
+</body>
+</html>
