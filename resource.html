@@ -57,7 +57,18 @@
             padding-left: 15px; margin-bottom: 25px; font-size: 24px; 
         }
 
-        /* 부장님 전용 업로드 박스 */
+        /* 🔍 검색창 스타일 */
+        .search-box {
+            display: flex; gap: 10px; margin-bottom: 20px;
+        }
+        .search-box input {
+            flex: 1; padding: 12px 15px; background: #0b0f2b; 
+            border: 1px solid #2d367a; color: white; border-radius: 10px;
+            font-size: 14px; outline: none; transition: 0.2s;
+        }
+        .search-box input:focus { border-color: #3a5aff; box-shadow: 0 0 10px rgba(58, 90, 255, 0.3); }
+
+        /* 관리자용 업로드 박스 */
         .admin-box { 
             background: rgba(58, 90, 255, 0.05); border: 1px dashed #3a5aff; 
             padding: 25px; border-radius: 15px; margin-bottom: 40px; 
@@ -135,21 +146,26 @@
 <div class="container">
     <div id="lockMessage" class="intro-card hidden" style="text-align: center;">
         <h2 style="border:none; padding:0; text-align:center;">🔒 회원 전용 공간</h2>
-        <p>자료실은 DEEP SKY 회원만 접근할 수 있습니다.<br>로그인 후 다양한 천문 자료를 만나보세요.</p>
+        <p>자료실은 DEEP SKY 회원만 접근할 수 있습니다.</p>
         <button class="btn-main" onclick="location.href='login.html'" style="width: auto; padding: 12px 40px; margin-top: 20px;">로그인하러 가기</button>
     </div>
 
     <div id="mainContent" class="hidden">
         <div id="adminUpload" class="admin-box hidden">
             <h3>새로운 자료 등록 (관리자)</h3>
-            <input type="text" id="fileTitle" placeholder="자료 제목 (예: 2026 관측 가이드라인)">
-            <input type="text" id="fileDesc" placeholder="자료에 대한 설명을 간단히 적어주세요">
-            <input type="text" id="fileLink" placeholder="다운로드 링크 (Google Drive 등)">
+            <input type="text" id="fileTitle" placeholder="자료 제목">
+            <input type="text" id="fileDesc" placeholder="자료 설명">
+            <input type="text" id="fileLink" placeholder="다운로드 링크">
             <button class="btn-main" onclick="uploadResource()">자료 게시하기</button>
         </div>
 
         <div class="intro-card">
             <h2>보관된 자료 목록</h2>
+            
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="찾으시는 자료의 제목이나 설명을 입력하세요..." onkeyup="filterResources()">
+            </div>
+
             <div class="resource-grid" id="resourceList">
                 </div>
         </div>
@@ -178,7 +194,8 @@ const auth = firebase.auth();
 const db = firebase.database();
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-// 1. 로그인 상태 체크 및 UI 전환
+let allResources = []; // 전체 자료 보관용 배열
+
 auth.onAuthStateChanged(user => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
@@ -197,7 +214,6 @@ auth.onAuthStateChanged(user => {
         lockMsg.classList.add("hidden");
         mainContent.classList.remove("hidden");
 
-        // 관리자 권한 확인
         if(user.email === ADMIN_EMAIL) adminUpload.classList.remove("hidden");
         
         loadResources(user);
@@ -210,74 +226,83 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// 2. 자료 불러오기
 function loadResources(user) {
     db.ref("resources").on("value", snapshot => {
-        const list = document.getElementById("resourceList");
-        list.innerHTML = "";
         const data = snapshot.val();
-        
-        if(!data) {
-            list.innerHTML = "<p style='grid-column: 1/-1; text-align: center; color: #888; padding: 40px;'>아직 등록된 자료가 없습니다.</p>";
-            return;
+        allResources = []; // 초기화
+
+        if(data) {
+            Object.keys(data).forEach(key => {
+                allResources.push({ id: key, ...data[key] });
+            });
+            allResources.reverse();
         }
-
-        Object.keys(data).reverse().forEach(key => {
-            const item = data[key];
-            const div = document.createElement("div");
-            div.className = "resource-item";
-            
-            const isManager = (user && user.email === ADMIN_EMAIL);
-            const delBtn = isManager ? `<button class="btn-delete" onclick="deleteRes('${key}')">삭제하기</button>` : "";
-
-            div.innerHTML = `
-                <div>
-                    <div class="file-name">📁 ${item.title}</div>
-                    <div class="file-desc">${item.desc || '설명 없음'}</div>
-                </div>
-                <div>
-                    <a href="${item.link}" target="_blank" class="btn-download">자료 다운로드</a>
-                    ${delBtn}
-                </div>
-            `;
-            list.appendChild(div);
-        });
+        renderResources(allResources, user);
     });
 }
 
-// 3. 자료 업로드 (관리자용)
+// 화면에 자료 리스트를 그리는 함수
+function renderResources(items, user) {
+    const list = document.getElementById("resourceList");
+    list.innerHTML = "";
+    
+    if(items.length === 0) {
+        list.innerHTML = "<p style='grid-column: 1/-1; text-align: center; color: #888; padding: 40px;'>해당하는 자료가 없습니다.</p>";
+        return;
+    }
+
+    items.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "resource-item";
+        
+        const isManager = (user && user.email === ADMIN_EMAIL);
+        const delBtn = isManager ? `<button class="btn-delete" onclick="deleteRes('${item.id}')">삭제하기</button>` : "";
+
+        div.innerHTML = `
+            <div>
+                <div class="file-name">📁 ${item.title}</div>
+                <div class="file-desc">${item.desc || '설명 없음'}</div>
+            </div>
+            <div>
+                <a href="${item.link}" target="_blank" class="btn-download">자료 다운로드</a>
+                ${delBtn}
+            </div>
+        `;
+        list.appendChild(div);
+    });
+}
+
+// 🔍 검색 필터링 함수
+function filterResources() {
+    const keyword = document.getElementById("searchInput").value.toLowerCase();
+    const filtered = allResources.filter(item => 
+        item.title.toLowerCase().includes(keyword) || 
+        item.desc.toLowerCase().includes(keyword)
+    );
+    renderResources(filtered, auth.currentUser);
+}
+
 function uploadResource() {
     const title = document.getElementById("fileTitle").value.trim();
     const desc = document.getElementById("fileDesc").value.trim();
     let link = document.getElementById("fileLink").value.trim();
-
-    if(!title || !link) return alert("제목과 링크는 필수 입력 사항입니다.");
-    
-    // 링크 보정
+    if(!title || !link) return alert("필수 항목 입력 누락");
     if(!link.startsWith('http')) link = 'https://' + link;
-
-    db.ref("resources").push({
-        title, desc, link, createdAt: firebase.database.ServerValue.TIMESTAMP
-    }).then(() => {
-        alert("성공적으로 등록되었습니다.");
+    db.ref("resources").push({ title, desc, link, createdAt: firebase.database.ServerValue.TIMESTAMP })
+    .then(() => {
+        alert("등록 완료");
         document.getElementById("fileTitle").value = "";
         document.getElementById("fileDesc").value = "";
         document.getElementById("fileLink").value = "";
-    }).catch(err => alert("등록 실패: " + err.message));
+    });
 }
 
-// 4. 자료 삭제 (관리자용)
 function deleteRes(key) {
-    if(confirm("이 자료를 영구적으로 삭제하시겠습니까?")) {
-        db.ref("resources/" + key).remove();
-    }
+    if(confirm("삭제하시겠습니까?")) db.ref("resources/" + key).remove();
 }
 
-// 5. 로그아웃
 function logout() { 
-    if(confirm("로그아웃 하시겠습니까?")) {
-        auth.signOut().then(() => { location.reload(); });
-    }
+    if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload());
 }
 </script>
 </body>
