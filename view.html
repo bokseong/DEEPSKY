@@ -111,14 +111,23 @@ auth.onAuthStateChanged(user => {
 });
 
 function loadPost(user) {
-    if(!postId) return alert("게시글 ID가 없습니다.");
+    if(post.fileUrl && post.fileUrl.trim() !== "") {
+    const linkArea = document.getElementById("linkArea");
+    const linkBtn = document.getElementById("viewFileLink");
+    linkArea.classList.remove("hidden");
 
-    db.ref("freeboard/" + postId).on("value", snapshot => {
-        const post = snapshot.val();
-        if(!post) {
-            document.getElementById("postArea").innerHTML = "<p style='text-align:center; padding:50px;'>삭제된 게시글이거나 존재하지 않습니다.</p>";
-            document.getElementById("postArea").classList.remove("hidden");
-            return;
+    let finalUrl = post.fileUrl.trim();
+    
+    // 주소에 http가 없으면 자동으로 붙여줌 (상대 경로 방지)
+    if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+        finalUrl = 'https://' + finalUrl;
+    }
+
+    linkBtn.href = finalUrl;
+    linkBtn.target = "_blank"; // 무조건 새 탭에서 열기
+    linkBtn.rel = "noopener noreferrer"; // 보안 강화
+    linkBtn.innerText = "🔗 " + (post.fileName || "파일/링크 열기");
+}
         }
 
         document.getElementById("postArea").classList.remove("hidden");
