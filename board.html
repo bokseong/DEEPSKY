@@ -103,7 +103,7 @@
     </div>
 </div>
 
-<footer>© DEEP SKY | Bokseong Astronomy and Aerospace Club</footer>
+<footer>© DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.</footer>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -175,7 +175,7 @@ function loadPosts() {
             infoArea.innerHTML = `<div class="post-title">${p.title}</div><div class="post-meta">${p.author}</div>`;
             item.appendChild(infoArea);
 
-            // 🚨 삭제 버튼 로직 추가 (본인 글이거나 관리자 계정일 때)
+            // 삭제 버튼 로직 추가 (본인 글이거나 관리자 계정일 때)
             const adminEmail = "leader.deepsky@gmail.com"; // 부장님 관리자 계정
             if(currentUser && (currentUser.uid === p.uid || currentUser.email === adminEmail)) {
                 const delBtn = document.createElement("button");
