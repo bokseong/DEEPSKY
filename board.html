@@ -22,8 +22,15 @@
 <body>
 
 <div class="top-bar">
-    <a href="index.html" style="color:white; text-decoration:none; font-weight:bold;">DEEP SKY</a>
-    <div id="userStatus" style="font-size:14px;"></div>
+    <a href="index.html" class="logo-area">
+        <img src="logo.png" onerror="this.src='https://via.placeholder.com/35'">
+        <span>DEEP SKY</span>
+    </a>
+    <div class="auth-bar">
+        <span id="userStatus">불러오는 중...</span>
+        <button id="loginBtn" onclick="location.href='login.html'">로그인</button>
+        <button id="logoutBtn" class="hidden" onclick="logout()">로그아웃</button>
+    </div>
 </div>
 
 <div class="container">
