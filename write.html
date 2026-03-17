@@ -6,61 +6,30 @@
     <title>글쓰기 - DEEP SKY</title>
     <style>
         * { box-sizing: border-box; }
-        body { margin: 0; font-family: "Pretendard", "Segoe UI", sans-serif; background: #0b0f2b; color: white; }
-        .hidden { display: none !important; }
-
-        /* 상단 바 (인덱스와 동일) */
-        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 0 30px; background: #070a1d; border-bottom: 1px solid #1b2f80; height: 65px; position: sticky; top: 0; z-index: 1000; }
-        .logo-area { display: flex; align-items: center; text-decoration: none; color: white; }
-        .logo-area img { width: 40px; height: 40px; margin-right: 12px; border-radius: 50%; }
-        .logo-area span { font-size: 20px; font-weight: bold; }
-        .auth-bar { font-size: 14px; display: flex; align-items: center; gap: 10px; }
-        .auth-bar button { padding: 7px 16px; border-radius: 5px; border: none; background: #3a5aff; color: white; cursor: pointer; font-weight: bold; }
-
-        .container { max-width: 800px; margin: 40px auto; padding: 0 20px 100px; }
+        body { margin: 0; font-family: "Pretendard", sans-serif; background: #0b0f2b; color: white; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 0 30px; background: #070a1d; border-bottom: 1px solid #1b2f80; height: 65px; }
+        .container { max-width: 800px; margin: 40px auto; padding: 0 20px; }
         .write-card { background: #161b4a; padding: 30px; border-radius: 15px; border: 1px solid #2d367a; }
-        
-        input[type="text"], textarea { 
-            width: 100%; padding: 15px; margin-bottom: 20px; 
-            background: #0b0f2b; border: 1px solid #1b2f80; color: white; border-radius: 10px; outline: none; font-size: 16px;
-        }
-        textarea { height: 350px; resize: none; line-height: 1.6; }
-        
-        .file-input-group { margin-bottom: 25px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px; border: 1px dashed #1b2f80; }
-        label { display: block; margin-bottom: 10px; font-size: 14px; color: #7fc7ff; font-weight: bold; }
-        
+        input, textarea { width: 100%; padding: 15px; margin-bottom: 20px; background: #0b0f2b; border: 1px solid #1b2f80; color: white; border-radius: 10px; outline: none; }
+        textarea { height: 350px; resize: none; }
         .btn-submit { width: 100%; padding: 18px; background: #3a5aff; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; }
-        .btn-submit:hover { background: #2a47d6; }
-        .btn-cancel { width: 100%; padding: 12px; background: transparent; color: #888; border: none; margin-top: 10px; cursor: pointer; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
 <div class="top-bar">
-    <a href="index.html" class="logo-area">
-        <img src="logo.png" onerror="this.src='https://via.placeholder.com/40'">
-        <span>DEEP SKY</span>
-    </a>
-    <div class="auth-bar">
-        <span id="userStatus">접속 중...</span>
-        <button id="loginBtn" onclick="location.href='login.html'">로그인</button>
-        <button id="logoutBtn" class="hidden" onclick="logout()">로그아웃</button>
-    </div>
+    <a href="index.html" style="text-decoration:none; color:white; font-weight:bold;">DEEP SKY</a>
+    <span id="userStatus" style="font-size:14px;">확인 중...</span>
 </div>
 
 <div class="container">
-    <h2 style="text-align:center; color:#7fc7ff; margin-bottom:30px;">새 게시글 작성</h2>
+    <h2 style="text-align:center; color:#7fc7ff;">새 게시글 작성</h2>
     <div class="write-card">
         <input type="text" id="postTitle" placeholder="제목을 입력하세요">
         <textarea id="postContent" placeholder="내용을 자유롭게 입력하세요..."></textarea>
-        
-        <div class="file-input-group">
-            <label>📎 첨부 파일 (준비 중)</label>
-            <input type="file" id="postFile" style="color:#888;">
-        </div>
-        
         <button class="btn-submit" onclick="submitPost()">게시글 등록하기</button>
-        <button class="btn-cancel" onclick="history.back()">취소</button>
+        <button onclick="history.back()" style="width:100%; background:none; border:none; color:#888; margin-top:10px; cursor:pointer;">취소</button>
     </div>
 </div>
 
@@ -69,24 +38,30 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-// 파이어베이스 설정 동일
-const firebaseConfig = { /* 위와 동일 */ };
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const firebaseConfig = {
+    apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
+    authDomain: "bokseong-deep-sky.firebaseapp.com",
+    databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "bokseong-deep-sky",
+    storageBucket: "bokseong-deep-sky.firebasestorage.app",
+    messagingSenderId: "800777151311",
+    appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
+};
+
+firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
-let currentUserName = "익명";
+let currentUserName = "";
 
 auth.onAuthStateChanged(user => {
     if (user) {
-        db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
-            currentUserName = snapshot.val() || user.displayName || user.email.split('@')[0];
-            document.getElementById("userStatus").innerText = `${currentUserName}님`;
+        db.ref('users/' + user.uid + '/name').once('value', snap => {
+            currentUserName = snap.val() || user.email.split('@')[0];
+            document.getElementById("userStatus").innerText = currentUserName + "님 작성 중";
         });
-        document.getElementById("loginBtn").classList.add("hidden");
-        document.getElementById("logoutBtn").classList.remove("hidden");
     } else {
-        alert("로그인이 필요한 서비스입니다.");
+        alert("로그인이 필요합니다.");
         location.href = "login.html";
     }
 });
@@ -94,22 +69,27 @@ auth.onAuthStateChanged(user => {
 function submitPost() {
     const title = document.getElementById("postTitle").value.trim();
     const content = document.getElementById("postContent").value.trim();
-    
-    if(!title || !content) return alert("제목과 내용을 입력해주세요.");
+    const user = auth.currentUser;
 
+    if(!title || !content) return alert("제목과 내용을 입력해주세요.");
+    if(!user) return alert("로그인 정보가 없습니다.");
+
+    // 🚨 핵심: push 시 uid를 명확히 포함해야 규칙을 통과함
     db.ref("freeboard").push({
         title: title,
         content: content,
         author: currentUserName,
+        uid: user.uid,
+        email: user.email,
         createdAt: firebase.database.ServerValue.TIMESTAMP
-    }).then(() => {
-        alert("성공적으로 등록되었습니다.");
-        location.href = "board.html";
-    }).catch(err => alert("오류 발생: " + err.message));
-}
-
-function logout() { 
-    auth.signOut().then(() => location.href = "index.html");
+    })
+    .then(() => {
+        alert("등록되었습니다!");
+        location.href = "board.html"; // 성공 시 이동
+    })
+    .catch(err => {
+        alert("오류 발생: " + err.message);
+    });
 }
 </script>
 </body>
