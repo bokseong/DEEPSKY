@@ -107,17 +107,27 @@ auth.onAuthStateChanged(user => {
 function submitPost() {
     const title = document.getElementById("postTitle").value.trim();
     const content = document.getElementById("postContent").value.trim();
-    const fileUrl = document.getElementById("postFileUrl").value.trim();
+    
+    // 1️⃣ URL 처리 로직 추가
+    let fileUrl = document.getElementById("postFileUrl").value.trim();
+    if (fileUrl && !fileUrl.startsWith('http')) {
+        fileUrl = 'https://' + fileUrl; // 프로토콜이 없으면 강제로 붙임
+    }
+
     const fileName = document.getElementById("postFileName").value.trim();
     
+    // 로그인 체크
+    if(!auth.currentUser) return alert("로그인이 필요합니다.");
     if(!title || !content) return alert("제목과 내용을 입력해주세요.");
 
+    // 2️⃣ 데이터 저장 시 'uid' 추가
     db.ref("freeboard").push({
         title: title,
         content: content,
-        fileUrl: fileUrl, // 링크 주소 저장
-        fileName: fileName || "공유 링크 보기", // 이름 없으면 기본값 사용
+        fileUrl: fileUrl, // 수정된 url 저장
+        fileName: fileName || "파일 보기",
         author: currentUserName,
+        uid: auth.currentUser.uid, // 🚨 이 줄이 반드시 있어야 삭제 버튼이 작동합니다!
         createdAt: firebase.database.ServerValue.TIMESTAMP
     }).then(() => {
         alert("성공적으로 등록되었습니다.");
