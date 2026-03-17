@@ -5,98 +5,116 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>글 보기 - DEEP SKY</title>
     <style>
+        /* 공통 스타일 (제공 템플릿과 동일) */
         * { box-sizing: border-box; }
-        body { margin: 0; font-family: "Pretendard", sans-serif; background: #0b0f2b; color: white; }
-        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 0 30px; background: #070a1d; border-bottom: 1px solid #1b2f80; height: 65px; }
-        .container { max-width: 850px; margin: 40px auto; padding: 0 20px 100px; }
-        
-        .view-card { background: #161b4a; padding: 40px; border-radius: 15px; border: 1px solid #2d367a; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .v-title { font-size: 28px; color: #7fc7ff; margin: 0 0 10px 0; }
-        .v-info { color: #888; font-size: 14px; border-bottom: 1px solid #2d367a; padding-bottom: 20px; margin-bottom: 30px; }
+        body { margin: 0; font-family: "Segoe UI", sans-serif; background: #0b0f2b; color: white; line-height: 1.8; }
+        .hidden { display: none !important; }
 
-        /* 링크 버튼 디자인 */
-        .file-box { background: rgba(58, 90, 255, 0.15); padding: 20px; border-radius: 12px; border: 1px solid #3a5aff; margin-bottom: 30px; display: flex; align-items: center; justify-content: space-between; }
-        .btn-link { background: #3a5aff; color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 14px; transition: 0.2s; }
-        .btn-link:hover { background: #5a78ff; transform: scale(1.05); }
-
-        .v-content { line-height: 1.8; white-space: pre-wrap; font-size: 17px; color: #eee; min-height: 200px; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; background: #070a1d; border-bottom: 1px solid #1b2f80; height: 60px; position: sticky; top: 0; z-index: 1000; }
+        .logo-area { display: flex; align-items: center; text-decoration: none; color: white; }
+        .logo-area img { width: 35px; height: 35px; margin-right: 10px; border-radius: 50%; }
+        .logo-area span { font-size: 18px; font-weight: bold; }
         
+        header { background: linear-gradient(to right, #0d1b52, #1b2f80); padding: 38px 20px; text-align: center; }
+        nav { background: #11153a; border-bottom: 1px solid #2d367a; padding: 10px 0; }
+        .nav-inner { max-width: 1000px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
+        nav a { color: white; padding: 12px 18px; text-decoration: none; font-weight: bold; font-size: 15px; border-radius: 8px; }
+
+        .container { max-width: 800px; margin: 40px auto; padding: 0 20px 100px; }
+        .view-card { background: #161b4a; padding: 40px; border-radius: 20px; border: 1px solid #2d367a; margin-bottom: 30px; }
+        
+        .post-title { font-size: 24px; color: #7fc7ff; margin-bottom: 5px; }
+        .post-info { font-size: 13px; color: #888; border-bottom: 1px solid #2d367a; padding-bottom: 15px; margin-bottom: 25px; }
+        
+        /* 외부 링크 버튼 */
+        .link-box { background: rgba(58, 90, 255, 0.15); padding: 20px; border-radius: 12px; border: 1px solid #3a5aff; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+        .link-box a { background: #3a5aff; color: white; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 14px; }
+
+        .post-content { font-size: 16px; white-space: pre-wrap; min-height: 150px; }
+
         /* 댓글 영역 */
-        .comment-section { margin-top: 40px; background: #070a1d; padding: 25px; border-radius: 15px; border: 1px solid #1b2f80; }
-        .comment-item { padding: 15px 0; border-bottom: 1px solid #1b2f80; }
-        .c-author { font-weight: bold; color: #7fc7ff; font-size: 14px; }
-        .c-text { margin-top: 5px; color: #ccc; }
+        .comment-card { background: #070a1d; padding: 30px; border-radius: 20px; border: 1px solid #1b2f80; }
+        .comment-item { padding: 12px 0; border-bottom: 1px solid #1b2f80; }
+        .c-name { color: #7fc7ff; font-weight: bold; font-size: 14px; }
+        .c-text { font-size: 15px; margin-top: 3px; }
         
-        textarea { width: 100%; height: 80px; background: #161b4a; border: 1px solid #2d367a; color: white; padding: 12px; border-radius: 10px; margin-top: 15px; resize: none; outline: none; }
+        textarea { width: 100%; height: 80px; background: #0b0f2b; border: 1px solid #2d367a; color: white; padding: 12px; border-radius: 10px; margin-top: 15px; resize: none; }
         .btn-comment { width: 100%; padding: 12px; background: #3a5aff; color: white; border: none; border-radius: 10px; margin-top: 10px; cursor: pointer; font-weight: bold; }
         
-        .hidden { display: none !important; }
+        footer { background: #070a1d; text-align: center; padding: 30px 20px; font-size: 12px; color: #888; border-top: 1px solid #1b2f80; }
     </style>
 </head>
 <body>
 
 <div class="top-bar">
-    <a href="index.html" style="text-decoration:none; color:white; font-weight:bold; font-size:20px;">DEEP SKY</a>
+    <a href="index.html" class="logo-area">
+        <img src="logo.png" onerror="this.src='https://via.placeholder.com/35'">
+        <span>DEEP SKY</span>
+    </a>
 </div>
+
+<header><h1>글 보기</h1></header>
+
+<nav>
+    <div class="nav-inner">
+        <a href="index.html">홈</a>
+        <a href="introduce.html">동아리 소개</a>
+        <a href="board.html">자유 게시판</a>
+        <a href="resource.html">자료실</a>
+        <a href="weather.html">기상 정보</a>
+    </div>
+</nav>
 
 <div class="container">
     <div class="view-card">
-        <h2 id="vTitle" class="v-title">불러오는 중...</h2>
-        <div id="vInfo" class="v-info"></div>
+        <div class="post-title" id="vTitle">불러오는 중...</div>
+        <div class="post-info" id="vInfo"></div>
 
-        <div id="fileBox" class="file-box hidden">
-            <div>
-                <span style="color:#7fc7ff; font-weight:bold;">📎 공유된 파일/링크</span>
-                <p id="vFileName" style="margin:5px 0 0 0; font-size:13px; color:#aaa;"></p>
-            </div>
-            <a id="vFileLink" href="#" target="_blank" class="btn-link">링크 열기</a>
+        <div id="linkBox" class="link-box hidden">
+            <span style="font-size:14px; color:#7fc7ff;">📎 공유 자료</span>
+            <a id="vLink" href="#" target="_blank">링크 열기</a>
         </div>
 
-        <div id="vContent" class="v-content"></div>
-
-        <div style="margin-top:40px; text-align:right; display:flex; justify-content:flex-end; gap:10px;">
-            <button id="delBtn" class="hidden" onclick="deletePost()" style="background:#ff4d4d; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">삭제</button>
-            <button onclick="location.href='board.html'" style="background:#444; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">목록으로</button>
+        <div class="post-content" id="vContent"></div>
+        
+        <div style="text-align:right; margin-top:30px;">
+            <button id="delBtn" class="hidden" onclick="deletePost()" style="background:#ff4d4d; color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">삭제</button>
+            <button onclick="location.href='board.html'" style="background:#444; color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">목록</button>
         </div>
     </div>
 
-    <div class="comment-section">
-        <h3 style="margin:0; font-size:18px;">댓글</h3>
-        <div id="cList" style="margin-bottom:20px;"></div>
+    <div class="comment-card">
+        <h3 style="margin:0; font-size:18px; color:#7fc7ff;">댓글</h3>
+        <div id="cList" style="margin-top:10px;"></div>
+        
         <div id="cForm" class="hidden">
-            <textarea id="cInput" placeholder="댓글을 남겨보세요."></textarea>
-            <button class="btn-comment" onclick="addComment()">등록</button>
+            <textarea id="cInput" placeholder="댓글을 입력하세요..."></textarea>
+            <button class="btn-comment" onclick="addComment()">댓글 등록</button>
         </div>
-        <p id="cMsg" style="text-align:center; color:#888; font-size:14px;">댓글 작성을 위해 <a href="login.html" style="color:#7fc7ff;">로그인</a>이 필요합니다.</p>
+        <p id="cLoginMsg" style="text-align:center; color:#888; font-size:14px; padding:20px 0;">로그인 후 댓글을 남길 수 있습니다.</p>
     </div>
 </div>
+
+<footer>© DEEP SKY | All rights reserved.</footer>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-const firebaseConfig = {
-    apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
-    authDomain: "bokseong-deep-sky.firebaseapp.com",
-    databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "bokseong-deep-sky",
-    storageBucket: "bokseong-deep-sky.firebasestorage.app",
-    messagingSenderId: "800777151311",
-    appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
-};
+const firebaseConfig = { /* 부장님 설정값 */ };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const auth = firebase.auth();
 
 const postId = new URLSearchParams(window.location.search).get('id');
-let uName = "";
+let currentName = "";
 
 auth.onAuthStateChanged(user => {
     if (user) {
         document.getElementById("cForm").classList.remove("hidden");
-        document.getElementById("cMsg").classList.add("hidden");
-        db.ref('users/'+user.uid+'/name').once('value', s => uName = s.val() || user.email.split('@')[0]);
+        document.getElementById("cLoginMsg").classList.add("hidden");
+        db.ref('users/'+user.uid+'/name').once('value', s => currentName = s.val() || user.email.split('@')[0]);
     }
     loadPost(user);
     loadComments();
@@ -109,13 +127,12 @@ function loadPost(user) {
         document.getElementById("vTitle").innerText = p.title;
         document.getElementById("vInfo").innerText = `작성자: ${p.author} | ${new Date(p.createdAt).toLocaleString()}`;
         document.getElementById("vContent").innerText = p.content;
-
+        
         if(p.fileUrl) {
-            document.getElementById("fileBox").classList.remove("hidden");
-            document.getElementById("vFileLink").href = p.fileUrl;
-            document.getElementById("vFileName").innerText = p.fileName || "이동하기";
+            document.getElementById("linkBox").classList.remove("hidden");
+            document.getElementById("vLink").href = p.fileUrl;
+            document.getElementById("vLink").innerText = p.fileName || "링크 열기";
         }
-
         if(user && (user.uid === p.uid || user.email === "leader.deepsky@gmail.com")) {
             document.getElementById("delBtn").classList.remove("hidden");
         }
@@ -126,7 +143,7 @@ function addComment() {
     const text = document.getElementById("cInput").value.trim();
     if(!text) return;
     db.ref(`freeboard/${postId}/comments`).push({
-        author: uName, content: text, createdAt: firebase.database.ServerValue.TIMESTAMP
+        author: currentName, content: text, createdAt: firebase.database.ServerValue.TIMESTAMP
     }).then(() => document.getElementById("cInput").value = "");
 }
 
@@ -138,16 +155,12 @@ function loadComments() {
         if(!data) return;
         Object.keys(data).forEach(k => {
             const c = data[k];
-            list.innerHTML += `<div class="comment-item"><div class="c-author">${c.author}</div><div class="c-text">${c.content}</div></div>`;
+            list.innerHTML += `<div class="comment-item"><div class="c-name">${c.author}</div><div class="c-text">${c.content}</div></div>`;
         });
     });
 }
 
-function deletePost() {
-    if(confirm("정말 삭제하시겠습니까?")) {
-        db.ref("freeboard/" + postId).remove().then(() => location.href="board.html");
-    }
-}
+function deletePost() { if(confirm("삭제하시겠습니까?")) db.ref("freeboard/"+postId).remove().then(()=>location.href="board.html"); }
 </script>
 </body>
 </html>
