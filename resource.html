@@ -145,7 +145,7 @@
 
 <div class="container">
     <div id="lockMessage" class="intro-card hidden" style="text-align: center;">
-        <h2 style="border:none; padding:0; text-align:center;">🔒 회원 전용 공간</h2>
+        <h2 style="border:none; padding:0; text-align:center;">회원 전용 공간</h2>
         <p>자료실은 DEEP SKY 회원만 접근할 수 있습니다.</p>
         <button class="btn-main" onclick="location.href='login.html'" style="width: auto; padding: 12px 40px; margin-top: 20px;">로그인하러 가기</button>
     </div>
@@ -271,15 +271,24 @@ function renderResources(items, user) {
         list.appendChild(div);
     });
 }
-
-// 🔍 검색 필터링 함수
+    
+// 🔍 검색 필터링 함수 (보강 버전)
 function filterResources() {
-    const keyword = document.getElementById("searchInput").value.toLowerCase();
-    const filtered = allResources.filter(item => 
-        item.title.toLowerCase().includes(keyword) || 
-        item.desc.toLowerCase().includes(keyword)
-    );
-    renderResources(filtered, auth.currentUser);
+    const searchInput = document.getElementById("searchInput");
+    if (!searchInput) return;
+
+    const keyword = searchInput.value.toLowerCase();
+    
+    // items 필터링 시 데이터가 없는 경우(null)를 대비해 빈 문자열 처리 추가
+    const filtered = allResources.filter(item => {
+        const title = (item.title || "").toLowerCase();
+        const desc = (item.desc || "").toLowerCase();
+        return title.includes(keyword) || desc.includes(keyword);
+    });
+
+    // auth.currentUser 대신 현재 세션의 user 객체를 안전하게 가져와 전달
+    const currentUser = firebase.auth().currentUser;
+    renderResources(filtered, currentUser);
 }
 
 function uploadResource() {
