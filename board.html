@@ -69,7 +69,15 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-    const firebaseConfig = { /* 부장님 설정값 */ };
+    const firebaseConfig = {
+    apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
+    authDomain: "bokseong-deep-sky.firebaseapp.com",
+    databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "bokseong-deep-sky",
+    storageBucket: "bokseong-deep-sky.firebasestorage.app",
+    messagingSenderId: "800777151311",
+    appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
+    };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     firebase.auth().onAuthStateChanged(user => {
