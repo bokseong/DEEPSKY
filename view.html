@@ -8,21 +8,32 @@
         * { box-sizing: border-box; }
         body { margin: 0; font-family: "Pretendard", sans-serif; background: #0b0f2b; color: white; }
         .hidden { display: none !important; }
+        
+        /* 상단 바 */
         .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 0 30px; background: #070a1d; border-bottom: 1px solid #1b2f80; height: 65px; }
         .logo-area { display: flex; align-items: center; text-decoration: none; color: white; font-weight: bold; }
         .logo-area img { width: 40px; border-radius: 50%; margin-right: 12px; }
 
         .container { max-width: 800px; margin: 40px auto; padding: 0 20px 100px; }
-        .view-card { background: #161b4a; padding: 40px; border-radius: 15px; border: 1px solid #2d367a; }
+        .view-card { background: #161b4a; padding: 40px; border-radius: 15px; border: 1px solid #2d367a; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         .post-header { border-bottom: 1px solid #2d367a; margin-bottom: 25px; padding-bottom: 20px; }
         .post-title { font-size: 28px; color: #7fc7ff; margin: 0 0 15px 0; }
         .post-info { font-size: 14px; color: #aaa; display: flex; justify-content: space-between; }
-        .post-content { line-height: 1.8; min-height: 300px; white-space: pre-wrap; font-size: 17px; color: #eee; }
+        .post-content { line-height: 1.8; min-height: 200px; white-space: pre-wrap; font-size: 17px; color: #eee; margin-bottom: 30px; }
         
-        .btn-group { margin-top: 40px; display: flex; justify-content: space-between; align-items: center; }
-        .btn { padding: 12px 25px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; }
-        .btn-list { background: #3a5aff; color: white; }
+        /* 🔗 첨부 링크 버튼 스타일 */
+        .link-section { background: rgba(58, 90, 255, 0.1); padding: 15px; border-radius: 10px; border: 1px dashed #3a5aff; margin-bottom: 30px; }
+        .btn-link { display: inline-block; background: #3a5aff; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; transition: 0.2s; }
+        .btn-link:hover { background: #5a7aff; transform: translateY(-2px); }
+
+        .btn-group { margin-top: 40px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #2d367a; padding-top: 30px; }
+        .btn { padding: 12px 25px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
+        .btn-list { background: #2d367a; color: white; }
+        .btn-list:hover { background: #3d4a8a; }
         .btn-delete { background: #ff4d4d; color: white; }
+        .btn-delete:hover { background: #e60000; }
+
+        footer { text-align: center; padding: 40px; font-size: 13px; color: #666; }
     </style>
 </head>
 <body>
@@ -44,7 +55,13 @@
                 <span id="viewDate"></span>
             </div>
         </div>
+        
         <div id="viewContent" class="post-content"></div>
+
+        <div id="linkArea" class="link-section hidden">
+            <div style="font-size: 13px; color: #7fc7ff; margin-bottom: 8px; font-weight: bold;">첨부된 링크</div>
+            <a id="viewFileLink" href="#" target="_blank" class="btn-link">파일/링크 열기</a>
+        </div>
         
         <div class="btn-group">
             <button class="btn btn-list" onclick="location.href='board.html'">목록으로 돌아가기</button>
@@ -79,8 +96,14 @@ const urlParams = new URLSearchParams(window.location.search);
 const postId = urlParams.get('id');
 
 auth.onAuthStateChanged(user => {
-    if (user) document.getElementById("userStatus").innerText = user.email.split('@')[0] + "님 로그인 중";
-    else document.getElementById("userStatus").innerText = "비로그인 상태";
+    if (user) {
+        db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
+            const name = snapshot.val() || user.email.split('@')[0];
+            document.getElementById("userStatus").innerText = name + "님 로그인 중";
+        });
+    } else {
+        document.getElementById("userStatus").innerText = "비로그인 상태 (열람 모드)";
+    }
     loadPost(user);
 });
 
@@ -90,8 +113,8 @@ function loadPost(user) {
     db.ref("freeboard/" + postId).on("value", snapshot => {
         const post = snapshot.val();
         if(!post) {
-            // 이미 삭제된 경우 처리
-            document.getElementById("postArea").innerHTML = "<p style='text-align:center;'>삭제된 게시글입니다.</p>";
+            document.getElementById("postArea").innerHTML = "<p style='text-align:center; padding:50px;'>삭제된 게시글이거나 존재하지 않습니다.</p>";
+            document.getElementById("postArea").classList.remove("hidden");
             return;
         }
 
@@ -101,9 +124,20 @@ function loadPost(user) {
         document.getElementById("viewDate").innerText = new Date(post.createdAt).toLocaleString();
         document.getElementById("viewContent").innerText = post.content;
 
-        // 🚨 권한 체크: 현재 접속자가 작성자(uid 일치)거나 관리자 이메일인 경우 삭제 버튼 표시
+        // 링크 버튼 처리 (링크가 있을 때만 표시)
+        if(post.fileUrl && post.fileUrl.trim() !== "") {
+            const linkArea = document.getElementById("linkArea");
+            const linkBtn = document.getElementById("viewFileLink");
+            linkArea.classList.remove("hidden");
+            linkBtn.href = post.fileUrl;
+            linkBtn.innerText = " " + (post.fileName || "파일/링크 열기");
+        }
+
+        // 삭제 권한 체크: 작성자 본인(uid 일치)이거나 관리자(이메일 일치)인 경우만 버튼 표시
         if(user && (user.uid === post.uid || user.email === ADMIN_EMAIL)) {
             document.getElementById("deleteBtn").classList.remove("hidden");
+        } else {
+            document.getElementById("deleteBtn").classList.add("hidden");
         }
     });
 }
