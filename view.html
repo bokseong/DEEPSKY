@@ -98,70 +98,81 @@ const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 const urlParams = new URLSearchParams(window.location.search);
 const postId = urlParams.get('id');
 
+// 페이지 로드 시 즉시 실행
 auth.onAuthStateChanged(user => {
+    const status = document.getElementById("userStatus");
     if (user) {
-        db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
+        db.ref('users/' + user.uid + '/name').once('value', (snapshot) => {
             const name = snapshot.val() || user.email.split('@')[0];
-            document.getElementById("userStatus").innerText = name + "님 로그인 중";
+            status.innerText = name + "님 로그인 중";
         });
     } else {
-        document.getElementById("userStatus").innerText = "비로그인 상태 (열람 모드)";
+        status.innerText = "비로그인 상태 (열람 모드)";
     }
+    // 유저 상태가 확인된 후(로그인 여부와 상관없이) 글을 불러옵니다.
     loadPost(user);
 });
 
 function loadPost(user) {
-    if(post.fileUrl && post.fileUrl.trim() !== "") {
-    const linkArea = document.getElementById("linkArea");
-    const linkBtn = document.getElementById("viewFileLink");
-    linkArea.classList.remove("hidden");
-
-    let finalUrl = post.fileUrl.trim();
-    
-    // 주소에 http가 없으면 자동으로 붙여줌 (상대 경로 방지)
-    if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
-        finalUrl = 'https://' + finalUrl;
+    if(!postId) {
+        alert("잘못된 접근입니다. 게시글 ID가 없습니다.");
+        location.href = "board.html";
+        return;
     }
 
-    linkBtn.href = finalUrl;
-    linkBtn.target = "_blank"; // 무조건 새 탭에서 열기
-    linkBtn.rel = "noopener noreferrer"; // 보안 강화
-    linkBtn.innerText = "🔗 " + (post.fileName || "파일/링크 열기");
-}
+    // .on 대신 .once를 사용하여 한 번만 깔끔하게 가져옵니다 (오류 방지)
+    db.ref("freeboard/" + postId).once("value").then(snapshot => {
+        const post = snapshot.val();
+        const postArea = document.getElementById("postArea");
+
+        if(!post) {
+            postArea.innerHTML = "<div style='text-align:center; padding:100px;'><h3>존재하지 않거나 삭제된 게시글입니다.</h3><button onclick='location.href=\"board.html\"' class='btn btn-list'>목록으로</button></div>";
+            postArea.classList.remove("hidden");
+            return;
         }
 
-        document.getElementById("postArea").classList.remove("hidden");
+        // 데이터 표시
+        postArea.classList.remove("hidden");
         document.getElementById("viewTitle").innerText = post.title;
-        document.getElementById("viewAuthor").innerText = "작성자: " + post.author;
-        document.getElementById("viewDate").innerText = new Date(post.createdAt).toLocaleString();
+        document.getElementById("viewAuthor").innerText = "작성자: " + (post.author || "익명");
+        document.getElementById("viewDate").innerText = post.createdAt ? new Date(post.createdAt).toLocaleString() : "날짜 정보 없음";
         document.getElementById("viewContent").innerText = post.content;
 
-        // 링크 버튼 처리 (링크가 있을 때만 표시)
+        // 🔗 링크 버튼 처리
+        const linkArea = document.getElementById("linkArea");
         if(post.fileUrl && post.fileUrl.trim() !== "") {
-            const linkArea = document.getElementById("linkArea");
             const linkBtn = document.getElementById("viewFileLink");
             linkArea.classList.remove("hidden");
-            linkBtn.href = post.fileUrl;
-            linkBtn.innerText = " " + (post.fileName || "파일/링크 열기");
+            
+            let finalUrl = post.fileUrl.trim();
+            if (!finalUrl.startsWith('http')) finalUrl = 'https://' + finalUrl;
+            
+            linkBtn.href = finalUrl;
+            linkBtn.target = "_blank";
+            linkBtn.innerText = "🔗 " + (post.fileName || "첨부 링크 열기");
+        } else {
+            linkArea.classList.add("hidden");
         }
 
-        // 삭제 권한 체크: 작성자 본인(uid 일치)이거나 관리자(이메일 일치)인 경우만 버튼 표시
+        // 🚨 삭제 권한 체크
+        const deleteBtn = document.getElementById("deleteBtn");
         if(user && (user.uid === post.uid || user.email === ADMIN_EMAIL)) {
-            document.getElementById("deleteBtn").classList.remove("hidden");
+            deleteBtn.classList.remove("hidden");
         } else {
-            document.getElementById("deleteBtn").classList.add("hidden");
+            deleteBtn.classList.add("hidden");
         }
+    }).catch(error => {
+        console.error("데이터 로드 오류:", error);
+        alert("데이터를 불러오는 중 오류가 발생했습니다.");
     });
 }
 
 function deletePost() {
-    if(confirm("정말로 이 게시글을 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.")) {
-        db.ref("freeboard/" + postId).remove()
-        .then(() => {
-            alert("게시글이 삭제되었습니다.");
+    if(confirm("정말로 이 게시글을 삭제하시겠습니까?")) {
+        db.ref("freeboard/" + postId).remove().then(() => {
+            alert("삭제되었습니다.");
             location.href = 'board.html';
-        })
-        .catch(err => alert("삭제 권한이 없거나 오류가 발생했습니다."));
+        });
     }
 }
 </script>
