@@ -143,24 +143,32 @@ let currentPostAuthorUid = "";
 // 로그인 상태 감지 및 데이터 로드 (원본 UI 로직 유지)
 auth.onAuthStateChanged(user => {
     const status = document.getElementById("userStatus");
-    const commentFormArea = document.getElementById("commentFormArea");
-    const commentLoginNotice = document.getElementById("commentLoginNotice");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const adminBox = document.getElementById("adminBox");
 
     if (user) {
-        db.ref('users/' + user.uid + '/name').once('value', (snapshot) => {
-            currentUserName = snapshot.val() || user.email.split('@')[0];
-            status.innerText = currentUserName + "님 로그인 중";
+        db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
+            const finalName = snapshot.val() || user.displayName || user.email.split('@')[0];
+            status.innerText = `${finalName}님`;
         });
-        commentFormArea.classList.remove("hidden");
-        commentLoginNotice.classList.add("hidden");
+
+        loginBtn.classList.add("hidden");
+        logoutBtn.classList.remove("hidden");
+
+        if (user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+            adminBox.classList.remove("hidden");
+        } else {
+            adminBox.classList.add("hidden");
+        }
     } else {
-        status.innerText = "비로그인 상태 (열람 모드)";
-        commentFormArea.classList.add("hidden");
-        commentLoginNotice.classList.remove("hidden");
+        status.innerText = "로그인 해주세요";
+        loginBtn.classList.remove("hidden");
+        logoutBtn.classList.add("hidden");
+        adminBox.classList.add("hidden");
     }
-    loadPost(user);
-    loadComments(user);
 });
+
 
 function loadPost(user) {
     if(!postId) {
