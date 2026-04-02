@@ -14,13 +14,13 @@
         .logo-area { display: flex; align-items: center; text-decoration: none; color: white; font-weight: bold; }
         .logo-area img { width: 40px; border-radius: 50%; margin-right: 12px; }
 
-         .auth-bar { font-size: 14px; display: flex; align-items: center; gap: 10px; }
-         .auth-bar button {
+        .auth-bar { font-size: 14px; display: flex; align-items: center; gap: 10px; }
+        .auth-bar button {
             padding: 7px 16px; border-radius: 5px; border: none;
             background: #3a5aff; color: white; 
             cursor: pointer; font-weight: bold;
-           }
-
+        }
+        .btn-logout { background: #444 !important; } /* 로그아웃 버튼 색상 차별화 */
 
         .container { max-width: 800px; margin: 40px auto; padding: 0 20px 100px; }
         .view-card { background: #161b4a; padding: 40px; border-radius: 15px; border: 1px solid #2d367a; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
@@ -70,10 +70,9 @@
     <div class="auth-bar">
         <span id="userStatus">접속 중...</span>
         <button id="loginBtn" onclick="location.href='login.html'">로그인</button>
-        <button id="logoutBtn" class="hidden" onclick="logout()">로그아웃</button>
+        <button id="logoutBtn" class="btn-logout hidden" onclick="logout()">로그아웃</button>
     </div>
 </div>
-
 
 <div class="container">
     <div id="postArea" class="view-card hidden">
@@ -140,36 +139,50 @@ const postId = urlParams.get('id');
 let currentUserName = "";
 let currentPostAuthorUid = "";
 
-// 로그인 상태 감지 및 데이터 로드 (원본 UI 로직 유지)
+// 1. 로그인 상태 감지 및 초기화
 auth.onAuthStateChanged(user => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtn = document.getElementById("logoutBtn");
-    const adminBox = document.getElementById("adminBox");
+    const commentFormArea = document.getElementById("commentFormArea");
+    const commentLoginNotice = document.getElementById("commentLoginNotice");
 
     if (user) {
+        // 사용자 이름 가져오기
         db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
-            const finalName = snapshot.val() || user.displayName || user.email.split('@')[0];
-            status.innerText = `${finalName}님`;
+            currentUserName = snapshot.val() || user.displayName || user.email.split('@')[0];
+            status.innerText = `${currentUserName}님`;
         });
 
         loginBtn.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
-
-        if (user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-            adminBox.classList.remove("hidden");
-        } else {
-            adminBox.classList.add("hidden");
-        }
+        commentFormArea.classList.remove("hidden");
+        commentLoginNotice.classList.add("hidden");
     } else {
+        currentUserName = "익명";
         status.innerText = "로그인 해주세요";
         loginBtn.classList.remove("hidden");
         logoutBtn.classList.add("hidden");
-        adminBox.classList.add("hidden");
+        commentFormArea.classList.add("hidden");
+        commentLoginNotice.classList.remove("hidden");
     }
+
+    // 게시글과 댓글 로드 함수 호출
+    loadPost(user);
+    loadComments(user);
 });
 
+// 2. 로그아웃 함수
+function logout() {
+    if(confirm("로그아웃 하시겠습니까?")) {
+        auth.signOut().then(() => {
+            alert("로그아웃 되었습니다.");
+            location.reload();
+        });
+    }
+}
 
+// 3. 게시글 불러오기
 function loadPost(user) {
     if(!postId) {
         alert("게시글 ID가 없습니다.");
@@ -188,44 +201,31 @@ function loadPost(user) {
         }
 
         currentPostAuthorUid = post.uid;
-
-        // 내용 표시
         postArea.classList.remove("hidden");
         document.getElementById("viewTitle").innerText = post.title;
         document.getElementById("viewAuthor").innerText = "작성자: " + (post.author || "익명");
         document.getElementById("viewDate").innerText = post.createdAt ? new Date(post.createdAt).toLocaleString() : "";
         document.getElementById("viewContent").innerText = post.content;
 
-        // 링크 처리
         const linkArea = document.getElementById("linkArea");
         if(post.fileUrl && post.fileUrl.trim() !== "") {
             const linkBtn = document.getElementById("viewFileLink");
             linkArea.classList.remove("hidden");
-            
             let finalUrl = post.fileUrl.trim();
             if (!finalUrl.startsWith('http')) finalUrl = 'https://' + finalUrl;
-            
             linkBtn.href = finalUrl;
-            linkBtn.target = "_blank";
             linkBtn.innerText = "🔗 " + (post.fileName || "첨부 링크 열기");
-        } else {
-            linkArea.classList.add("hidden");
         }
 
-        // 삭제 권한
+        // 삭제 버튼 노출 권한
         const deleteBtn = document.getElementById("deleteBtn");
         if(user && (user.uid === post.uid || user.email === ADMIN_EMAIL)) {
             deleteBtn.classList.remove("hidden");
-        } else {
-            deleteBtn.classList.add("hidden");
         }
-    }).catch(err => {
-        console.error(err);
-        alert("불러오기 실패");
     });
 }
 
-// 💬 댓글 불러오기 (실시간 감지)
+// 4. 댓글 불러오기
 function loadComments(user) {
     db.ref("freeboard/" + postId + "/comments").on("value", (snapshot) => {
         const listArea = document.getElementById("commentList");
@@ -239,8 +239,6 @@ function loadComments(user) {
         snapshot.forEach((child) => {
             const comment = child.val();
             const commentId = child.key;
-            
-            // 삭제 권한: 댓글 작성자 OR 게시글 작성자 OR 관리자
             const canDelete = user && (user.uid === comment.uid || user.uid === currentPostAuthorUid || user.email === ADMIN_EMAIL);
             
             const commentHtml = `
@@ -260,7 +258,7 @@ function loadComments(user) {
     });
 }
 
-// 💬 댓글 추가
+// 5. 댓글 추가
 function addComment() {
     const user = auth.currentUser;
     const input = document.getElementById("commentInput");
@@ -269,29 +267,26 @@ function addComment() {
     if (!user) return alert("로그인이 필요합니다.");
     if (!content) return alert("내용을 입력해주세요.");
 
-    const newComment = {
+    db.ref("freeboard/" + postId + "/comments").push({
         uid: user.uid,
         author: currentUserName,
         content: content,
         createdAt: Date.now()
-    };
-
-    db.ref("freeboard/" + postId + "/comments").push(newComment).then(() => {
+    }).then(() => {
         input.value = "";
     });
 }
 
-// 💬 댓글 삭제
+// 6. 댓글 삭제
 function deleteComment(commentId) {
     if (confirm("댓글을 삭제하시겠습니까?")) {
         db.ref("freeboard/" + postId + "/comments/" + commentId).remove();
     }
 }
 
+// 7. 게시글 삭제
 function deletePost() {
-    if(confirm("정말로 삭제하시겠습니까?")) {
-        // 원본 로직과 동일하게 글 삭제 시 댓글도 같이 날리려면 아래 한 줄 추가 가능
-        // db.ref("freeboard/" + postId + "/comments").remove(); 
+    if(confirm("정말로 게시글을 삭제하시겠습니까?")) {
         db.ref("freeboard/" + postId).remove().then(() => {
             alert("삭제되었습니다.");
             location.href = 'board.html';
