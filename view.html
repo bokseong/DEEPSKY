@@ -14,12 +14,6 @@
         .logo-area { display: flex; align-items: center; text-decoration: none; color: white; font-weight: bold; }
         .logo-area img { width: 40px; border-radius: 50%; margin-right: 12px; }
 
-        /* 상단 사용자 상태 (원본 스타일 유지) */
-        .user-status-text { font-size: 14px; color: white; display: flex; align-items: center; gap: 10px; }
-        .btn-logout { background: transparent; border: 1px solid #3a5aff; color: #7fc7ff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
-        .btn-logout:hover { background: rgba(58, 90, 255, 0.1); }
-        .btn-login-go { color: #7fc7ff; text-decoration: none; font-size: 14px; font-weight: bold; }
-
         .container { max-width: 800px; margin: 40px auto; padding: 0 20px 100px; }
         .view-card { background: #161b4a; padding: 40px; border-radius: 15px; border: 1px solid #2d367a; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         .post-header { border-bottom: 1px solid #2d367a; margin-bottom: 25px; padding-bottom: 20px; }
@@ -27,24 +21,23 @@
         .post-info { font-size: 14px; color: #aaa; display: flex; justify-content: space-between; }
         .post-content { line-height: 1.8; min-height: 200px; white-space: pre-wrap; font-size: 17px; color: #eee; margin-bottom: 30px; }
         
+        /* 🔗 첨부 링크 버튼 스타일 */
         .link-section { background: rgba(58, 90, 255, 0.1); padding: 15px; border-radius: 10px; border: 1px dashed #3a5aff; margin-bottom: 30px; }
         .btn-link { display: inline-block; background: #3a5aff; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; transition: 0.2s; }
         .btn-link:hover { background: #5a7aff; transform: translateY(-2px); }
 
         /* 💬 댓글 섹션 스타일 */
-        .comment-section { margin-top: 50px; border-top: 1px solid #2d367a; padding-top: 30px; }
+        .comment-section { margin-top: 40px; border-top: 1px solid #2d367a; padding-top: 30px; }
         .comment-title { font-size: 18px; color: #7fc7ff; margin-bottom: 20px; font-weight: bold; }
         .comment-item { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 10px; margin-bottom: 12px; border: 1px solid rgba(45, 54, 122, 0.5); }
         .comment-meta { display: flex; justify-content: space-between; font-size: 13px; color: #aaa; margin-bottom: 8px; }
         .comment-author { color: #7fc7ff; font-weight: bold; }
-        .comment-text { font-size: 15px; line-height: 1.5; color: #ddd; }
+        .comment-text { font-size: 15px; line-height: 1.5; color: #ddd; white-space: pre-wrap; }
         .btn-comment-del { color: #ff4d4d; cursor: pointer; background: none; border: none; font-size: 12px; padding: 0; }
         
         .comment-form { margin-top: 25px; display: flex; gap: 10px; }
         .comment-input { flex: 1; background: #070a1d; border: 1px solid #2d367a; border-radius: 6px; color: white; padding: 12px; font-size: 14px; outline: none; }
-        .comment-input:focus { border-color: #3a5aff; }
-        .btn-comment-submit { background: #3a5aff; color: white; border: none; padding: 0 20px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-comment-submit:hover { background: #5a7aff; }
+        .btn-comment-submit { background: #3a5aff; color: white; border: none; padding: 0 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
 
         .btn-group { margin-top: 40px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #2d367a; padding-top: 30px; }
         .btn { padding: 12px 25px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
@@ -53,7 +46,10 @@
         .btn-delete { background: #ff4d4d; color: white; }
         .btn-delete:hover { background: #e60000; }
 
-        footer { background: #070a1d; text-align: center; padding: 35px 20px; color: #888; border-top: 1px solid #1b2f80; font-size: 13px; }
+        footer { 
+            background: #070a1d; text-align: center; padding: 35px 20px;
+            color: #888; border-top: 1px solid #1b2f80; font-size: 13px;
+        }
     </style>
 </head>
 <body>
@@ -63,7 +59,7 @@
         <img src="logo.png" onerror="this.src='https://via.placeholder.com/40'">
         <span>DEEP SKY</span>
     </a>
-    <div id="userStatus" class="user-status-text">불러오는 중...</div>
+    <div id="userStatus" style="font-size:14px;">불러오는 중...</div>
 </div>
 
 <div class="container">
@@ -85,15 +81,14 @@
 
         <div class="comment-section">
             <div class="comment-title">댓글</div>
-            <div id="commentList">
-                </div>
+            <div id="commentList"></div>
             
             <div id="commentFormArea" class="comment-form hidden">
                 <input type="text" id="commentInput" class="comment-input" placeholder="댓글을 남겨보세요...">
                 <button class="btn-comment-submit" onclick="addComment()">등록</button>
             </div>
             <div id="commentLoginNotice" style="text-align: center; padding: 20px; color: #aaa; font-size: 14px;">
-                댓글을 작성하려면 <a href="login.html" style="color: #7fc7ff;">로그인</a>이 필요합니다.
+                댓글을 작성하려면 로그인이 필요합니다.
             </div>
         </div>
         
@@ -132,7 +127,7 @@ const postId = urlParams.get('id');
 let currentUserName = "";
 let currentPostAuthorUid = "";
 
-// 로그인 상태 감지 및 데이터 로드
+// 로그인 상태 감지 및 데이터 로드 (원본 UI 로직 유지)
 auth.onAuthStateChanged(user => {
     const status = document.getElementById("userStatus");
     const commentFormArea = document.getElementById("commentFormArea");
@@ -141,15 +136,12 @@ auth.onAuthStateChanged(user => {
     if (user) {
         db.ref('users/' + user.uid + '/name').once('value', (snapshot) => {
             currentUserName = snapshot.val() || user.email.split('@')[0];
-            status.innerHTML = `
-                <span>${currentUserName}님</span>
-                <button class="btn-logout" onclick="auth.signOut()">로그아웃</button>
-            `;
+            status.innerText = currentUserName + "님 로그인 중";
         });
         commentFormArea.classList.remove("hidden");
         commentLoginNotice.classList.add("hidden");
     } else {
-        status.innerHTML = `<a href="login.html" class="btn-login-go">로그인</a>`;
+        status.innerText = "비로그인 상태 (열람 모드)";
         commentFormArea.classList.add("hidden");
         commentLoginNotice.classList.remove("hidden");
     }
@@ -176,37 +168,50 @@ function loadPost(user) {
 
         currentPostAuthorUid = post.uid;
 
+        // 내용 표시
         postArea.classList.remove("hidden");
         document.getElementById("viewTitle").innerText = post.title;
         document.getElementById("viewAuthor").innerText = "작성자: " + (post.author || "익명");
         document.getElementById("viewDate").innerText = post.createdAt ? new Date(post.createdAt).toLocaleString() : "";
         document.getElementById("viewContent").innerText = post.content;
 
+        // 링크 처리
         const linkArea = document.getElementById("linkArea");
         if(post.fileUrl && post.fileUrl.trim() !== "") {
             const linkBtn = document.getElementById("viewFileLink");
             linkArea.classList.remove("hidden");
+            
             let finalUrl = post.fileUrl.trim();
             if (!finalUrl.startsWith('http')) finalUrl = 'https://' + finalUrl;
+            
             linkBtn.href = finalUrl;
+            linkBtn.target = "_blank";
             linkBtn.innerText = "🔗 " + (post.fileName || "첨부 링크 열기");
+        } else {
+            linkArea.classList.add("hidden");
         }
 
+        // 삭제 권한
         const deleteBtn = document.getElementById("deleteBtn");
         if(user && (user.uid === post.uid || user.email === ADMIN_EMAIL)) {
             deleteBtn.classList.remove("hidden");
+        } else {
+            deleteBtn.classList.add("hidden");
         }
+    }).catch(err => {
+        console.error(err);
+        alert("불러오기 실패");
     });
 }
 
-// 💬 댓글 불러오기
+// 💬 댓글 불러오기 (실시간 감지)
 function loadComments(user) {
     db.ref("freeboard/" + postId + "/comments").on("value", (snapshot) => {
         const listArea = document.getElementById("commentList");
         listArea.innerHTML = "";
         
         if (!snapshot.exists()) {
-            listArea.innerHTML = "<div style='color:#666; font-size:14px;'>첫 번째 댓글을 남겨보세요!</div>";
+            listArea.innerHTML = "<div style='color:#666; font-size:14px; text-align:center; padding:10px;'>등록된 댓글이 없습니다.</div>";
             return;
         }
 
@@ -252,7 +257,7 @@ function addComment() {
 
     db.ref("freeboard/" + postId + "/comments").push(newComment).then(() => {
         input.value = "";
-    }).catch(err => alert("댓글 작성 실패: " + err.message));
+    });
 }
 
 // 💬 댓글 삭제
@@ -264,6 +269,8 @@ function deleteComment(commentId) {
 
 function deletePost() {
     if(confirm("정말로 삭제하시겠습니까?")) {
+        // 원본 로직과 동일하게 글 삭제 시 댓글도 같이 날리려면 아래 한 줄 추가 가능
+        // db.ref("freeboard/" + postId + "/comments").remove(); 
         db.ref("freeboard/" + postId).remove().then(() => {
             alert("삭제되었습니다.");
             location.href = 'board.html';
