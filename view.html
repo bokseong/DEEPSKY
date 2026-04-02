@@ -14,6 +14,14 @@
         .logo-area { display: flex; align-items: center; text-decoration: none; color: white; font-weight: bold; }
         .logo-area img { width: 40px; border-radius: 50%; margin-right: 12px; }
 
+         .auth-bar { font-size: 14px; display: flex; align-items: center; gap: 10px; }
+         .auth-bar button {
+            padding: 7px 16px; border-radius: 5px; border: none;
+            background: #3a5aff; color: white; 
+            cursor: pointer; font-weight: bold;
+           }
+
+
         .container { max-width: 800px; margin: 40px auto; padding: 0 20px 100px; }
         .view-card { background: #161b4a; padding: 40px; border-radius: 15px; border: 1px solid #2d367a; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         .post-header { border-bottom: 1px solid #2d367a; margin-bottom: 25px; padding-bottom: 20px; }
@@ -21,12 +29,12 @@
         .post-info { font-size: 14px; color: #aaa; display: flex; justify-content: space-between; }
         .post-content { line-height: 1.8; min-height: 200px; white-space: pre-wrap; font-size: 17px; color: #eee; margin-bottom: 30px; }
         
-        /* 🔗 첨부 링크 버튼 스타일 */
+        /* 첨부 링크 버튼 스타일 */
         .link-section { background: rgba(58, 90, 255, 0.1); padding: 15px; border-radius: 10px; border: 1px dashed #3a5aff; margin-bottom: 30px; }
         .btn-link { display: inline-block; background: #3a5aff; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; transition: 0.2s; }
         .btn-link:hover { background: #5a7aff; transform: translateY(-2px); }
 
-        /* 💬 댓글 섹션 스타일 */
+        /* 댓글 섹션 스타일 */
         .comment-section { margin-top: 40px; border-top: 1px solid #2d367a; padding-top: 30px; }
         .comment-title { font-size: 18px; color: #7fc7ff; margin-bottom: 20px; font-weight: bold; }
         .comment-item { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 10px; margin-bottom: 12px; border: 1px solid rgba(45, 54, 122, 0.5); }
@@ -59,8 +67,13 @@
         <img src="logo.png" onerror="this.src='https://via.placeholder.com/40'">
         <span>DEEP SKY</span>
     </a>
-    <div id="userStatus" style="font-size:14px;">불러오는 중...</div>
+    <div class="auth-bar">
+        <span id="userStatus">접속 중...</span>
+        <button id="loginBtn" onclick="location.href='login.html'">로그인</button>
+        <button id="logoutBtn" class="hidden" onclick="logout()">로그아웃</button>
+    </div>
 </div>
+
 
 <div class="container">
     <div id="postArea" class="view-card hidden">
