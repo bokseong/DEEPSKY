@@ -21,10 +21,22 @@
         .post-info { font-size: 14px; color: #aaa; display: flex; justify-content: space-between; }
         .post-content { line-height: 1.8; min-height: 200px; white-space: pre-wrap; font-size: 17px; color: #eee; margin-bottom: 30px; }
         
-        /* 🔗 첨부 링크 버튼 스타일 */
+        /* 첨부 링크 */
         .link-section { background: rgba(58, 90, 255, 0.1); padding: 15px; border-radius: 10px; border: 1px dashed #3a5aff; margin-bottom: 30px; }
         .btn-link { display: inline-block; background: #3a5aff; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; transition: 0.2s; }
         .btn-link:hover { background: #5a7aff; transform: translateY(-2px); }
+
+        /* 💬 댓글 섹션 */
+        .comment-section { margin-top: 40px; border-top: 1px solid #2d367a; padding-top: 30px; }
+        .comment-form { margin-top: 20px; display: flex; gap: 10px; }
+        .comment-input { flex: 1; background: #070a1d; border: 1px solid #2d367a; border-radius: 6px; color: white; padding: 10px; outline: none; }
+        .btn-comment { background: #3a5aff; color: white; border: none; padding: 0 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        
+        .comment-list { margin-top: 25px; }
+        .comment-item { padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .comment-meta { font-size: 13px; color: #7fc7ff; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .comment-text { font-size: 15px; color: #ddd; line-height: 1.5; white-space: pre-wrap; }
+        .btn-comment-del { color: #ff4d4d; cursor: pointer; font-size: 12px; background: none; border: none; padding: 0; margin-left: 10px; }
 
         .btn-group { margin-top: 40px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #2d367a; padding-top: 30px; }
         .btn { padding: 12px 25px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
@@ -33,10 +45,7 @@
         .btn-delete { background: #ff4d4d; color: white; }
         .btn-delete:hover { background: #e60000; }
 
-        footer { 
-            background: #070a1d; text-align: center; padding: 35px 20px;
-            color: #888; border-top: 1px solid #1b2f80; font-size: 13px;
-        }
+        footer { background: #070a1d; text-align: center; padding: 35px 20px; color: #888; border-top: 1px solid #1b2f80; font-size: 13px; }
     </style>
 </head>
 <body>
@@ -64,6 +73,20 @@
         <div id="linkArea" class="link-section hidden">
             <div style="font-size: 13px; color: #7fc7ff; margin-bottom: 8px; font-weight: bold;">첨부된 링크</div>
             <a id="viewFileLink" href="#" target="_blank" class="btn-link">파일/링크 열기</a>
+        </div>
+
+        <div class="comment-section">
+            <h4 style="margin: 0; color: #7fc7ff;">댓글</h4>
+            <div id="commentList" class="comment-list">
+                </div>
+            
+            <div id="commentWriteArea" class="comment-form hidden">
+                <input type="text" id="commentInput" class="comment-input" placeholder="댓글을 입력하세요...">
+                <button class="btn-comment" onclick="addComment()">등록</button>
+            </div>
+            <div id="loginNotice" style="font-size: 13px; color: #888; margin-top: 20px; text-align: center;">
+                댓글은 로그인 후 작성할 수 있습니다.
+            </div>
         </div>
         
         <div class="btn-group">
@@ -98,20 +121,35 @@ const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 const urlParams = new URLSearchParams(window.location.search);
 const postId = urlParams.get('id');
 
-// 로그인 상태 감지 및 데이터 로드
+let currentUser = null;
+let currentUserName = "익명";
+
+// 1. 사용자 상태 체크 및 초기화
 auth.onAuthStateChanged(user => {
     const status = document.getElementById("userStatus");
+    const writeArea = document.getElementById("commentWriteArea");
+    const loginNotice = document.getElementById("loginNotice");
+
+    currentUser = user;
     if (user) {
         db.ref('users/' + user.uid + '/name').once('value', (snapshot) => {
-            const name = snapshot.val() || user.email.split('@')[0];
-            status.innerText = name + "님 로그인 중";
+            currentUserName = snapshot.val() || user.email.split('@')[0];
+            status.innerText = currentUserName + "님 로그인 중";
+            loadPost(user);
+            loadComments(user);
         });
+        writeArea.classList.remove("hidden");
+        loginNotice.classList.add("hidden");
     } else {
         status.innerText = "비로그인 상태 (열람 모드)";
+        writeArea.classList.add("hidden");
+        loginNotice.classList.remove("hidden");
+        loadPost(null);
+        loadComments(null);
     }
-    loadPost(user);
 });
 
+// 2. 게시글 로드
 function loadPost(user) {
     if(!postId) {
         alert("게시글 ID가 없습니다.");
@@ -129,42 +167,94 @@ function loadPost(user) {
             return;
         }
 
-        // 내용 표시
         postArea.classList.remove("hidden");
         document.getElementById("viewTitle").innerText = post.title;
         document.getElementById("viewAuthor").innerText = "작성자: " + (post.author || "익명");
         document.getElementById("viewDate").innerText = post.createdAt ? new Date(post.createdAt).toLocaleString() : "";
         document.getElementById("viewContent").innerText = post.content;
 
-        // 링크 처리
         const linkArea = document.getElementById("linkArea");
         if(post.fileUrl && post.fileUrl.trim() !== "") {
             const linkBtn = document.getElementById("viewFileLink");
             linkArea.classList.remove("hidden");
-            
             let finalUrl = post.fileUrl.trim();
             if (!finalUrl.startsWith('http')) finalUrl = 'https://' + finalUrl;
-            
             linkBtn.href = finalUrl;
-            linkBtn.target = "_blank";
             linkBtn.innerText = "🔗 " + (post.fileName || "첨부 링크 열기");
-        } else {
-            linkArea.classList.add("hidden");
         }
 
-        // 삭제 권한
         const deleteBtn = document.getElementById("deleteBtn");
         if(user && (user.uid === post.uid || user.email === ADMIN_EMAIL)) {
             deleteBtn.classList.remove("hidden");
-        } else {
-            deleteBtn.classList.add("hidden");
         }
-    }).catch(err => {
-        console.error(err);
-        alert("불러오기 실패");
     });
 }
 
+// 3. 댓글 로드 (기존 규칙에 맞춰 freeboard/postId/comments 경로 사용)
+function loadComments(user) {
+    db.ref(`freeboard/${postId}/comments`).on("value", snapshot => {
+        const commentList = document.getElementById("commentList");
+        commentList.innerHTML = "";
+        
+        // 게시글 작성자 UID를 가져와서 삭제 권한 부여용으로 사용
+        db.ref(`freeboard/${postId}/uid`).once("value", postAuthorSnapshot => {
+            const postAuthorUid = postAuthorSnapshot.val();
+
+            snapshot.forEach(child => {
+                const comment = child.val();
+                const commentId = child.key;
+                const date = new Date(comment.createdAt).toLocaleString();
+                
+                // 삭제 버튼 노출 조건: 본인 OR 글 작성자 OR 관리자
+                let deleteBtnHtml = "";
+                if(user && (user.uid === comment.uid || user.uid === postAuthorUid || user.email === ADMIN_EMAIL)) {
+                    deleteBtnHtml = `<button class="btn-comment-del" onclick="deleteComment('${commentId}')">삭제</button>`;
+                }
+
+                const div = document.createElement("div");
+                div.className = "comment-item";
+                div.innerHTML = `
+                    <div class="comment-meta">
+                        <span><strong>${comment.author}</strong> <small style="color:#666; margin-left:8px;">${date}</small></span>
+                        ${deleteBtnHtml}
+                    </div>
+                    <div class="comment-text">${comment.content}</div>
+                `;
+                commentList.appendChild(div);
+            });
+        });
+    });
+}
+
+// 4. 댓글 작성
+function addComment() {
+    const input = document.getElementById("commentInput");
+    const content = input.value.trim();
+    if(!content) return alert("내용을 입력하세요.");
+
+    const commentData = {
+        uid: currentUser.uid,
+        author: currentUserName,
+        content: content,
+        createdAt: Date.now()
+    };
+
+    db.ref(`freeboard/${postId}/comments`).push(commentData).then(() => {
+        input.value = "";
+    }).catch(err => {
+        alert("댓글 작성 권한이 없습니다.");
+        console.error(err);
+    });
+}
+
+// 5. 댓글 삭제
+function deleteComment(commentId) {
+    if(confirm("댓글을 삭제하시겠습니까?")) {
+        db.ref(`freeboard/${postId}/comments/${commentId}`).remove();
+    }
+}
+
+// 6. 게시글 삭제
 function deletePost() {
     if(confirm("정말로 삭제하시겠습니까?")) {
         db.ref("freeboard/" + postId).remove().then(() => {
