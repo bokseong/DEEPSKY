@@ -14,10 +14,11 @@
         .logo-area { display: flex; align-items: center; text-decoration: none; color: white; font-weight: bold; }
         .logo-area img { width: 40px; border-radius: 50%; margin-right: 12px; }
 
-        /* 상단 사용자 상태 및 버튼 */
-        .user-menu { display: flex; align-items: center; gap: 15px; font-size: 14px; }
-        .btn-auth { background: #3a5aff; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; text-decoration: none; }
-        .btn-logout { background: #444; }
+        /* 상단 사용자 상태 (원본 스타일 유지) */
+        .user-status-text { font-size: 14px; color: white; display: flex; align-items: center; gap: 10px; }
+        .btn-logout { background: transparent; border: 1px solid #3a5aff; color: #7fc7ff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-logout:hover { background: rgba(58, 90, 255, 0.1); }
+        .btn-login-go { color: #7fc7ff; text-decoration: none; font-size: 14px; font-weight: bold; }
 
         .container { max-width: 800px; margin: 40px auto; padding: 0 20px 100px; }
         .view-card { background: #161b4a; padding: 40px; border-radius: 15px; border: 1px solid #2d367a; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
@@ -28,23 +29,29 @@
         
         .link-section { background: rgba(58, 90, 255, 0.1); padding: 15px; border-radius: 10px; border: 1px dashed #3a5aff; margin-bottom: 30px; }
         .btn-link { display: inline-block; background: #3a5aff; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; transition: 0.2s; }
+        .btn-link:hover { background: #5a7aff; transform: translateY(-2px); }
 
-        /* 💬 댓글 섹션 */
-        .comment-section { margin-top: 40px; border-top: 1px solid #2d367a; padding-top: 30px; }
-        .comment-form { margin-top: 20px; display: flex; gap: 10px; }
-        .comment-input { flex: 1; background: #070a1d; border: 1px solid #2d367a; border-radius: 6px; color: white; padding: 10px; outline: none; }
-        .btn-comment { background: #3a5aff; color: white; border: none; padding: 0 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        /* 💬 댓글 섹션 스타일 */
+        .comment-section { margin-top: 50px; border-top: 1px solid #2d367a; padding-top: 30px; }
+        .comment-title { font-size: 18px; color: #7fc7ff; margin-bottom: 20px; font-weight: bold; }
+        .comment-item { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 10px; margin-bottom: 12px; border: 1px solid rgba(45, 54, 122, 0.5); }
+        .comment-meta { display: flex; justify-content: space-between; font-size: 13px; color: #aaa; margin-bottom: 8px; }
+        .comment-author { color: #7fc7ff; font-weight: bold; }
+        .comment-text { font-size: 15px; line-height: 1.5; color: #ddd; }
+        .btn-comment-del { color: #ff4d4d; cursor: pointer; background: none; border: none; font-size: 12px; padding: 0; }
         
-        .comment-list { margin-top: 25px; }
-        .comment-item { padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .comment-meta { font-size: 13px; color: #7fc7ff; margin-bottom: 5px; display: flex; justify-content: space-between; }
-        .comment-text { font-size: 15px; color: #ddd; line-height: 1.5; white-space: pre-wrap; }
-        .btn-comment-del { color: #ff4d4d; cursor: pointer; font-size: 12px; background: none; border: none; }
+        .comment-form { margin-top: 25px; display: flex; gap: 10px; }
+        .comment-input { flex: 1; background: #070a1d; border: 1px solid #2d367a; border-radius: 6px; color: white; padding: 12px; font-size: 14px; outline: none; }
+        .comment-input:focus { border-color: #3a5aff; }
+        .btn-comment-submit { background: #3a5aff; color: white; border: none; padding: 0 20px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-comment-submit:hover { background: #5a7aff; }
 
         .btn-group { margin-top: 40px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #2d367a; padding-top: 30px; }
         .btn { padding: 12px 25px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
         .btn-list { background: #2d367a; color: white; }
+        .btn-list:hover { background: #3d4a8a; }
         .btn-delete { background: #ff4d4d; color: white; }
+        .btn-delete:hover { background: #e60000; }
 
         footer { background: #070a1d; text-align: center; padding: 35px 20px; color: #888; border-top: 1px solid #1b2f80; font-size: 13px; }
     </style>
@@ -56,8 +63,7 @@
         <img src="logo.png" onerror="this.src='https://via.placeholder.com/40'">
         <span>DEEP SKY</span>
     </a>
-    <div id="userStatus" class="user-menu">
-        </div>
+    <div id="userStatus" class="user-status-text">불러오는 중...</div>
 </div>
 
 <div class="container">
@@ -78,15 +84,16 @@
         </div>
 
         <div class="comment-section">
-            <h4 style="margin: 0; color: #7fc7ff;">댓글</h4>
-            <div id="commentList" class="comment-list"></div>
+            <div class="comment-title">댓글</div>
+            <div id="commentList">
+                </div>
             
-            <div id="commentWriteArea" class="comment-form hidden">
-                <input type="text" id="commentInput" class="comment-input" placeholder="댓글을 입력하세요...">
-                <button class="btn-comment" onclick="addComment()">등록</button>
+            <div id="commentFormArea" class="comment-form hidden">
+                <input type="text" id="commentInput" class="comment-input" placeholder="댓글을 남겨보세요...">
+                <button class="btn-comment-submit" onclick="addComment()">등록</button>
             </div>
-            <div id="loginNotice" style="font-size: 13px; color: #888; margin-top: 20px; text-align: center;">
-                댓글은 로그인 후 작성할 수 있습니다.
+            <div id="commentLoginNotice" style="text-align: center; padding: 20px; color: #aaa; font-size: 14px;">
+                댓글을 작성하려면 <a href="login.html" style="color: #7fc7ff;">로그인</a>이 필요합니다.
             </div>
         </div>
         
@@ -122,48 +129,52 @@ const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 const urlParams = new URLSearchParams(window.location.search);
 const postId = urlParams.get('id');
 
-let currentUser = null;
-let currentUserName = "익명";
+let currentUserName = "";
+let currentPostAuthorUid = "";
 
-// 1. 사용자 상태 감지 (원본 로직 반영)
+// 로그인 상태 감지 및 데이터 로드
 auth.onAuthStateChanged(user => {
-    const statusDiv = document.getElementById("userStatus");
-    const writeArea = document.getElementById("commentWriteArea");
-    const loginNotice = document.getElementById("loginNotice");
+    const status = document.getElementById("userStatus");
+    const commentFormArea = document.getElementById("commentFormArea");
+    const commentLoginNotice = document.getElementById("commentLoginNotice");
 
-    currentUser = user;
     if (user) {
         db.ref('users/' + user.uid + '/name').once('value', (snapshot) => {
             currentUserName = snapshot.val() || user.email.split('@')[0];
-            statusDiv.innerHTML = `
+            status.innerHTML = `
                 <span>${currentUserName}님</span>
-                <button class="btn-auth btn-logout" onclick="auth.signOut()">로그아웃</button>
+                <button class="btn-logout" onclick="auth.signOut()">로그아웃</button>
             `;
         });
-        writeArea.classList.remove("hidden");
-        loginNotice.classList.add("hidden");
+        commentFormArea.classList.remove("hidden");
+        commentLoginNotice.classList.add("hidden");
     } else {
-        statusDiv.innerHTML = `<a href="login.html" class="btn-auth">로그인</a>`;
-        writeArea.classList.add("hidden");
-        loginNotice.classList.remove("hidden");
+        status.innerHTML = `<a href="login.html" class="btn-login-go">로그인</a>`;
+        commentFormArea.classList.add("hidden");
+        commentLoginNotice.classList.remove("hidden");
     }
     loadPost(user);
     loadComments(user);
 });
 
-// 2. 게시글 로드
 function loadPost(user) {
-    if(!postId) { location.href = "board.html"; return; }
+    if(!postId) {
+        alert("게시글 ID가 없습니다.");
+        location.href = "board.html";
+        return;
+    }
 
     db.ref("freeboard/" + postId).once("value").then(snapshot => {
         const post = snapshot.val();
         const postArea = document.getElementById("postArea");
 
         if(!post) {
-            postArea.innerHTML = "<div style='text-align:center; padding:100px;'><h3>삭제된 게시글입니다.</h3></div>";
+            postArea.innerHTML = "<div style='text-align:center; padding:100px;'><h3>삭제된 게시글입니다.</h3><button onclick='location.href=\"board.html\"' class='btn btn-list'>목록으로</button></div>";
             postArea.classList.remove("hidden");
             return;
         }
+
+        currentPostAuthorUid = post.uid;
 
         postArea.classList.remove("hidden");
         document.getElementById("viewTitle").innerText = post.title;
@@ -171,73 +182,86 @@ function loadPost(user) {
         document.getElementById("viewDate").innerText = post.createdAt ? new Date(post.createdAt).toLocaleString() : "";
         document.getElementById("viewContent").innerText = post.content;
 
-        if(post.fileUrl) {
-            const linkArea = document.getElementById("linkArea");
+        const linkArea = document.getElementById("linkArea");
+        if(post.fileUrl && post.fileUrl.trim() !== "") {
             const linkBtn = document.getElementById("viewFileLink");
             linkArea.classList.remove("hidden");
-            linkBtn.href = post.fileUrl.startsWith('http') ? post.fileUrl : 'https://' + post.fileUrl;
+            let finalUrl = post.fileUrl.trim();
+            if (!finalUrl.startsWith('http')) finalUrl = 'https://' + finalUrl;
+            linkBtn.href = finalUrl;
             linkBtn.innerText = "🔗 " + (post.fileName || "첨부 링크 열기");
         }
 
+        const deleteBtn = document.getElementById("deleteBtn");
         if(user && (user.uid === post.uid || user.email === ADMIN_EMAIL)) {
-            document.getElementById("deleteBtn").classList.remove("hidden");
+            deleteBtn.classList.remove("hidden");
         }
     });
 }
 
-// 3. 댓글 로드 (freeboard/postId/comments 경로)
+// 💬 댓글 불러오기
 function loadComments(user) {
-    db.ref(`freeboard/${postId}/comments`).on("value", snapshot => {
-        const listDiv = document.getElementById("commentList");
-        listDiv.innerHTML = "";
+    db.ref("freeboard/" + postId + "/comments").on("value", (snapshot) => {
+        const listArea = document.getElementById("commentList");
+        listArea.innerHTML = "";
         
-        db.ref(`freeboard/${postId}/uid`).once("value", postAuthorSnap => {
-            const postAuthorUid = postAuthorSnap.val();
+        if (!snapshot.exists()) {
+            listArea.innerHTML = "<div style='color:#666; font-size:14px;'>첫 번째 댓글을 남겨보세요!</div>";
+            return;
+        }
 
-            snapshot.forEach(child => {
-                const comment = child.val();
-                const cid = child.key;
-                let delBtn = "";
-
-                if(user && (user.uid === comment.uid || user.uid === postAuthorUid || user.email === ADMIN_EMAIL)) {
-                    delBtn = `<button class="btn-comment-del" onclick="deleteComment('${cid}')">삭제</button>`;
-                }
-
-                const item = document.createElement("div");
-                item.className = "comment-item";
-                item.innerHTML = `
+        snapshot.forEach((child) => {
+            const comment = child.val();
+            const commentId = child.key;
+            
+            // 삭제 권한: 댓글 작성자 OR 게시글 작성자 OR 관리자
+            const canDelete = user && (user.uid === comment.uid || user.uid === currentPostAuthorUid || user.email === ADMIN_EMAIL);
+            
+            const commentHtml = `
+                <div class="comment-item">
                     <div class="comment-meta">
-                        <span><strong>${comment.author}</strong> <small style="color:#666; margin-left:8px;">${new Date(comment.createdAt).toLocaleString()}</small></span>
-                        ${delBtn}
+                        <span class="comment-author">${comment.author}</span>
+                        <span>
+                            ${new Date(comment.createdAt).toLocaleString()}
+                            ${canDelete ? `<button class="btn-comment-del" onclick="deleteComment('${commentId}')" style="margin-left:10px;">삭제</button>` : ""}
+                        </span>
                     </div>
                     <div class="comment-text">${comment.content}</div>
-                `;
-                listDiv.appendChild(item);
-            });
+                </div>
+            `;
+            listArea.innerHTML += commentHtml;
         });
     });
 }
 
-// 4. 댓글 작성/삭제
+// 💬 댓글 추가
 function addComment() {
+    const user = auth.currentUser;
     const input = document.getElementById("commentInput");
-    if(!input.value.trim()) return;
+    const content = input.value.trim();
 
-    db.ref(`freeboard/${postId}/comments`).push({
-        uid: currentUser.uid,
+    if (!user) return alert("로그인이 필요합니다.");
+    if (!content) return alert("내용을 입력해주세요.");
+
+    const newComment = {
+        uid: user.uid,
         author: currentUserName,
-        content: input.value.trim(),
+        content: content,
         createdAt: Date.now()
-    }).then(() => input.value = "");
+    };
+
+    db.ref("freeboard/" + postId + "/comments").push(newComment).then(() => {
+        input.value = "";
+    }).catch(err => alert("댓글 작성 실패: " + err.message));
 }
 
-function deleteComment(cid) {
-    if(confirm("댓글을 삭제하시겠습니까?")) {
-        db.ref(`freeboard/${postId}/comments/${cid}`).remove();
+// 💬 댓글 삭제
+function deleteComment(commentId) {
+    if (confirm("댓글을 삭제하시겠습니까?")) {
+        db.ref("freeboard/" + postId + "/comments/" + commentId).remove();
     }
 }
 
-// 5. 게시글 삭제
 function deletePost() {
     if(confirm("정말로 삭제하시겠습니까?")) {
         db.ref("freeboard/" + postId).remove().then(() => {
