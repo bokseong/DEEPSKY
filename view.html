@@ -297,19 +297,25 @@ function addComment() {
 function sendNotificationEmail(commentContent) {
     db.ref("users/" + currentPostAuthorUid).once("value").then(snapshot => {
         const authorData = snapshot.val();
+        
         if (authorData && authorData.email) {
             const templateParams = {
-                target_email: authorData.email,
-                post_title: currentPostTitle,
-                post_author: authorData.name || "회원",
-                comment_author: currentUserName,
-                comment_content: commentContent,
-                link: window.location.href
+                target_email: authorData.email,   // 받는 사람 이메일
+                name: authorData.name || "회원", // 템플릿의 {{name}}과 매칭
+                post_title: currentPostTitle,     // 템플릿의 {{post_title}}
+                comment_author: currentUserName,   // 댓글 쓴 사람 이름
+                comment_content: commentContent,  // 템플릿의 {{comment_content}}
+                link: window.location.href        // 게시글 링크
             };
 
+            // 사진에서 확인된 Service ID: deepsky / Template ID: template_q20mjcb
             emailjs.send("deepsky", "template_q20mjcb", templateParams)
-                .then(() => console.log("알림 메일 발송 성공!"))
-                .catch(err => console.error("발송 실패:", err));
+                .then(() => {
+                    console.log("알림 메일 발송 성공!");
+                })
+                .catch(err => {
+                    console.error("발송 실패:", err);
+                });
         }
     });
 }
