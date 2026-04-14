@@ -307,7 +307,7 @@ function sendNotificationEmail(commentContent) {
                 link: window.location.href
             };
 
-            emailjs.send("deepsky", "template_mtua1ue", templateParams)
+            emailjs.send("deepsky", "template_q20mjcb", templateParams)
                 .then(() => console.log("알림 메일 발송 성공!"))
                 .catch(err => console.error("발송 실패:", err));
         }
