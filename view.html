@@ -60,6 +60,12 @@
             color: #888; border-top: 1px solid #1b2f80; font-size: 13px;
         }
     </style>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+<script type="text/javascript">
+    (function() {
+        emailjs.init("p2O8bkjE2HkqQef3q"); 
+    })();
+</script>
 </head>
 <body>
 
@@ -184,6 +190,10 @@ function logout() {
 }
 
 // 3. 게시글 불러오기
+
+let postAuthorUid = ""; 
+let postTitle = "";
+    
 function loadPost(user) {
     if(!postId) {
         alert("게시글 ID가 없습니다.");
@@ -191,6 +201,8 @@ function loadPost(user) {
         return;
     }
 
+    // .once 대신 .on을 사용하면 실시간 업데이트가 가능하지만, 
+    // 기존 코드 형식을 유지하기 위해 .once(v8 스타일)를 사용합니다.
     db.ref("freeboard/" + postId).once("value").then(snapshot => {
         const post = snapshot.val();
         const postArea = document.getElementById("postArea");
@@ -201,7 +213,11 @@ function loadPost(user) {
             return;
         }
 
-        currentPostAuthorUid = post.uid;
+        // --- [알림 기능을 위한 핵심 수정 부분] ---
+        currentPostAuthorUid = post.uid; // 작성자 UID를 전역 변수에 저장
+        currentPostTitle = post.title;   // 작성자 제목을 전역 변수에 저장
+        // ---------------------------------------
+
         postArea.classList.remove("hidden");
         document.getElementById("viewTitle").innerText = post.title;
         document.getElementById("viewAuthor").innerText = "작성자: " + (post.author || "익명");
@@ -275,6 +291,11 @@ function addComment() {
         createdAt: Date.now()
     }).then(() => {
         input.value = "";
+        
+        // 추가: 게시글 작성자가 본인이 아닐 때만 알림 메일 발송
+        if (postAuthorUid !== user.uid) {
+            sendNotificationEmail(content);
+        }
     });
 }
 
@@ -293,6 +314,29 @@ function deletePost() {
             location.href = 'board.html';
         });
     }
+}
+
+    function sendNotificationEmail(commentContent) {
+    // 1. 작성자의 정보를 조회 (이메일을 가져오기 위함)
+    db.ref("users/" + postAuthorUid).once("value").then(snapshot => {
+        const authorData = snapshot.val();
+        if (authorData && authorData.email) {
+            
+            // 2. EmailJS로 데이터 전송
+            const templateParams = {
+                target_email: authorData.email,   // 받는 사람
+                post_title: postTitle,           // 게시글 제목
+                post_author: authorData.name,    // 게시글 작성자
+                comment_author: currentUserName, // 댓글 쓴 사람
+                comment_content: commentContent, // 댓글 내용
+                link: window.location.href       // 해당 글 주소
+            };
+
+            emailjs.send("deepsky", "template_mtua1ue", templateParams)
+                .then(() => console.log("알림 메일 발송 성공"))
+                .catch(err => console.error("발송 실패:", err));
+        }
+    });
 }
 </script>
 </body>
