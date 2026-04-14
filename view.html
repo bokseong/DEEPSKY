@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -125,6 +125,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
+<script>
+// 1. Firebase 설정
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -140,23 +142,15 @@ const auth = firebase.auth();
 const db = firebase.database();
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
+// 2. 전역 변수
 const urlParams = new URLSearchParams(window.location.search);
 const postId = urlParams.get('id');
 
 let currentUserName = "";
-let currentPostAuthorUid = "";
-
-// ... (Firebase 설정 및 초기화 부분은 그대로 두세요) ...
-
-const urlParams = new URLSearchParams(window.location.search);
-const postId = urlParams.get('id');
-
-let currentUserName = "";
-// 전역 변수 이름을 통일합니다.
 let currentPostAuthorUid = ""; 
 let currentPostTitle = "";
 
-// 1. 로그인 상태 감지
+// 3. 로그인 상태 감지 및 UI 제어
 auth.onAuthStateChanged(user => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
@@ -165,27 +159,35 @@ auth.onAuthStateChanged(user => {
     const commentLoginNotice = document.getElementById("commentLoginNotice");
 
     if (user) {
+        // 로그인 시: 사용자 이름 가져오기
         db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
             currentUserName = snapshot.val() || user.displayName || user.email.split('@')[0];
             status.innerText = `${currentUserName}님`;
         });
+        
         loginBtn.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
+        
+        // 댓글 입력창 보여주고 안내문구 숨기기
         commentFormArea.classList.remove("hidden");
         commentLoginNotice.classList.add("hidden");
     } else {
+        // 미로그인 시
         currentUserName = "익명";
         status.innerText = "로그인 해주세요";
         loginBtn.classList.remove("hidden");
         logoutBtn.classList.add("hidden");
+        
+        // 댓글 입력창 숨기고 안내문구 보여주기
         commentFormArea.classList.add("hidden");
         commentLoginNotice.classList.remove("hidden");
     }
+    
     loadPost(user);
     loadComments(user);
 });
 
-// 2. 로그아웃
+// 4. 로그아웃
 function logout() {
     if(confirm("로그아웃 하시겠습니까?")) {
         auth.signOut().then(() => {
@@ -195,7 +197,7 @@ function logout() {
     }
 }
 
-// 3. 게시글 불러오기
+// 5. 게시글 불러오기
 function loadPost(user) {
     if(!postId) return;
 
@@ -209,7 +211,6 @@ function loadPost(user) {
             return;
         }
 
-        // 🚨 중요: 여기서 전역 변수에 정확히 값을 할당합니다.
         currentPostAuthorUid = post.uid; 
         currentPostTitle = post.title; 
 
@@ -236,19 +237,23 @@ function loadPost(user) {
     });
 }
 
-// 4. 댓글 불러오기 (기존과 동일)
+// 6. 댓글 불러오기
 function loadComments(user) {
     db.ref("freeboard/" + postId + "/comments").on("value", (snapshot) => {
         const listArea = document.getElementById("commentList");
         listArea.innerHTML = "";
+        
         if (!snapshot.exists()) {
             listArea.innerHTML = "<div style='color:#666; font-size:14px; text-align:center; padding:10px;'>등록된 댓글이 없습니다.</div>";
             return;
         }
+
         snapshot.forEach((child) => {
             const comment = child.val();
             const commentId = child.key;
+            // 삭제 권한: 댓글 작성자 본인 OR 게시글 주인 OR 관리자
             const canDelete = user && (user.uid === comment.uid || user.uid === currentPostAuthorUid || user.email === ADMIN_EMAIL);
+            
             const commentHtml = `
                 <div class="comment-item">
                     <div class="comment-meta">
@@ -266,7 +271,7 @@ function loadComments(user) {
     });
 }
 
-// 5. 댓글 추가 및 이메일 발송 호출
+// 7. 댓글 추가
 function addComment() {
     const user = auth.currentUser;
     const input = document.getElementById("commentInput");
@@ -282,25 +287,21 @@ function addComment() {
         createdAt: Date.now()
     }).then(() => {
         input.value = "";
-        
-        // 🚨 수정: 전역 변수 명칭을 loadPost에서 저장한 것과 일치시킴
+        // 본인이 쓴 글이 아닐 때만 알림 메일 전송
         if (currentPostAuthorUid && currentPostAuthorUid !== user.uid) {
             sendNotificationEmail(content);
         }
     });
 }
 
-// 6. 이메일 알림 전송 함수
+// 8. 이메일 알림 전송 (EmailJS)
 function sendNotificationEmail(commentContent) {
-    // 🚨 수정: currentPostAuthorUid 사용
     db.ref("users/" + currentPostAuthorUid).once("value").then(snapshot => {
         const authorData = snapshot.val();
-        
-        // 데이터베이스에 이메일 정보가 있는지 확인
         if (authorData && authorData.email) {
             const templateParams = {
                 target_email: authorData.email,
-                post_title: currentPostTitle, // loadPost에서 저장된 제목
+                post_title: currentPostTitle,
                 post_author: authorData.name || "회원",
                 comment_author: currentUserName,
                 comment_content: commentContent,
@@ -310,18 +311,18 @@ function sendNotificationEmail(commentContent) {
             emailjs.send("deepsky", "template_mtua1ue", templateParams)
                 .then(() => console.log("알림 메일 발송 성공!"))
                 .catch(err => console.error("발송 실패:", err));
-        } else {
-            console.log("작성자의 이메일 정보를 찾을 수 없어 메일을 보내지 못했습니다.");
         }
     });
 }
 
-// 7. 삭제 함수들 (생략 - 기존과 동일하게 유지)
+// 9. 댓글 삭제
 function deleteComment(commentId) {
     if (confirm("댓글을 삭제하시겠습니까?")) {
         db.ref("freeboard/" + postId + "/comments/" + commentId).remove();
     }
 }
+
+// 10. 게시글 삭제
 function deletePost() {
     if(confirm("정말로 게시글을 삭제하시겠습니까?")) {
         db.ref("freeboard/" + postId).remove().then(() => {
@@ -330,6 +331,7 @@ function deletePost() {
         });
     }
 }
+</script>
 </script>
 </body>
 </html>
