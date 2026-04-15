@@ -205,8 +205,8 @@
 
 <div id="adminUpdateBox" class="card hidden" style="border: 1px solid #4a9eff; background: rgba(74, 158, 255, 0.05);">
     <h3 style="color: #4a9eff; margin-top: 0;">관리자 메뉴 (업데이트 기록 추가)</h3>
-    <input type="text" id="updateVersion" placeholder="버전 (예: v1.0.1)" style="width: 100%; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
-    <textarea id="updateContent" placeholder="업데이트 내용을 입력하세요..."></textarea>
+    <input type="text" id="updateVersion" placeholder="버전 (규칙: 첫번째 자리에는 대규모 개편, 두번째 자리는 기능 추가, 세번째 자리는 버그나 문구 수정 -> 예:1.0.1)" style="width: 100%; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+    <textarea id="updateContent" placeholder="업데이트 내용"></textarea>
     <button onclick="addUpdateLog()" style="margin-top:10px; padding:10px 20px; background:#4a9eff; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">기록하기</button>
 </div>
 <div class="slide-container">
