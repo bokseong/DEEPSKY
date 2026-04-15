@@ -82,6 +82,16 @@
             background: rgba(127, 199, 255, 0.1);
             color: #7fc7ff; 
         }
+        /* 업데이트 로그 게시판 */
+        .log-item {
+            border-bottom: 1px solid #2d367a;
+            padding: 10px 0;
+        }
+        .log-item:last-child { border-bottom: none; }
+        .log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .log-version { color: #7fc7ff; font-weight: bold; font-size: 0.9rem; }
+        .log-date { color: #888; font-size: 0.8rem; }
+        .log-text { color: #ccc; line-height: 1.4; white-space: pre-wrap; }
 
         /* 5. 메인 컨텐츠 & 카드 */
         .container { max-width: 1000px; margin: 35px auto; padding: 0 20px; }
@@ -186,6 +196,19 @@
     </div>
 </div>
 
+<div class="card">
+    <h3 style="color: #7fc7ff; margin-top: 0;">업데이트 기록</h3>
+    <div id="updateLogList" style="max-height: 300px; overflow-y: auto; font-size: 0.95rem;">
+        <p>기록을 불러오는 중입니다...</p>
+    </div>
+</div>
+
+<div id="adminUpdateBox" class="card hidden" style="border: 1px solid #4a9eff; background: rgba(74, 158, 255, 0.05);">
+    <h3 style="color: #4a9eff; margin-top: 0;">관리자 메뉴 (업데이트 기록 추가)</h3>
+    <input type="text" id="updateVersion" placeholder="버전 (예: v1.0.1)" style="width: 100%; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+    <textarea id="updateContent" placeholder="업데이트 내용을 입력하세요..."></textarea>
+    <button onclick="addUpdateLog()" style="margin-top:10px; padding:10px 20px; background:#4a9eff; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">기록하기</button>
+</div>
 <div class="slide-container">
     <div class="slide-header">
         <h3 style="margin:0; color:#fff;">동아리 관측 기록</h3>
@@ -289,6 +312,72 @@ function logout() {
     if(confirm("로그아웃 하시겠습니까?")) {
         auth.signOut().then(() => location.reload());
     }
+}
+
+    // 관리자 권한 체크 부분 (기존 auth.onAuthStateChanged 내부에 추가)
+auth.onAuthStateChanged(user => {
+    // ... 기존 코드 ...
+    const adminUpdateBox = document.getElementById("adminUpdateBox");
+    
+    if (user && user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+        adminUpdateBox.classList.remove("hidden"); // 관리자면 입력창 보여줌
+    } else {
+        adminUpdateBox.classList.add("hidden");
+    }
+});
+
+// 1. 업데이트 로그 불러오기 (최신순 10개)
+db.ref("updateLogs").orderByChild("timestamp").limitToLast(10).on("value", snapshot => {
+    const logList = document.getElementById("updateLogList");
+    logList.innerHTML = "";
+    
+    const data = [];
+    snapshot.forEach(child => {
+        data.push(child.val());
+    });
+    data.reverse(); // 최신순 정렬
+
+    if (data.length === 0) {
+        logList.innerHTML = "<p>등록된 기록이 없습니다.</p>";
+        return;
+    }
+
+    data.forEach(log => {
+        const item = document.createElement("div");
+        item.className = "log-item";
+        item.innerHTML = `
+            <div class="log-header">
+                <span class="log-version">${log.version}</span>
+                <span class="log-date">${log.date}</span>
+            </div>
+            <div class="log-text">${log.content}</div>
+        `;
+        logList.appendChild(item);
+    });
+});
+
+// 2. 업데이트 로그 저장하기 (관리자 전용)
+function addUpdateLog() {
+    const version = document.getElementById("updateVersion").value;
+    const content = document.getElementById("updateContent").value;
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
+
+    if(!version.trim() || !content.trim()) return alert("버전과 내용을 모두 입력해주세요.");
+
+    const newLogRef = db.ref("updateLogs").push();
+    newLogRef.set({
+        version: version,
+        content: content,
+        date: dateStr,
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    }).then(() => {
+        alert("업데이트 기록 완료");
+        document.getElementById("updateVersion").value = "";
+        document.getElementById("updateContent").value = "";
+    }).catch(err => {
+        alert("권한이 없거나 오류가 발생했습니다.");
+    });
 }
 </script>
 </body>
