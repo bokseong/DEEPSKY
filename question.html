@@ -5,89 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DEEP SKY(질문 게시판)</title>
     <style>
-        /* 1. 공통 스타일 */
+        /* [스타일 부분은 기존과 동일하므로 생략 - 그대로 유지하세요] */
         * { box-sizing: border-box; }
         body { margin: 0; font-family: "Segoe UI", sans-serif; background: #0b0f2b; color: white; line-height: 1.6; }
-        
         .hidden { display: none !important; }
-
-        /* 2. 상단 바 */
-        .top-bar { 
-            display: flex; justify-content: space-between; align-items: center; 
-            padding: 0 20px; background: #070a1d; border-bottom: 1px solid #1b2f80; 
-            height: 60px; position: sticky; top:0; z-index:1000; 
-        }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; background: #070a1d; border-bottom: 1px solid #1b2f80; height: 60px; position: sticky; top:0; z-index:1000; }
         .logo-area { display: flex; align-items: center; text-decoration: none; color: white; }
         .logo-area img { width: 35px; height: 35px; margin-right: 10px; border-radius: 50%; }
         .logo-area span { font-size: 18px; font-weight: bold; }
-        
         .auth-bar { font-size: 14px; display: flex; align-items: center; gap: 10px; }
         .auth-bar button { padding: 5px 12px; border-radius: 5px; border: none; background: #3a5aff; color: white; cursor: pointer; font-weight: bold; }
-        
-        /* 3. 내비게이션 */
         header { background: linear-gradient(to right, #0d1b52, #1b2f80); padding: 40px 20px; text-align: center; }
-        nav { 
-            background: #11153a; 
-            border-bottom: 1px solid #2d367a; 
-            padding: 10px 0;
-        }
-        nav .nav-inner { 
-            max-width: 1000px; 
-            margin: 0 auto; 
-            display: flex; 
-            flex-wrap: wrap; 
-            justify-content: center; 
-            gap: 5px; 
-        }
-        nav a { 
-            display: inline-block; 
-            color: white; 
-            padding: 12px 18px; 
-            text-decoration: none; 
-            font-weight: bold; 
-            font-size: 15px; 
-            border-radius: 8px;
-        }
+        nav { background: #11153a; border-bottom: 1px solid #2d367a; padding: 10px 0; }
+        nav .nav-inner { max-width: 1000px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
+        nav a { display: inline-block; color: white; padding: 12px 18px; text-decoration: none; font-weight: bold; font-size: 15px; border-radius: 8px; }
         nav a:hover { background: rgba(127, 199, 255, 0.1); color: #7fc7ff; }
-    
-        /* 4. 본문 컨테이너 */
         .container { max-width: 900px; margin: 30px auto; padding: 0 20px 100px; }
-        
         .search-box { margin-bottom: 20px; }
-        .search-box input { 
-            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #1b2f80; 
-            background: #161b4a; color: white; font-size: 15px; outline: none;
-        }
-
+        .search-box input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #1b2f80; background: #161b4a; color: white; font-size: 15px; outline: none; }
         .write-card { background: #161b4a; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #2d367a; }
-        .write-card input { 
-            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #1b2f80; 
-            background: #0b0f2b; color: white; margin-bottom: 10px; outline: none;
-        }
+        .write-card input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #1b2f80; background: #0b0f2b; color: white; margin-bottom: 10px; outline: none; }
         .btn-main { width: 100%; padding: 12px; background: #3a5aff; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        
         .q-card { background: #161b4a; padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #2d367a; }
         .q-meta { font-size: 12px; color: #7fc7ff; margin-bottom: 8px; }
         .q-text { font-weight: bold; font-size: 16px; margin-bottom: 15px; display: block; border-bottom: 1px solid #2d367a; padding-bottom: 10px; color: #fff; }
-        
         .replies-container { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
         .ans-box { background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 8px; border-left: 3px solid #28a745; position: relative; }
         .ans-content { font-size: 14px; color: #eee; line-height: 1.4; padding-right: 30px; word-break: break-all; overflow-wrap: break-word; }
         .ans-author { font-size: 11px; color: #7fc7ff; margin-top: 5px; display: block; font-weight: bold; }
         .btn-ans-del { position: absolute; top: 10px; right: 10px; background: transparent; color: #ff4d4d; border: none; cursor: pointer; font-size: 12px; font-weight: bold; }
-
         .answer-controls { margin-top: 20px; padding-top: 15px; border-top: 1px dashed #2d367a; display: flex; gap: 5px; }
         .answer-controls input { flex: 1; padding: 10px; border-radius: 5px; border: 1px solid #1b2f80; background: #0b0f2b; color: white; outline: none; }
         .btn-ans { background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .btn-del { background: #ff4d4d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        
         footer { background: #070a1d; text-align: center; padding: 30px 20px; font-size: 12px; color: #888; border-top: 1px solid #1b2f80; width: 100%; margin-top: 50px; }
-
-       @media (max-width: 600px) {
-            .logo-area span { font-size: 16px; }
-            nav a { padding: 10px 12px; font-size: 13px; }
-            header h1 { font-size: 22px; }
-        }
+        @media (max-width: 600px) { .logo-area span { font-size: 16px; } nav a { padding: 10px 12px; font-size: 13px; } header h1 { font-size: 22px; } }
     </style>
 </head>
 <body>
@@ -125,7 +77,7 @@
     </div>
 
     <div class="write-card">
-        <input type="text" id="qInput" placeholder="질문 내용을 입력하세요. (비로그인은 익명 등록)">
+        <input type="text" id="qInput" placeholder="질문 내용을 입력하세요. (비로그인은 익명) 최대한 빠르게 답변하겠습니다!">
         <button class="btn-main" onclick="addQuestion()">질문 등록</button>
     </div>
 
@@ -140,12 +92,14 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
 <script>
-// EmailJS 초기화 (보내주신 Public Key 사용)
+// EmailJS 초기화
 (function() {
-    emailjs.init("p2O8bkjE2HkqQef3q");
+    emailjs.init({
+      publicKey: "p2O8bkjE2HkqQef3q",
+    });
 })();
 
 const firebaseConfig = {
@@ -189,6 +143,7 @@ auth.onAuthStateChanged(user => {
     loadQuestions();
 });
 
+// 질문 등록 시 관리자 알림
 function addQuestion() {
     const text = document.getElementById("qInput").value.trim();
     if(!text) return alert("질문을 입력해주세요.");
@@ -199,10 +154,54 @@ function addQuestion() {
         email: currentUser ? currentUser.email : "anonymous",
         createdAt: firebase.database.ServerValue.TIMESTAMP
     }).then(() => {
+        // 관리자가 아닐 때만 관리자에게 메일 발송
+        if (!currentUser || currentUser.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+            sendAdminAlert(text, currentUserName, "새로운 질문이 게시되었습니다.");
+        }
+        
         document.getElementById("qInput").value = "";
+        alert("질문이 등록되었습니다.");
     });
 }
 
+// 답글 등록 시 관리자 알림
+function saveAnswer(qKey) {
+    const ansInput = document.getElementById("ans_"+qKey);
+    const ansText = ansInput.value.trim();
+    if(!ansText) return alert("내용을 입력하세요.");
+    
+    const originalQuestion = cachedData[qKey].text;
+    
+    db.ref(`questions/${qKey}/replies`).push({
+        text: ansText,
+        author: currentUserName,
+        email: currentUser.email,
+        createdAt: firebase.database.ServerValue.TIMESTAMP
+    }).then(() => {
+        // 관리자가 아닐 때만 관리자에게 메일 발송
+        if (currentUser.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+            sendAdminAlert(originalQuestion, currentUserName, ansText);
+        }
+        
+        ansInput.value = "";
+        alert("답글이 등록되었습니다.");
+    });
+}
+
+// 공용 메일 발송 함수 (Service ID의 공백 주의!)
+function sendAdminAlert(qText, author, msg) {
+    const templateParams = {
+        question_text: qText,
+        reply_author: author,
+        reply_text: msg,
+        admin_email: ADMIN_EMAIL
+    };
+
+    emailjs.send("DEEP SKY_question", "template_a17vklg", templateParams)
+        .then(res => console.log('알림 전송 성공'), err => console.error('알림 전송 실패', err));
+}
+
+// [나머지 함수들은 기존과 동일]
 function loadQuestions() {
     db.ref("questions").on("value", snapshot => {
         cachedData = snapshot.val();
@@ -214,121 +213,38 @@ function renderList(data) {
     const list = document.getElementById("questionList");
     const searchTerm = document.getElementById("qSearch").value.toLowerCase();
     list.innerHTML = "";
-
-    if(!data) {
-        list.innerHTML = "<p style='text-align:center;'>첫 질문을 기다리고 있습니다.</p>";
-        return;
-    }
-
+    if(!data) { list.innerHTML = "<p style='text-align:center;'>첫 질문을 기다리고 있습니다.</p>"; return; }
     const keys = Object.keys(data).reverse();
     let hasMatch = false;
-
     keys.forEach(qKey => {
         const q = data[qKey];
         const isAdmin = currentUser && currentUser.email && currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
         const isAuthor = currentUser && currentUser.email === q.email;
-        
         const repliesText = q.replies ? Object.values(q.replies).map(r => r.text + r.author).join(" ") : "";
         const searchPool = (q.text + q.author + repliesText).toLowerCase();
-        
         if (searchTerm && !searchPool.includes(searchTerm)) return;
-
         hasMatch = true;
         let repliesHtml = '<div class="replies-container">';
         if (q.replies) {
             Object.keys(q.replies).forEach(rKey => {
                 const r = q.replies[rKey];
                 const isReplyAuthor = currentUser && currentUser.email === r.email;
-                repliesHtml += `
-                    <div class="ans-box">
-                        <div class="ans-content"><b>A.</b> ${r.text}</div>
-                        <span class="ans-author">By ${r.author}</span>
-                        ${(isReplyAuthor || isAdmin) ? `<button class="btn-ans-del" onclick="deleteReply('${qKey}', '${rKey}')">삭제</button>` : ""}
-                    </div>`;
+                repliesHtml += `<div class="ans-box"><div class="ans-content"><b>A.</b> ${r.text}</div><span class="ans-author">By ${r.author}</span>${(isReplyAuthor || isAdmin) ? `<button class="btn-ans-del" onclick="deleteReply('${qKey}', '${rKey}')">삭제</button>` : ""}</div>`;
             });
         }
         repliesHtml += '</div>';
-
         const card = document.createElement("div");
         card.className = "q-card";
-        card.innerHTML = `
-            <div class="q-meta">${q.author} | ${new Date(q.createdAt).toLocaleDateString()}</div>
-            <span class="q-text">Q. ${q.text}</span>
-            ${repliesHtml}
-            ${currentUser ? `
-            <div class="answer-controls">
-                <input type="text" id="ans_${qKey}" placeholder="답글을 남겨주세요...">
-                <button class="btn-ans" onclick="saveAnswer('${qKey}')">등록</button>
-                ${(isAuthor || isAdmin) ? `<button class="btn-del" onclick="deleteQuestion('${qKey}')">전체삭제</button>` : ""}
-            </div>` : ""}
-        `;
+        card.innerHTML = `<div class="q-meta">${q.author} | ${new Date(q.createdAt).toLocaleDateString()}</div><span class="q-text">Q. ${q.text}</span>${repliesHtml}${currentUser ? `<div class="answer-controls"><input type="text" id="ans_${qKey}" placeholder="답글을 남겨주세요..."><button class="btn-ans" onclick="saveAnswer('${qKey}')">등록</button>${(isAuthor || isAdmin) ? `<button class="btn-del" onclick="deleteQuestion('${qKey}')">전체삭제</button>` : ""}</div>` : ""}`;
         list.appendChild(card);
     });
-
-    if (!hasMatch && searchTerm) {
-        list.innerHTML = "<p style='text-align:center;'>검색 결과가 없습니다.</p>";
-    }
+    if (!hasMatch && searchTerm) { list.innerHTML = "<p style='text-align:center;'>검색 결과가 없습니다.</p>"; }
 }
 
-function filterQuestions() {
-    renderList(cachedData);
-}
-
-// 답글 저장 및 관리자 메일 발송 로직
-function saveAnswer(qKey) {
-    const ansInput = document.getElementById("ans_"+qKey);
-    const ansText = ansInput.value.trim();
-    if(!ansText) return alert("내용을 입력하세요.");
-    
-    const originalQuestion = cachedData[qKey].text; // 원본 질문 내용
-    
-    db.ref(`questions/${qKey}/replies`).push({
-        text: ansText,
-        author: currentUserName,
-        email: currentUser.email,
-        createdAt: firebase.database.ServerValue.TIMESTAMP
-    }).then(() => {
-        // 관리자가 직접 단 답글이 아닐 때만 관리자에게 메일 알림 발송
-        if (currentUser.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-            sendAdminNotification(originalQuestion, ansText, currentUserName);
-        }
-        
-        ansInput.value = "";
-        alert("답글이 등록되었습니다.");
-    }).catch(err => {
-        alert("등록 중 오류가 발생했습니다.");
-    });
-}
-
-// 관리자 알림 메일 발송 함수
-function sendAdminNotification(qText, rText, rAuthor) {
-    const templateParams = {
-        question_text: qText,
-        reply_text: rText,
-        reply_author: rAuthor,
-        admin_email: ADMIN_EMAIL
-    };
-
-    // 보내주신 Service ID와 Template ID 사용
-    emailjs.send("DEEP SKY_question", "template_a17vklg", templateParams)
-        .then(function(response) {
-           console.log('메일 발송 성공:', response.status, response.text);
-        }, function(error) {
-           console.log('메일 발송 실패:', error);
-        });
-}
-
-function deleteQuestion(qKey) {
-    if(confirm("이 질문과 모든 답글이 삭제됩니다.")) db.ref("questions/"+qKey).remove();
-}
-
-function deleteReply(qKey, rKey) {
-    if(confirm("이 답글을 삭제하시겠습니까?")) db.ref(`questions/${qKey}/replies/${rKey}`).remove();
-}
-
-function logout() {
-    if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload());
-}
+function filterQuestions() { renderList(cachedData); }
+function deleteQuestion(qKey) { if(confirm("이 질문과 모든 답글이 삭제됩니다.")) db.ref("questions/"+qKey).remove(); }
+function deleteReply(qKey, rKey) { if(confirm("이 답글을 삭제하시겠습니까?")) db.ref(`questions/${qKey}/replies/${rKey}`).remove(); }
+function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
 </script>
 </body>
 </html>
