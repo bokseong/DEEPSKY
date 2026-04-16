@@ -327,8 +327,8 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// 1. 업데이트 로그 불러오기 (최신순 10개)
-db.ref("updateLogs").orderByChild("timestamp").limitToLast(10).on("value", snapshot => {
+// 1. 업데이트 로그 불러오기 (최신순 5개)
+db.ref("updateLogs").orderByChild("timestamp").limitToLast(5).on("value", snapshot => {
     const logList = document.getElementById("updateLogList");
     logList.innerHTML = "";
     
