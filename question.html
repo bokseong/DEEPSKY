@@ -24,7 +24,7 @@
         .auth-bar { font-size: 14px; display: flex; align-items: center; gap: 10px; }
         .auth-bar button { padding: 5px 12px; border-radius: 5px; border: none; background: #3a5aff; color: white; cursor: pointer; font-weight: bold; }
         
-        /* 3. 내비게이션 (메인 페이지와 동일하게 수정) */
+        /* 3. 내비게이션 */
         header { background: linear-gradient(to right, #0d1b52, #1b2f80); padding: 40px 20px; text-align: center; }
         nav { 
             background: #11153a; 
@@ -87,7 +87,6 @@
             .logo-area span { font-size: 16px; }
             nav a { padding: 10px 12px; font-size: 13px; }
             header h1 { font-size: 22px; }
-            .header-logo { width: 100px; height: 100px; }
         }
     </style>
 </head>
@@ -141,7 +140,14 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
 <script>
+// EmailJS 초기화 (보내주신 Public Key 사용)
+(function() {
+    emailjs.init("p2O8bkjE2HkqQef3q");
+})();
+
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -180,7 +186,7 @@ auth.onAuthStateChanged(user => {
         loginBtn.classList.remove("hidden");
         logoutBtn.classList.add("hidden");
     }
-    loadQuestions(); // 상태 확인 후 질문 로드
+    loadQuestions();
 });
 
 function addQuestion() {
@@ -268,9 +274,13 @@ function filterQuestions() {
     renderList(cachedData);
 }
 
+// 답글 저장 및 관리자 메일 발송 로직
 function saveAnswer(qKey) {
-    const ansText = document.getElementById("ans_"+qKey).value.trim();
+    const ansInput = document.getElementById("ans_"+qKey);
+    const ansText = ansInput.value.trim();
     if(!ansText) return alert("내용을 입력하세요.");
+    
+    const originalQuestion = cachedData[qKey].text; // 원본 질문 내용
     
     db.ref(`questions/${qKey}/replies`).push({
         text: ansText,
@@ -278,8 +288,34 @@ function saveAnswer(qKey) {
         email: currentUser.email,
         createdAt: firebase.database.ServerValue.TIMESTAMP
     }).then(() => {
-        document.getElementById("ans_"+qKey).value = "";
+        // 관리자가 직접 단 답글이 아닐 때만 관리자에게 메일 알림 발송
+        if (currentUser.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+            sendAdminNotification(originalQuestion, ansText, currentUserName);
+        }
+        
+        ansInput.value = "";
+        alert("답글이 등록되었습니다.");
+    }).catch(err => {
+        alert("등록 중 오류가 발생했습니다.");
     });
+}
+
+// 관리자 알림 메일 발송 함수
+function sendAdminNotification(qText, rText, rAuthor) {
+    const templateParams = {
+        question_text: qText,
+        reply_text: rText,
+        reply_author: rAuthor,
+        admin_email: ADMIN_EMAIL
+    };
+
+    // 보내주신 Service ID와 Template ID 사용
+    emailjs.send("DEEP SKY_question", "template_a17vklg", templateParams)
+        .then(function(response) {
+           console.log('메일 발송 성공:', response.status, response.text);
+        }, function(error) {
+           console.log('메일 발송 실패:', error);
+        });
 }
 
 function deleteQuestion(qKey) {
@@ -296,4 +332,3 @@ function logout() {
 </script>
 </body>
 </html>
-
