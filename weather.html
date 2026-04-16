@@ -63,10 +63,17 @@
 
         .desc-box { font-size: 13px; color: #aaa; margin-top: 15px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; }
         
-        footer { 
-            background: #070a1d; text-align: center; padding: 30px 20px;
-            font-size: 12px; color: #888; border-top: 1px solid #1b2f80; 
-            width: 100%; margin-top: 50px;
+        footer { background: #070a1d; text-align: center; padding: 30px 20px; font-size: 12px; color: #888; border-top: 1px solid #1b2f80; width: 100%; margin-top: 50px; }
+        /* 방문 전(:link)과 방문 후(:visited)를 쉼표로 연결 */
+        a:link, a:visited {
+            color: #888;      
+            text-decoration: none; /* 밑줄을 없애고 싶을 때 */
+        }
+
+        /* 마우스를 올렸을 때의 변화 (선택 사항) */
+        a:hover {
+            color: #b2b2b2;
+            text-decoration: underline;
         }
 
         @media (max-width: 600px) {
@@ -172,7 +179,7 @@
         <b style="color: #bbb;">Technical Reference:</b><br>
         - Transit predictions by <b>ETD</b> (Exoplanet Transit Database)<br>
         - Copyright 2018. SpeXtyle | NYSC<br>
-        <a href="http://nysc.dothome.co.kr/">- 원본 사이트</a>
+        -<a href="http://nysc.dothome.co.kr/"> 원본 사이트</a>
     </div>
 </div>
 
@@ -192,7 +199,9 @@
 </div>
 </div>
 
-<footer>© DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.</footer>
+<footer>© DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
+    <a href="https://forms.gle/5MZf7MEZwNxAefXw9">시스템 오류 또는 오타 수정 건의하기</a>
+</footer>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
