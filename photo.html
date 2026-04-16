@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DEEP SKY(활동 사진)</title>
     <style>
-        /* 1. 공통 스타일 및 초기화 */
+        /* 1. 원본 디자인 스타일 및 초기화 */
         * { box-sizing: border-box; }
         body { margin: 0; font-family: "Segoe UI", AppleSDGothicNeo-Regular, sans-serif; background: #0b0f2b; color: white; line-height: 1.6; }
 
@@ -27,47 +27,42 @@
             background: #3a5aff; color: white; cursor: pointer; font-weight: bold;
         }
 
-        /* 3. 헤더 및 내비게이션 (한눈에 보이도록 수정) */
+        /* 3. 헤더 및 내비게이션 */
         header { background: linear-gradient(to right, #0d1b52, #1b2f80); padding: 38px 20px; text-align: center; }
-        nav { 
-            background: #11153a; 
-            border-bottom: 1px solid #2d367a; 
-            padding: 10px 0;
-        }
-        nav .nav-inner { 
-            max-width: 1000px; 
-            margin: 0 auto; 
-            display: flex; 
-            flex-wrap: wrap; 
-            justify-content: center; 
-            gap: 5px; 
-        }
-        nav a { 
-            display: inline-block; 
-            color: white; 
-            padding: 12px 18px; 
-            text-decoration: none; 
-            font-weight: bold; 
-            font-size: 15px; 
-            border-radius: 8px;
-        }
+        nav { background: #11153a; border-bottom: 1px solid #2d367a; padding: 10px 0; }
+        nav .nav-inner { max-width: 1000px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
+        nav a { display: inline-block; color: white; padding: 12px 18px; text-decoration: none; font-weight: bold; font-size: 15px; border-radius: 8px; }
         nav a:hover { background: rgba(127, 199, 255, 0.1); color: #7fc7ff; }
 
-        /* 4. 본문 컨테이너 및 사진 그리드 */
+        /* 4. 본문 컨테이너 */
         .container { max-width: 1100px; margin: 30px auto; padding: 0 20px 100px; }
         
+        /* 회원 전용 안내 카드 (자료실 스타일 계승) */
+        .intro-card { 
+            background: #161b4a; padding: 35px; border-radius: 20px; 
+            border: 1px solid #2d367a; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 30px; text-align: center;
+        }
+        .intro-card h2 { color: #7fc7ff; border: none; padding: 0; margin-bottom: 15px; font-size: 24px; }
+        .btn-main { 
+            width: auto; padding: 12px 40px; background: #3a5aff; color: white; 
+            border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px; margin-top: 20px;
+        }
+
+        /* 5. 업로드 카드 (다중 업로드 최적화) */
         .upload-card { background: #161b4a; padding: 25px; border-radius: 12px; margin-bottom: 30px; border: 1px solid #2d367a; text-align: center; }
+        .upload-card textarea { 
+            width: 100%; height: 120px; padding: 12px; margin-bottom: 10px; border-radius: 8px; 
+            border: 1px solid #1b2f80; background: #0b0f2b; color: #7fc7ff; font-family: monospace; resize: vertical;
+        }
         .upload-card input { 
             width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; 
             border: 1px solid #1b2f80; background: #0b0f2b; color: white; 
         }
         .btn-upload { width: 100%; padding: 12px; background: #3a5aff; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
-        .photo-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 25px;
-        }
+        /* 6. 사진 그리드 */
+        .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
         .photo-card { background: #161b4a; border-radius: 15px; overflow: hidden; border: 1px solid #2d367a; transition: 0.3s; text-align: center; }
         .photo-card:hover { transform: translateY(-5px); border-color: #3a5aff; }
         .photo-card img { width: 100%; height: 200px; object-fit: cover; cursor: pointer; }
@@ -84,17 +79,12 @@
         .btn-view { background: #28a745; color: white; }
         .btn-del { background: #ff4d4d; color: white; }
 
-        footer { 
-            background: #070a1d; text-align: center; padding: 30px 20px;
-            font-size: 12px; color: #888; border-top: 1px solid #1b2f80; 
-            width: 100%; margin-top: 50px;
-        }
+        footer { background: #070a1d; text-align: center; padding: 30px 20px; font-size: 12px; color: #888; border-top: 1px solid #1b2f80; width: 100%; margin-top: 50px; }
 
         @media (max-width: 600px) {
             .logo-area span { font-size: 16px; }
             nav a { padding: 10px 12px; font-size: 13px; }
             header h1 { font-size: 22px; }
-            .header-logo { width: 100px; height: 100px; }
         }
     </style>
 </head>
@@ -106,7 +96,7 @@
         <span>DEEP SKY</span>
     </a>
     <div class="auth-bar">
-        <span id="userStatus">불러오는 중...</span>
+        <span id="userStatus">확인 중...</span>
         <button id="loginBtn" onclick="location.href='login.html'">로그인</button>
         <button id="logoutBtn" class="hidden" onclick="logout()">로그아웃</button>
     </div>
@@ -128,21 +118,27 @@
 </nav>
 
 <div class="container">
-    <div id="uploadSection" class="upload-card hidden">
-        <h3 style="margin-top:0; color:#7fc7ff;">새 사진 등록</h3><br>
-        <p>imgbb에 사진 업로드 후 https://~.jpg(또는 .png)형식의 링크를 넣어 주세요!</p>
-        <input type="text" id="imageUrl" placeholder="이미지 직접 링크 (https://...jpg)">
-        <input type="text" id="imageTitle" placeholder="사진 제목">
-        <button class="btn-upload" onclick="uploadPhoto()">갤러리에 올리기</button>
+    <div id="lockMessage" class="intro-card hidden">
+        <h2>회원 전용 공간</h2>
+        <p>활동 사진은 DEEP SKY 회원만 열람할 수 있습니다.</p>
+        <button class="btn-main" onclick="location.href='login.html'">로그인하러 가기</button>
     </div>
 
-    <div class="search-box" style="margin-bottom: 25px;">
-    <input type="text" id="photoSearch" onkeyup="filterPhotos()" placeholder="사진 제목 또는 작성자 검색..." 
-           style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #1b2f80; background: #161b4a; color: white; font-size: 15px; outline: none;">
-    </div>
+    <div id="mainContent" class="hidden">
+        <div id="uploadSection" class="upload-card">
+            <h3 style="margin-top:0; color:#7fc7ff;">사진 일괄 등록</h3>
+            <p style="font-size:14px; color:#ccc; margin-bottom:15px;">여러 장일 경우 이미지 주소를 <b>엔터(줄바꿈)</b>로 구분하여 넣어주세요.</p>
+            <textarea id="imageUrls" placeholder="https://~.jpg (첫 번째 주소)&#10;https://~.png (두 번째 주소)"></textarea>
+            <input type="text" id="commonTitle" placeholder="사진 제목 (여러 장일 경우 뒤에 번호가 붙습니다)">
+            <button class="btn-upload" onclick="uploadBulkPhotos()">갤러리에 모두 올리기</button>
+        </div>
 
-    <div class="photo-grid" id="photoGrid">
-        <p style="text-align:center; grid-column: 1/-1;">사진을 불러오고 있습니다...</p>
+        <div class="search-box" style="margin-bottom: 25px;">
+            <input type="text" id="photoSearch" onkeyup="filterPhotos()" placeholder="사진 제목 또는 작성자 검색..." 
+                   style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #1b2f80; background: #161b4a; color: white; font-size: 15px; outline: none;">
+        </div>
+
+        <div class="photo-grid" id="photoGrid"></div>
     </div>
 </div>
 
@@ -153,6 +149,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
+// Firebase 설정 (원본 유지)
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -170,36 +167,72 @@ const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
 let currentUserName = "익명";
 
-// 1. [핵심] 상태 관리 및 접근 제어
+// 로그인 상태 감지 및 화면 제어
 auth.onAuthStateChanged(user => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtn = document.getElementById("logoutBtn");
-    const uploadSection = document.getElementById("uploadSection");
+    const lockMsg = document.getElementById("lockMessage");
+    const mainContent = document.getElementById("mainContent");
 
     if (user) {
-        // 로그인 된 경우: 이름 실시간 연동 및 UI 활성화
         db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
             currentUserName = snapshot.val() || user.displayName || user.email.split('@')[0];
             status.innerText = `${currentUserName}님`;
         });
         loginBtn.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
-        uploadSection.classList.remove("hidden");
-        
-        // 데이터 로드는 로그인이 확인된 후에만 시작
+        lockMsg.classList.add("hidden");
+        mainContent.classList.remove("hidden");
         loadPhotos();
     } else {
-        // [수정] 비로그인 사용자: 경고 후 로그인 페이지로 리다이렉트
-        alert("활동 사진은 동아리 회원만 열람할 수 있습니다. 로그인을 해주세요.");
-        location.href = "login.html";
+        status.innerText = "로그인 해주세요";
+        loginBtn.classList.remove("hidden");
+        logoutBtn.classList.add("hidden");
+        lockMsg.classList.remove("hidden");
+        mainContent.classList.add("hidden");
     }
 });
 
-// 2. 사진 불러오기
+// 사진 일괄 업로드 로직
+async function uploadBulkPhotos() {
+    const user = auth.currentUser;
+    const urlsText = document.getElementById("imageUrls").value.trim();
+    const titleText = document.getElementById("commonTitle").value.trim();
+
+    if(!user) return alert("로그인이 필요합니다.");
+    if(!urlsText || !titleText) return alert("이미지 주소와 제목을 모두 입력해 주세요.");
+
+    const urlList = urlsText.split('\n').map(u => u.trim()).filter(u => u !== "");
+    if(urlList.length === 0) return alert("유효한 링크가 없습니다.");
+
+    if(!confirm(`${urlList.length}개의 사진을 업로드하시겠습니까?`)) return;
+
+    try {
+        const promises = urlList.map((url, index) => {
+            const finalTitle = urlList.length > 1 ? `${titleText} (${index + 1})` : titleText;
+            return db.ref('photos_link').push({
+                url: url,
+                title: finalTitle,
+                ownerName: currentUserName,
+                ownerEmail: user.email,
+                ownerUid: user.uid,
+                createdAt: firebase.database.ServerValue.TIMESTAMP
+            });
+        });
+
+        await Promise.all(promises);
+        alert("성공적으로 등록되었습니다!");
+        document.getElementById("imageUrls").value = "";
+        document.getElementById("commonTitle").value = "";
+    } catch (err) {
+        alert("오류 발생: " + err.message);
+    }
+}
+
+// 사진 불러오기
 function loadPhotos() {
     const grid = document.getElementById("photoGrid");
-    // 보안 규칙에서 .read: auth != null 로 설정했으므로 로그인 상태에서만 작동함
     db.ref('photos_link').orderByChild('createdAt').on('value', snapshot => {
         grid.innerHTML = "";
         const data = snapshot.val();
@@ -210,7 +243,6 @@ function loadPhotos() {
 
         Object.keys(data).reverse().forEach(key => {
             const item = data[key];
-            // 관리자이거나 글 작성자 본인(UID 또는 Email 일치)인 경우 삭제 버튼 노출
             const isAdmin = auth.currentUser && (
                 auth.currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase() || 
                 auth.currentUser.uid === item.ownerUid ||
@@ -232,88 +264,29 @@ function loadPhotos() {
             `;
             grid.appendChild(card);
         });
-    }, error => {
-        if(error.code === "PERMISSION_DENIED") {
-            grid.innerHTML = "<p style='grid-column:1/-1; text-align:center; color:#ff4d4d;'>접근 권한이 없습니다.</p>";
-        }
     });
 }
 
-// 3. 사진 등록 (보안 규칙 준수를 위해 ownerUid 추가)
-function uploadPhoto() {
-    const user = auth.currentUser;
-    const url = document.getElementById("imageUrl").value.trim();
-    const title = document.getElementById("imageTitle").value.trim();
-    
-    if(!user) return alert("로그인이 필요합니다.");
-    if(!url || !title) return alert("이미지 링크와 제목을 모두 입력해주세요.");
-
-    db.ref('photos_link').push({
-        url: url,
-        title: title,
-        ownerName: currentUserName,
-        ownerEmail: user.email,
-        ownerUid: user.uid,
-        createdAt: firebase.database.ServerValue.TIMESTAMP
-    }).then(() => {
-        alert("사진이 등록되었습니다!");
-        document.getElementById("imageUrl").value = "";
-        document.getElementById("imageTitle").value = "";
-    }).catch(err => {
-        alert("등록 권한이 없습니다: " + err.message);
-    });
-}
-
-// 4. 사진 검색 필터링 기능
+// 검색 필터
 function filterPhotos() {
-    const term = document.getElementById("photoSearch").value.toLowerCase(); // 입력값 소문자 변환
-    const cards = document.getElementsByClassName("photo-card"); // 모든 사진 카드 가져오기
-
+    const term = document.getElementById("photoSearch").value.toLowerCase();
+    const cards = document.getElementsByClassName("photo-card");
     Array.from(cards).forEach(card => {
         const title = card.querySelector(".photo-title").innerText.toLowerCase();
         const owner = card.querySelector(".owner-tag").innerText.toLowerCase();
-
-        // 제목이나 작성자 이름에 검색어가 포함되어 있는지 확인
-        if (title.includes(term) || owner.includes(term)) {
-            card.style.display = ""; // 보임
-        } else {
-            card.style.display = "none"; // 숨김
-        }
+        card.style.display = (title.includes(term) || owner.includes(term)) ? "" : "none";
     });
-
-    // 검색 결과가 없을 때 처리 (선택 사항)
-    const grid = document.getElementById("photoGrid");
-    const visibleCards = grid.querySelectorAll(".photo-card[style='display: ;'], .photo-card:not([style*='display: none'])");
-    
-    // 기존의 "결과 없음" 메시지 제거 후 새로 생성
-    const noResultMsg = document.getElementById("noResultMsg");
-    if (noResultMsg) noResultMsg.remove();
-
-    if (visibleCards.length === 0) {
-        const msg = document.createElement("p");
-        msg.id = "noResultMsg";
-        msg.style.cssText = "grid-column: 1/-1; text-align: center; color: #888; margin-top: 20px;";
-        msg.innerText = `'${term}'에 대한 검색 결과가 없습니다.`;
-        grid.appendChild(msg);
-    }
 }
 
 function deletePhoto(key) { 
     if(confirm("사진을 삭제하시겠습니까?")) {
-        db.ref('photos_link/' + key).remove()
-            .then(() => alert("삭제되었습니다."))
-            .catch(err => alert("삭제 실패: " + err.message));
+        db.ref('photos_link/' + key).remove().then(() => alert("삭제되었습니다."));
     }
 }
 
 function logout() { 
-    if(confirm("로그아웃 하시겠습니까?")) {
-        auth.signOut().then(() => {
-            location.href = "index.html";
-        });
-    }
+    if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload());
 }
-</script></body>
+</script>
+</body>
 </html>
-
-
