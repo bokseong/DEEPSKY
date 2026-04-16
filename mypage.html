@@ -102,6 +102,18 @@
             width: 100%; margin-top: 50px;
         }
 
+        /* 방문 전(:link)과 방문 후(:visited)를 쉼표로 연결 */
+        a:link, a:visited {
+            color: #888;      
+            text-decoration: none; /* 밑줄을 없애고 싶을 때 */
+        }
+
+        /* 마우스를 올렸을 때의 변화 (선택 사항) */
+        a:hover {
+            color: #b2b2b2;
+            text-decoration: underline;
+        }
+
         @media (max-width: 600px) {
             .logo-area span { font-size: 16px; }
             nav a { padding: 10px 12px; font-size: 13px; }
@@ -173,7 +185,9 @@
     </div>
 </div>
 
-<footer>© DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved</footer>
+<footer>© DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved
+    <a href="https://forms.gle/5MZf7MEZwNxAefXw9">시스템 오류 또는 오타 수정 건의하기</a>
+</footer>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
