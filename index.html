@@ -357,7 +357,7 @@ db.ref("updateLogs").orderByChild("timestamp").limitToLast(5).on("value", snapsh
     });
 });
 
-// 2. 업데이트 로그 저장하기 (관리자 전용)
+// 2. 업데이트 로그 저장하기 (관리자 전용 - 5개 초과 시 자동 삭제)
 function addUpdateLog() {
     const version = document.getElementById("updateVersion").value;
     const content = document.getElementById("updateContent").value;
@@ -366,18 +366,39 @@ function addUpdateLog() {
 
     if(!version.trim() || !content.trim()) return alert("버전과 내용을 모두 입력해주세요.");
 
-    const newLogRef = db.ref("updateLogs").push();
-    newLogRef.set({
-        version: version,
-        content: content,
-        date: dateStr,
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-    }).then(() => {
-        alert("업데이트 기록 완료");
-        document.getElementById("updateVersion").value = "";
-        document.getElementById("updateContent").value = "";
-    }).catch(err => {
-        alert("권한이 없거나 오류가 발생했습니다.");
+    // 1. 현재 저장된 로그들을 먼저 확인합니다.
+    db.ref("updateLogs").once("value", snapshot => {
+        let logs = [];
+        snapshot.forEach(child => {
+            logs.push({ key: child.key, timestamp: child.val().timestamp });
+        });
+
+        // 2. 로그가 5개 이상이면 가장 오래된 것들 삭제
+        // (현재 개수가 5개라면 하나를 지워야 새 로그가 들어와서 5개가 유지됨)
+        if (logs.length >= 5) {
+            // 타임스탬프 순으로 정렬 (가장 예전 것이 0번 인덱스)
+            logs.sort((a, b) => a.timestamp - b.timestamp);
+            
+            // 5개를 유지하기 위해 초과분만큼 삭제 (보통 1개지만 안전하게 처리)
+            for (let i = 0; i <= logs.length - 5; i++) {
+                db.ref("updateLogs").child(logs[i].key).remove();
+            }
+        }
+
+        // 3. 이제 새로운 로그를 추가합니다.
+        const newLogRef = db.ref("updateLogs").push();
+        newLogRef.set({
+            version: version,
+            content: content,
+            date: dateStr,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        }).then(() => {
+            alert("업데이트 기록 완료 (최신 5개 유지)");
+            document.getElementById("updateVersion").value = "";
+            document.getElementById("updateContent").value = "";
+        }).catch(err => {
+            alert("권한이 없거나 오류가 발생했습니다.");
+        });
     });
 }
 </script>
