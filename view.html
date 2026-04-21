@@ -112,11 +112,13 @@
             </div>
         </div>
         
-        <div class="btn-group">
+        <div class="btn-group" style="display: flex; justify-content: space-between; align-items: center;">
             <button class="btn btn-list" onclick="location.href='board.html'">목록으로 돌아가기</button>
-            <button id="deleteBtn" class="btn btn-delete hidden" onclick="deletePost()">이 글 삭제하기</button>
+            <div style="display: flex; gap: 10px;">
+                <button id="editBtn" class="btn hidden" style="background: #3a5aff; color: white;">수정하기</button>
+                <button id="deleteBtn" class="btn btn-delete hidden" onclick="deletePost()">이 글 삭제하기</button>
+            </div>
         </div>
-    </div>
 </div>
 
 <footer>
@@ -237,9 +239,21 @@ function loadPost(user) {
         }
 
         const deleteBtn = document.getElementById("deleteBtn");
+        const editBtn = document.getElementById("editBtn"); // 추가된 버튼 정의
+
         if(user && (user.uid === post.uid || user.email === ADMIN_EMAIL)) {
+        // 삭제 버튼은 작성자 또는 관리자에게 노출
             deleteBtn.classList.remove("hidden");
-        }
+
+        // 수정 버튼은 오직 작성자 본인에게만 노출
+        if(user.uid === post.uid) {
+            editBtn.classList.remove("hidden");
+            editBtn.onclick = () => {
+            // write.html 페이지로 이동하면서 id 파라미터를 넘깁니다.
+            location.href = `write.html?id=${postId}`;
+        };
+    }
+}
     });
 }
 
