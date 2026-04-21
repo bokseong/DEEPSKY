@@ -357,6 +357,46 @@ function deletePost() {
         });
     }
 }
+
+// 게시글의 링크들을 보여주는 영역 처리
+const linkArea = document.getElementById("linkArea");
+const viewFileLink = document.getElementById("viewFileLink"); // 기존의 단일 링크 버튼
+
+// 1. 기존에 생성되었던 동적 링크 버튼들이 있다면 초기화 (삭제)
+const oldDynamicLinks = linkArea.querySelectorAll(".dynamic-link");
+oldDynamicLinks.forEach(l => l.remove());
+
+// 2. 여러 개의 링크(links 배열)가 존재하는 경우
+if (post.links && post.links.length > 0) {
+    linkArea.classList.remove("hidden");
+    viewFileLink.classList.add("hidden"); // 기존 고정 버튼은 숨김
+
+    post.links.forEach(link => {
+        const newBtn = document.createElement("a");
+        newBtn.href = link.url;
+        newBtn.target = "_blank";
+        newBtn.className = "btn dynamic-link"; // 스타일 유지를 위해 btn 클래스 사용
+        newBtn.style.display = "block";
+        newBtn.style.marginBottom = "8px";
+        newBtn.style.background = "#2a3a7d"; // 여러 링크 구분용 색상 (원하는 색으로 변경 가능)
+        newBtn.innerText = "🔗 " + link.name;
+        linkArea.appendChild(newBtn);
+    });
+} 
+// 3. 예전에 올린 단일 링크(fileUrl)만 있는 경우 (하위 호환성)
+else if (post.fileUrl && post.fileUrl.trim() !== "") {
+    linkArea.classList.remove("hidden");
+    viewFileLink.classList.remove("hidden");
+    
+    let finalUrl = post.fileUrl.trim();
+    if (!finalUrl.startsWith('http')) finalUrl = 'https://' + finalUrl;
+    viewFileLink.href = finalUrl;
+    viewFileLink.innerText = "🔗 " + (post.fileName || "첨부 링크 열기");
+} 
+// 4. 링크가 아예 없는 경우
+else {
+    linkArea.classList.add("hidden");
+}
 </script>
 </body>
 </html>
