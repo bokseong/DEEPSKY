@@ -184,9 +184,12 @@ function logout() {
     }
 }
 
-async function loadPosts() { // async 추가
-    db.ref("freeboard").on("value", async (s) => { // 콜백 함수에도 async 추가
-        const list = document.getElementById("postList");
+async function loadPosts() {
+    const list = document.getElementById("postList");
+    // 검색어 가져오기
+    const keyword = document.getElementById("searchInput") ? document.getElementById("searchInput").value.toLowerCase().trim() : "";
+
+    db.ref("freeboard").on("value", async (s) => {
         list.innerHTML = "";
         const data = s.val();
         
@@ -195,32 +198,38 @@ async function loadPosts() { // async 추가
             return;
         }
 
-        // 역순 정렬을 위해 키 배열 추출
         const keys = Object.keys(data).reverse();
+        let hasResult = false;
 
         for (const key of keys) {
             const p = data[key];
-            const item = document.createElement("div");
-            item.className = "post-item";
-
-            // --- [핵심] 작성자의 최신 이름을 실시간으로 조회 ---
-            let latestName = p.author; // 기본값 (유저 정보가 없을 경우 대비)
             
+            // 작성자 실시간 이름 조회
+            let latestName = p.author || "익명";
             if (p.uid) {
-                // users 노드에서 해당 uid의 이름을 가져옴
                 const userSnap = await db.ref('users/' + p.uid + '/name').once('value');
                 if (userSnap.exists()) {
                     latestName = userSnap.val();
                 }
             }
-            // ------------------------------------------------
 
-            // 제목과 작성자 영역
+            // --- [통합 검색 필터 적용] ---
+            if (keyword !== "") {
+                const titleMatch = p.title.toLowerCase().includes(keyword);
+                const authorMatch = latestName.toLowerCase().includes(keyword);
+                // 제목도 안 맞고 작성자도 안 맞으면 이 글은 건너뜀
+                if (!titleMatch && !authorMatch) continue;
+            }
+            
+            hasResult = true;
+
+            // 게시글 아이템 생성
+            const item = document.createElement("div");
+            item.className = "post-item";
+
             const infoArea = document.createElement("div");
             infoArea.className = "post-info-area";
             infoArea.onclick = () => location.href = `view.html?id=${key}`;
-            
-            // p.author 대신 실시간으로 가져온 latestName을 넣습니다.
             infoArea.innerHTML = `
                 <div class="post-title">${p.title}</div>
                 <div class="post-meta">${latestName}</div>
@@ -243,11 +252,22 @@ async function loadPosts() { // async 추가
                 };
                 item.appendChild(delBtn);
             }
-
             list.appendChild(item);
+        }
+
+        // 검색 결과가 아예 없을 때
+        if (!hasResult && keyword !== "") {
+            list.innerHTML = `<p style='text-align:center; padding:40px; color:#888;'>'${keyword}'에 대한 검색 결과가 없습니다.</p>`;
         }
     });
 }
+
+// 엔터키 검색 이벤트 (스크립트 하단에 한 번만 추가)
+document.addEventListener("keyup", (e) => {
+    if (e.key === "Enter" && document.activeElement.id === "searchInput") {
+        loadPosts();
+    }
+});
 </script>
 </body>
 </html>
