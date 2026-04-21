@@ -102,19 +102,42 @@ const firebaseConfig = {
 };
 
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
 const db = firebase.database();
+const auth = firebase.auth();
+
+// URL에서 'id' 값을 가져옵니다. (수정 모드 판단 기준)
+const urlParams = new URLSearchParams(window.location.search);
+const editPostId = urlParams.get('id');
 
 let currentUserName = "익명";
 
 auth.onAuthStateChanged(user => {
     if (user) {
-        db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
-            currentUserName = snapshot.val() || user.displayName || user.email.split('@')[0];
-            document.getElementById("userStatus").innerText = `${currentUserName}님`;
-        });
-        document.getElementById("loginBtn").classList.add("hidden");
-        document.getElementById("logoutBtn").classList.remove("hidden");
+        // ... (기존 유저 이름 가져오기 로직) ...
+        
+        // [수정 모드 확인 로직 추가]
+        if (editPostId) {
+            document.querySelector("h2").innerText = "게시글 수정하기";
+            document.querySelector(".btn-submit").innerText = "수정 완료";
+
+            db.ref("freeboard/" + editPostId).once("value").then(snapshot => {
+                const data = snapshot.val();
+                if (!data) return alert("해당 게시글을 찾을 수 없습니다.");
+                
+                // 본인이 작성한 글인지 확인
+                if (data.uid !== user.uid) {
+                    alert("수정 권한이 없습니다.");
+                    location.href = "board.html";
+                    return;
+                }
+
+                // 입력란에 기존 데이터 채우기
+                document.getElementById("postTitle").value = data.title;
+                document.getElementById("postContent").value = data.content;
+                document.getElementById("postFileUrl").value = data.fileUrl || "";
+                document.getElementById("postFileName").value = data.fileName || "";
+            });
+        }
     } else {
         alert("로그인이 필요한 서비스입니다.");
         location.href = "login.html";
@@ -125,31 +148,48 @@ function submitPost() {
     const title = document.getElementById("postTitle").value.trim();
     const content = document.getElementById("postContent").value.trim();
     
-    // 1️⃣ URL 처리 로직 추가
+    // 1️⃣ URL 처리 로직
     let fileUrl = document.getElementById("postFileUrl").value.trim();
     if (fileUrl && !fileUrl.startsWith('http')) {
-        fileUrl = 'https://' + fileUrl; // 프로토콜이 없으면 강제로 붙임
+        fileUrl = 'https://' + fileUrl;
     }
 
     const fileName = document.getElementById("postFileName").value.trim();
     
-    // 로그인 체크
+    // 로그인 및 입력 체크
     if(!auth.currentUser) return alert("로그인이 필요합니다.");
     if(!title || !content) return alert("제목과 내용을 입력해주세요.");
 
-    // 2️⃣ 데이터 저장 시 'uid' 추가
-    db.ref("freeboard").push({
+    // 2️⃣ 저장할 데이터 객체 (공통)
+    const postData = {
         title: title,
         content: content,
-        fileUrl: fileUrl, // 수정된 url 저장
+        fileUrl: fileUrl,
         fileName: fileName || "파일 보기",
-        author: currentUserName,
-        uid: auth.currentUser.uid, // 🚨 이 줄이 반드시 있어야 삭제 버튼이 작동합니다!
-        createdAt: firebase.database.ServerValue.TIMESTAMP
-    }).then(() => {
-        alert("성공적으로 등록되었습니다.");
-        location.href = "board.html";
-    }).catch(err => alert("오류 발생: " + err.message));
+        author: currentUserName, // 현재 로그인한 사용자 이름
+        uid: auth.currentUser.uid,
+        updatedAt: firebase.database.ServerValue.TIMESTAMP // 수정 시간 추가
+    };
+
+    // 3️⃣ [핵심] 수정 모드인지 새 글 모드인지 판별
+    if (editPostId) {
+        // --- 수정 모드 (기존 글 업데이트) ---
+        db.ref("freeboard/" + editPostId).update(postData)
+            .then(() => {
+                alert("수정되었습니다.");
+                location.href = `view.html?id=${editPostId}`; // 수정한 글로 이동
+            })
+            .catch(err => alert("수정 실패: " + err.message));
+    } else {
+        // --- 새 글 모드 (기존 코드와 동일) ---
+        postData.createdAt = firebase.database.ServerValue.TIMESTAMP; // 작성일은 처음 한 번만
+        db.ref("freeboard").push(postData)
+            .then(() => {
+                alert("성공적으로 등록되었습니다.");
+                location.href = "board.html";
+            })
+            .catch(err => alert("등록 실패: " + err.message));
+    }
 }
 
 function logout() { 
