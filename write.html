@@ -152,21 +152,34 @@ auth.onAuthStateChanged(user => {
                 // 2. 여러 링크(links 배열) 처리
                 const container = document.getElementById("linkContainer");
                 
-                if (data.links && data.links.length > 0) {
-                    container.innerHTML = ""; // 기존에 있던 빈 입력창 초기화
-                    
-                    data.links.forEach((link, index) => {
-                        // 입력창 세트 추가
-                        addLinkField(); 
-                        
-                        // 방금 추가된 입력창들을 찾아서 값 채우기
-                        const urlInputs = document.querySelectorAll(".postFileUrl");
-                        const nameInputs = document.querySelectorAll(".postFileName");
-                        
-                        urlInputs[index].value = link.url;
-                        nameInputs[index].value = link.name;
-                    });
-                } 
+                // [수정 모드 확인 로직] 내부
+if (data.links && data.links.length > 0) {
+    container.innerHTML = ""; // 기존 빈 입력창 제거
+    
+    data.links.forEach((link, index) => {
+        // 첫 번째 줄은 + 버튼이 있는 기본 필드, 그 다음부터는 - 버튼 필드로 생성
+        if (index === 0) {
+            // HTML에 이미 있는 첫 번째 세트를 쓰지 않고 새로 만듭니다.
+            const firstDiv = document.createElement("div");
+            firstDiv.className = "link-item";
+            firstDiv.style = "display: flex; gap: 10px; margin-bottom: 10px;";
+            firstDiv.innerHTML = `
+                <input type="text" class="postFileUrl" placeholder="링크 주소" style="flex: 2; margin-bottom: 0;">
+                <input type="text" class="postFileName" placeholder="표시될 이름" style="flex: 1; margin-bottom: 0;">
+                <button type="button" onclick="addLinkField()" style="width: 40px; background: #5a7aff; color: white; border: none; border-radius: 5px; cursor: pointer;">+</button>
+            `;
+            container.appendChild(firstDiv);
+        } else {
+            addLinkField(); // - 버튼이 달린 필드 추가
+        }
+        
+        // 방금 생성된 입력창에 값 채우기
+        const urlInputs = document.querySelectorAll(".postFileUrl");
+        const nameInputs = document.querySelectorAll(".postFileName");
+        urlInputs[index].value = link.url;
+        nameInputs[index].value = link.name;
+    });
+}
                 // 3. 만약 예전에 올린 단일 링크(fileUrl) 방식의 글이라면? (호환성)
                 else if (data.fileUrl) {
                     const urlInput = document.querySelector(".postFileUrl");
