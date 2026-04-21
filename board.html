@@ -113,10 +113,14 @@
 
 <div class="container">
     <div class="intro-card">
-        <h2>COMMUNITY</h2>
-        <br>
-        <p>로그인하고 자유 게시판의 글들을 확인해 보세요</p>
-    
+        <h2>COMMUNITY</h2>  
+        <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+            <input type="text" id="searchInput" placeholder="제목 또는 작성자로 검색..." 
+               style="flex: 1; background: #0b0f2b; color: white; border: 1px solid #2d367a; border-radius: 5px; padding: 10px 15px; outline: none; font-size: 14px;">
+            <button onclick="loadPosts()" style="background: #3a5aff; color: white; border: none; border-radius: 5px; padding: 0 20px; cursor: pointer; font-weight: bold; transition: 0.2s;">
+                검색
+            </button>
+        </div>
         <div class="post-list" id="postList">
             <p style="text-align:center; padding:50px; color:#888;">게시글을 불러오는 중...</p>
         </div>
