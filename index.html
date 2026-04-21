@@ -257,6 +257,9 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
+    import { initializeApp } from "firebase/app";
+    import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+    
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -418,6 +421,23 @@ function addUpdateLog() {
         });
     });
 }
+
+    // 1. Firebase 초기화
+const app = initializeApp(firebaseConfig);
+
+// 2. App Check 초기화
+// 로컬 테스트(localhost) 중인지 확인하는 로직을 넣으면 편리합니다.
+if (location.hostname === "localhost") {
+  // 로컬 개발 환경용 디버그 토큰 (나중에 필요시 설정)
+  self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+}
+
+const appCheck = initializeAppCheck(app, {
+  provider: new ReCaptchaV3Provider('여러분의-reCAPTCHA-사이트-키'), // 1단계의 Site Key
+  isTokenAutoRefreshEnabled: true // 사용자가 페이지에 오래 머물 때 토큰 자동 갱신
+});
+
+export { app, appCheck };
 </script>
 </body>
 </html>
