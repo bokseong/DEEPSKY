@@ -65,11 +65,16 @@
     <div class="write-card">
         <input type="text" id="postTitle" placeholder="제목을 입력하세요">
         
-        <div class="link-input-group">
-            <label>공유 링크 첨부 (선택)</label>
-            <input type="text" id="postFileUrl" placeholder="공유할 링크 주소를 붙여넣으세요 (예: 구글 드라이브 링크)" style="margin-bottom:10px;">
-            <input type="text" id="postFileName" placeholder="링크 버튼에 표시될 이름 (예: 활동 보고서 다운로드)" style="margin-bottom:0;">
+    <div class="link-input-group">
+    <label>공유 링크 첨부 (선택)</label>
+        <div id="linkContainer">
+            <div class="link-item" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="text" class="postFileUrl" placeholder="링크 주소 (https://...)" style="flex: 2; margin-bottom: 0;">
+                <input type="text" class="postFileName" placeholder="표시될 이름" style="flex: 1; margin-bottom: 0;">
+                <button type="button" onclick="addLinkField()" style="width: 40px; background: #5a7aff; color: white; border: none; border-radius: 5px; cursor: pointer;">+</button>
+            </div>
         </div>
+    </div>
 
         <textarea id="postContent" placeholder="내용을 자유롭게 입력하세요..."></textarea>
         
@@ -148,41 +153,53 @@ function submitPost() {
     const title = document.getElementById("postTitle").value.trim();
     const content = document.getElementById("postContent").value.trim();
     
-    // 1️⃣ URL 처리 로직
-    let fileUrl = document.getElementById("postFileUrl").value.trim();
-    if (fileUrl && !fileUrl.startsWith('http')) {
-        fileUrl = 'https://' + fileUrl;
-    }
+    // --- [1단계: 여러 개의 링크 데이터를 수집합니다] ---
+    // 클래스명을 이용해 화면에 있는 모든 링크 입력창을 한꺼번에 가져옵니다.
+    const urlInputs = document.querySelectorAll(".postFileUrl");
+    const nameInputs = document.querySelectorAll(".postFileName");
+    let links = [];
 
-    const fileName = document.getElementById("postFileName").value.trim();
-    
+    urlInputs.forEach((input, index) => {
+        let url = input.value.trim();
+        if (url) {
+            // 주소에 http가 없으면 자동으로 붙여줌
+            if (!url.startsWith('http')) url = 'https://' + url;
+            
+            // 링크 객체를 만들어 배열에 추가
+            links.push({
+                url: url,
+                name: nameInputs[index].value.trim() || "첨부 링크" // 이름이 없으면 기본값 사용
+            });
+        }
+    });
+    // ------------------------------------------------
+
     // 로그인 및 입력 체크
     if(!auth.currentUser) return alert("로그인이 필요합니다.");
     if(!title || !content) return alert("제목과 내용을 입력해주세요.");
 
-    // 2️⃣ 저장할 데이터 객체 (공통)
+    // 2️⃣ 저장할 데이터 객체 구성
     const postData = {
         title: title,
         content: content,
-        fileUrl: fileUrl,
-        fileName: fileName || "파일 보기",
-        author: currentUserName, // 현재 로그인한 사용자 이름
+        links: links, // ★ 핵심: 단일 fileUrl 대신 수집한 links 배열을 저장합니다.
+        author: currentUserName,
         uid: auth.currentUser.uid,
-        updatedAt: firebase.database.ServerValue.TIMESTAMP // 수정 시간 추가
+        updatedAt: firebase.database.ServerValue.TIMESTAMP 
     };
 
-    // 3️⃣ [핵심] 수정 모드인지 새 글 모드인지 판별
-    if (editPostId) {
-        // --- 수정 모드 (기존 글 업데이트) ---
+    // 3️⃣ 수정 모드(update) 또는 새 글 모드(push) 실행
+    if (typeof editPostId !== 'undefined' && editPostId) {
+        // 수정 모드
         db.ref("freeboard/" + editPostId).update(postData)
             .then(() => {
                 alert("수정되었습니다.");
-                location.href = `view.html?id=${editPostId}`; // 수정한 글로 이동
+                location.href = `view.html?id=${editPostId}`;
             })
             .catch(err => alert("수정 실패: " + err.message));
     } else {
-        // --- 새 글 모드 (기존 코드와 동일) ---
-        postData.createdAt = firebase.database.ServerValue.TIMESTAMP; // 작성일은 처음 한 번만
+        // 새 글 모드
+        postData.createdAt = firebase.database.ServerValue.TIMESTAMP;
         db.ref("freeboard").push(postData)
             .then(() => {
                 alert("성공적으로 등록되었습니다.");
@@ -194,6 +211,20 @@ function submitPost() {
 
 function logout() { 
     auth.signOut().then(() => location.href = "index.html");
+}
+
+    // 새로운 링크 입력 필드를 추가하는 함수
+function addLinkField() {
+    const container = document.getElementById("linkContainer");
+    const newField = document.createElement("div");
+    newField.className = "link-item";
+    newField.style = "display: flex; gap: 10px; margin-bottom: 10px;";
+    newField.innerHTML = `
+        <input type="text" class="postFileUrl" placeholder="링크 주소 (https://...)" style="flex: 2; margin-bottom: 0;">
+        <input type="text" class="postFileName" placeholder="표시될 이름" style="flex: 1; margin-bottom: 0;">
+        <button type="button" onclick="this.parentElement.remove()" style="width: 40px; background: #ff4d4d; color: white; border: none; border-radius: 5px; cursor: pointer;">-</button>
+    `;
+    container.appendChild(newField);
 }
 </script>
 </body>
