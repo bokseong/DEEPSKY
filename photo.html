@@ -38,7 +38,7 @@
         /* 4. 본문 컨테이너 */
         .container { max-width: 1100px; margin: 30px auto; padding: 0 20px 100px; }
         
-        /* 회원 전용 안내 카드 (자료실 스타일 계승) */
+        /* 회원 전용 안내 카드 */
         .intro-card { 
             background: #161b4a; padding: 35px; border-radius: 20px; 
             border: 1px solid #2d367a; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
@@ -50,7 +50,7 @@
             border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px; margin-top: 20px;
         }
 
-        /* 5. 업로드 카드 (다중 업로드 최적화) */
+        /* 5. 업로드 카드 */
         .upload-card { background: #161b4a; padding: 25px; border-radius: 12px; margin-bottom: 30px; border: 1px solid #2d367a; text-align: center; }
         .upload-card textarea { 
             width: 100%; height: 120px; padding: 12px; margin-bottom: 10px; border-radius: 8px; 
@@ -66,11 +66,11 @@
         .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
         .photo-card { background: #161b4a; border-radius: 15px; overflow: hidden; border: 1px solid #2d367a; transition: 0.3s; text-align: center; }
         .photo-card:hover { transform: translateY(-5px); border-color: #3a5aff; }
-        .photo-card img { width: 100%; height: 200px; object-fit: cover; cursor: pointer; }
+        .photo-card img { width: 100%; height: 200px; object-fit: cover; cursor: pointer; background: #070a1d; }
         
         .photo-info { padding: 15px; }
         .owner-tag { font-size: 11px; color: #7fc7ff; display: block; margin-bottom: 5px; }
-        .photo-title { margin: 5px 0 15px; font-size: 16px; font-weight: bold; }
+        .photo-title { margin: 5px 0 15px; font-size: 16px; font-weight: bold; min-height: 40px; display: flex; align-items: center; justify-content: center;}
         
         .btn-group { display: flex; gap: 5px; }
         .btn-group a, .btn-group button { 
@@ -82,17 +82,8 @@
 
         footer { background: #070a1d; text-align: center; padding: 30px 20px; font-size: 12px; color: #888; border-top: 1px solid #1b2f80; width: 100%; margin-top: 50px; }
 
-        /* 방문 전(:link)과 방문 후(:visited)를 쉼표로 연결 */
-        a:link, a:visited {
-            color: #dedede;      
-            text-decoration: none; /* 밑줄을 없애고 싶을 때 */
-        }
-
-        /* 마우스를 올렸을 때의 변화 (선택 사항) */
-        a:hover {
-            color: #b2b2b2;
-            text-decoration: underline;
-        }
+        a:link, a:visited { color: #dedede; text-decoration: none; }
+        a:hover { color: #b2b2b2; text-decoration: underline; }
 
         @media (max-width: 600px) {
             .logo-area span { font-size: 16px; }
@@ -140,8 +131,8 @@
     <div id="mainContent" class="hidden">
         <div id="uploadSection" class="upload-card">
             <h3 style="margin-top:0; color:#7fc7ff;">사진 일괄 등록</h3>
-            <p style="font-size:14px; color:#ccc; margin-bottom:15px;">여러 장일 경우 이미지 주소를 <b>엔터(줄바꿈)</b>로 구분하여 넣어주세요.</p>
-            <textarea id="imageUrls" placeholder="https://~.jpg (첫 번째 주소)&#10;https://~.png (두 번째 주소)"></textarea>
+            <p style="font-size:14px; color:#ccc; margin-bottom:15px;">구글 드라이브 링크나 이미지 주소를 <b>엔터</b>로 구분하여 넣어주세요.</p>
+            <textarea id="imageUrls" placeholder="구글 드라이브 공유 링크 또는 이미지 URL 입력..."></textarea>
             <input type="text" id="commonTitle" placeholder="사진 제목 (여러 장일 경우 뒤에 번호가 붙습니다)">
             <button class="btn-upload" onclick="uploadBulkPhotos()">갤러리에 모두 올리기</button>
         </div>
@@ -158,7 +149,7 @@
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
     <br>
-    Email : leader.deepsky@gmail.com &nbsp;	&nbsp; &nbsp; &nbsp;|	&nbsp; &nbsp; &nbsp; &nbsp;Designed by jw-astro09
+    Email : leader.deepsky@gmail.com &nbsp; &nbsp; &nbsp; &nbsp; | &nbsp; &nbsp; &nbsp; &nbsp; Designed by jw-astro09
     <br>
     <a href="https://forms.gle/5MZf7MEZwNxAefXw9">시스템 오류 또는 오타 수정 건의하기</a>
 </footer>
@@ -168,7 +159,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-// Firebase 설정 (원본 유지)
+// Firebase 설정
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -186,7 +177,32 @@ const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
 let currentUserName = "익명";
 
-// 로그인 상태 감지 및 화면 제어
+// 구글 드라이브 링크를 직접 이미지 링크로 변환하는 함수
+function convertDriveLink(url) {
+    if (url.includes('drive.google.com')) {
+        let fileId = "";
+        if (url.includes('/d/')) {
+            fileId = url.split('/d/')[1].split('/')[0];
+        } else if (url.includes('id=')) {
+            fileId = url.split('id=')[1].split('&')[0];
+        }
+        return fileId ? `https://docs.google.com/uc?export=view&id=${fileId}` : url;
+    }
+    return url;
+}
+
+// 시간 표시 포맷 함수
+function formatTime(timestamp) {
+    const date = new Date(timestamp);
+    const y = date.getFullYear();
+    const m = date.getMonth() + 1;
+    const d = date.getDate();
+    const h = date.getHours();
+    const min = date.getMinutes();
+    return `${y}.${m < 10 ? '0'+m : m}.${d < 10 ? '0'+d : d} ${h}:${min < 10 ? '0'+min : min}`;
+}
+
+// 로그인 상태 감지
 auth.onAuthStateChanged(user => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
@@ -213,14 +229,14 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// 사진 일괄 업로드 로직
+// 사진 일괄 업로드
 async function uploadBulkPhotos() {
     const user = auth.currentUser;
     const urlsText = document.getElementById("imageUrls").value.trim();
     const titleText = document.getElementById("commonTitle").value.trim();
 
     if(!user) return alert("로그인이 필요합니다.");
-    if(!urlsText || !titleText) return alert("이미지 주소와 제목을 모두 입력해 주세요.");
+    if(!urlsText || !titleText) return alert("내용을 입력해 주세요.");
 
     const urlList = urlsText.split('\n').map(u => u.trim()).filter(u => u !== "");
     if(urlList.length === 0) return alert("유효한 링크가 없습니다.");
@@ -230,8 +246,11 @@ async function uploadBulkPhotos() {
     try {
         const promises = urlList.map((url, index) => {
             const finalTitle = urlList.length > 1 ? `${titleText} (${index + 1})` : titleText;
+            const convertedUrl = convertDriveLink(url);
+            
             return db.ref('photos_link').push({
-                url: url,
+                url: convertedUrl,
+                originalUrl: url,
                 title: finalTitle,
                 ownerName: currentUserName,
                 ownerEmail: user.email,
@@ -241,11 +260,11 @@ async function uploadBulkPhotos() {
         });
 
         await Promise.all(promises);
-        alert("성공적으로 등록되었습니다!");
+        alert("업로드 완료!");
         document.getElementById("imageUrls").value = "";
         document.getElementById("commonTitle").value = "";
     } catch (err) {
-        alert("오류 발생: " + err.message);
+        alert("오류: " + err.message);
     }
 }
 
@@ -264,16 +283,15 @@ function loadPhotos() {
             const item = data[key];
             const isAdmin = auth.currentUser && (
                 auth.currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase() || 
-                auth.currentUser.uid === item.ownerUid ||
-                auth.currentUser.email === item.ownerEmail
+                auth.currentUser.uid === item.ownerUid
             );
             
             const card = document.createElement("div");
             card.className = "photo-card";
             card.innerHTML = `
-                <img src="${item.url}" onclick="window.open('${item.url}', '_blank')">
+                <img src="${item.url}" onerror="this.src='https://via.placeholder.com/300x200?text=Image+Load+Error'" onclick="window.open('${item.url}', '_blank')">
                 <div class="photo-info">
-                    <span class="owner-tag">By ${item.ownerName || '익명'}</span>
+                    <span class="owner-tag">By ${item.ownerName || '익명'} | ${formatTime(item.createdAt)}</span>
                     <div class="photo-title">${item.title}</div>
                     <div class="btn-group">
                         <a href="${item.url}" target="_blank" class="btn-view">원본보기</a>
@@ -286,7 +304,6 @@ function loadPhotos() {
     });
 }
 
-// 검색 필터
 function filterPhotos() {
     const term = document.getElementById("photoSearch").value.toLowerCase();
     const cards = document.getElementsByClassName("photo-card");
@@ -298,7 +315,7 @@ function filterPhotos() {
 }
 
 function deletePhoto(key) { 
-    if(confirm("사진을 삭제하시겠습니까?")) {
+    if(confirm("삭제하시겠습니까?")) {
         db.ref('photos_link/' + key).remove().then(() => alert("삭제되었습니다."));
     }
 }
