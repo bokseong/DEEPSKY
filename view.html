@@ -206,6 +206,7 @@ function logout() {
 }
 
 // 5. 게시글 불러오기
+// 5. 게시글 불러오기
 function loadPost(user) {
     if(!postId) return;
 
@@ -228,32 +229,52 @@ function loadPost(user) {
         document.getElementById("viewDate").innerText = post.createdAt ? new Date(post.createdAt).toLocaleString() : "";
         document.getElementById("viewContent").innerText = post.content;
 
+        // --- [여기서부터 링크 출력 로직] ---
         const linkArea = document.getElementById("linkArea");
-        if(post.fileUrl && post.fileUrl.trim() !== "") {
-            const linkBtn = document.getElementById("viewFileLink");
+        const viewFileLink = document.getElementById("viewFileLink");
+
+        // 기존 동적 링크 초기화
+        const oldDynamicLinks = linkArea.querySelectorAll(".dynamic-link");
+        oldDynamicLinks.forEach(l => l.remove());
+
+        if (post.links && post.links.length > 0) {
             linkArea.classList.remove("hidden");
+            viewFileLink.classList.add("hidden"); 
+
+            post.links.forEach(link => {
+                const newBtn = document.createElement("a");
+                newBtn.href = link.url;
+                newBtn.target = "_blank";
+                newBtn.className = "btn-link dynamic-link"; // btn-link 클래스로 스타일 통일
+                newBtn.style.display = "block";
+                newBtn.style.marginBottom = "8px";
+                newBtn.innerText = "🔗 " + link.name;
+                linkArea.appendChild(newBtn);
+            });
+        } else if (post.fileUrl && post.fileUrl.trim() !== "") {
+            linkArea.classList.remove("hidden");
+            viewFileLink.classList.remove("hidden");
             let finalUrl = post.fileUrl.trim();
             if (!finalUrl.startsWith('http')) finalUrl = 'https://' + finalUrl;
-            linkBtn.href = finalUrl;
-            linkBtn.innerText = "🔗 " + (post.fileName || "첨부 링크 열기");
+            viewFileLink.href = finalUrl;
+            viewFileLink.innerText = "🔗 " + (post.fileName || "첨부 링크 열기");
+        } else {
+            linkArea.classList.add("hidden");
         }
+        // ---------------------------------
 
         const deleteBtn = document.getElementById("deleteBtn");
-        const editBtn = document.getElementById("editBtn"); // 추가된 버튼 정의
+        const editBtn = document.getElementById("editBtn");
 
         if(user && (user.uid === post.uid || user.email === ADMIN_EMAIL)) {
-        // 삭제 버튼은 작성자 또는 관리자에게 노출
             deleteBtn.classList.remove("hidden");
-
-        // 수정 버튼은 오직 작성자 본인에게만 노출
-        if(user.uid === post.uid) {
-            editBtn.classList.remove("hidden");
-            editBtn.onclick = () => {
-            // write.html 페이지로 이동하면서 id 파라미터를 넘깁니다.
-            location.href = `write.html?id=${postId}`;
-        };
-    }
-}
+            if(user.uid === post.uid) {
+                editBtn.classList.remove("hidden");
+                editBtn.onclick = () => {
+                    location.href = `write.html?id=${postId}`;
+                };
+            }
+        }
     });
 }
 
