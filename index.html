@@ -256,188 +256,185 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
+
+    // Firebase 설정 (기존과 동일)
+    const firebaseConfig = {
+        apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
+        authDomain: "bokseong-deep-sky.firebaseapp.com",
+        databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "bokseong-deep-sky",
+        storageBucket: "bokseong-deep-sky.firebasestorage.app",
+        messagingSenderId: "800777151311",
+        appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
+    };
+
+    // App Check 전용 앱 초기화
+    const app = initializeApp(firebaseConfig);
+
+    // 로컬 환경(localhost)에서 차단되지 않도록 디버그 모드 활성화
+    if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+        self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    }
+
+    // App Check 활성화
+    const appCheck = initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider('여러분의-reCAPTCHA-사이트-키'), // ★ 여기에 발급받은 사이트 키를 넣으세요
+        isTokenAutoRefreshEnabled: true
+    });
+
+    console.log("App Check가 백그라운드에서 실행 중입니다.");
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
 <script>
-    import { initializeApp } from "firebase/app";
-    import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
-    
-const firebaseConfig = {
-    apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
-    authDomain: "bokseong-deep-sky.firebaseapp.com",
-    databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "bokseong-deep-sky",
-    storageBucket: "bokseong-deep-sky.firebasestorage.app",
-    messagingSenderId: "800777151311",
-    appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
-};
+    // 기존 설정값 다시 정의 (Compat 용)
+    const firebaseConfigCompat = {
+        apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
+        authDomain: "bokseong-deep-sky.firebaseapp.com",
+        databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "bokseong-deep-sky",
+        storageBucket: "bokseong-deep-sky.firebasestorage.app",
+        messagingSenderId: "800777151311",
+        appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
+    };
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.database();
-const ADMIN_EMAIL = "leader.deepsky@gmail.com";
+    firebase.initializeApp(firebaseConfigCompat);
+    const auth = firebase.auth();
+    const db = firebase.database();
+    const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-let slideIndex = 0;
-const slides = document.querySelectorAll(".slide-item");
-function showSlides(n) {
-    if(slides.length === 0) return;
-    slides.forEach(s => s.classList.remove("active"));
-    slideIndex = (n + slides.length) % slides.length;
-    slides[slideIndex].classList.add("active");
-}
-function changeSlide(n) { showSlides(slideIndex + n); resetTimer(); }
-let slideTimer = setInterval(() => changeSlide(1), 3000);
-function resetTimer() { clearInterval(slideTimer); slideTimer = setInterval(() => changeSlide(1), 3000); }
-
-auth.onAuthStateChanged(user => {
-    const status = document.getElementById("userStatus");
-    const loginBtn = document.getElementById("loginBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const adminBox = document.getElementById("adminBox");
-
-    if (user) {
-        db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
-            const finalName = snapshot.val() || user.displayName || user.email.split('@')[0];
-            status.innerText = `${finalName}님`;
-        });
-
-        loginBtn.classList.add("hidden");
-        logoutBtn.classList.remove("hidden");
-
-        if (user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-            adminBox.classList.remove("hidden");
-        } else {
-            adminBox.classList.add("hidden");
-        }
-    } else {
-        status.innerText = "로그인 해주세요";
-        loginBtn.classList.remove("hidden");
-        logoutBtn.classList.add("hidden");
-        adminBox.classList.add("hidden");
+    // --- 슬라이드 기능 ---
+    let slideIndex = 0;
+    const slides = document.querySelectorAll(".slide-item");
+    function showSlides(n) {
+        if(slides.length === 0) return;
+        slides.forEach(s => s.classList.remove("active"));
+        slideIndex = (n + slides.length) % slides.length;
+        slides[slideIndex].classList.add("active");
     }
-});
+    function changeSlide(n) { showSlides(slideIndex + n); resetTimer(); }
+    let slideTimer = setInterval(() => changeSlide(1), 3000);
+    function resetTimer() { clearInterval(slideTimer); slideTimer = setInterval(() => changeSlide(1), 3000); }
 
-db.ref("weekProgram").on("value", snapshot => {
-    const data = snapshot.val();
-    document.getElementById("weekProgramText").innerText = data ? data.text : "공지가 없습니다.";
-});
+    // --- 사용자 상태 확인 및 관리자 권한 ---
+    auth.onAuthStateChanged(user => {
+        const status = document.getElementById("userStatus");
+        const loginBtn = document.getElementById("loginBtn");
+        const logoutBtn = document.getElementById("logoutBtn");
+        const adminBox = document.getElementById("adminBox");
+        const adminUpdateBox = document.getElementById("adminUpdateBox");
 
-function saveProgram() {
-    const txt = document.getElementById("weekProgramInput").value;
-    if(!txt.trim()) return alert("내용을 입력하세요.");
-    db.ref("weekProgram").set({ text: txt }).then(() => {
-        alert("수정 완료");
-        document.getElementById("weekProgramInput").value = "";
-    });
-}
+        if (user) {
+            db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
+                const finalName = snapshot.val() || user.displayName || user.email.split('@')[0];
+                status.innerText = `${finalName}님`;
+            });
 
-function logout() { 
-    if(confirm("로그아웃 하시겠습니까?")) {
-        auth.signOut().then(() => location.reload());
-    }
-}
+            loginBtn.classList.add("hidden");
+            logoutBtn.classList.remove("hidden");
 
-    // 관리자 권한 체크 부분
-auth.onAuthStateChanged(user => {
-    // ... 기존 코드 ...
-    const adminUpdateBox = document.getElementById("adminUpdateBox");
-    
-    if (user && user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-        adminUpdateBox.classList.remove("hidden"); // 관리자면 입력창 보여줌
-    } else {
-        adminUpdateBox.classList.add("hidden");
-    }
-});
-
-// 1. 업데이트 로그 불러오기 (최신순 5개)
-db.ref("updateLogs").orderByChild("timestamp").limitToLast(5).on("value", snapshot => {
-    const logList = document.getElementById("updateLogList");
-    logList.innerHTML = "";
-    
-    const data = [];
-    snapshot.forEach(child => {
-        data.push(child.val());
-    });
-    data.reverse(); // 최신순 정렬
-
-    if (data.length === 0) {
-        logList.innerHTML = "<p>등록된 기록이 없습니다.</p>";
-        return;
-    }
-
-    data.forEach(log => {
-        const item = document.createElement("div");
-        item.className = "log-item";
-        item.innerHTML = `
-            <div class="log-header">
-                <span class="log-version">${log.version}</span>
-                <span class="log-date">${log.date}</span>
-            </div>
-            <div class="log-text">${log.content}</div>
-        `;
-        logList.appendChild(item);
-    });
-});
-
-// 2. 업데이트 로그 저장하기 (관리자 전용 - 5개 초과 시 자동 삭제)
-function addUpdateLog() {
-    const version = document.getElementById("updateVersion").value;
-    const content = document.getElementById("updateContent").value;
-    const now = new Date();
-    const dateStr = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
-
-    if(!version.trim() || !content.trim()) return alert("버전과 내용을 모두 입력해주세요.");
-
-    // 1. 현재 저장된 로그들을 먼저 확인합니다.
-    db.ref("updateLogs").once("value", snapshot => {
-        let logs = [];
-        snapshot.forEach(child => {
-            logs.push({ key: child.key, timestamp: child.val().timestamp });
-        });
-
-        // 2. 로그가 5개 이상이면 가장 오래된 것들 삭제
-        // (현재 개수가 5개라면 하나를 지워야 새 로그가 들어와서 5개가 유지됨)
-        if (logs.length >= 5) {
-            // 타임스탬프 순으로 정렬 (가장 예전 것이 0번 인덱스)
-            logs.sort((a, b) => a.timestamp - b.timestamp);
-            
-            // 5개를 유지하기 위해 초과분만큼 삭제 (보통 1개지만 안전하게 처리)
-            for (let i = 0; i <= logs.length - 5; i++) {
-                db.ref("updateLogs").child(logs[i].key).remove();
+            if (user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+                adminBox.classList.remove("hidden");
+                adminUpdateBox.classList.remove("hidden");
+            } else {
+                adminBox.classList.add("hidden");
+                adminUpdateBox.classList.add("hidden");
             }
+        } else {
+            status.innerText = "로그인 해주세요";
+            loginBtn.classList.remove("hidden");
+            logoutBtn.classList.add("hidden");
+            adminBox.classList.add("hidden");
+            adminUpdateBox.classList.add("hidden");
+        }
+    });
+
+    // --- 예정된 프로그램 로드 및 저장 ---
+    db.ref("weekProgram").on("value", snapshot => {
+        const data = snapshot.val();
+        document.getElementById("weekProgramText").innerText = data ? data.text : "공지가 없습니다.";
+    });
+
+    function saveProgram() {
+        const txt = document.getElementById("weekProgramInput").value;
+        if(!txt.trim()) return alert("내용을 입력하세요.");
+        db.ref("weekProgram").set({ text: txt }).then(() => {
+            alert("수정 완료");
+            document.getElementById("weekProgramInput").value = "";
+        });
+    }
+
+    // --- 로그아웃 ---
+    function logout() { 
+        if(confirm("로그아웃 하시겠습니까?")) {
+            auth.signOut().then(() => location.reload());
+        }
+    }
+
+    // --- 업데이트 로그 불러오기 ---
+    db.ref("updateLogs").orderByChild("timestamp").limitToLast(5).on("value", snapshot => {
+        const logList = document.getElementById("updateLogList");
+        logList.innerHTML = "";
+        const data = [];
+        snapshot.forEach(child => { data.push(child.val()); });
+        data.reverse();
+
+        if (data.length === 0) {
+            logList.innerHTML = "<p>등록된 기록이 없습니다.</p>";
+            return;
         }
 
-        // 3. 이제 새로운 로그를 추가합니다.
-        const newLogRef = db.ref("updateLogs").push();
-        newLogRef.set({
-            version: version,
-            content: content,
-            date: dateStr,
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-        }).then(() => {
-            alert("업데이트 로그 기록 완료");
-            document.getElementById("updateVersion").value = "";
-            document.getElementById("updateContent").value = "";
-        }).catch(err => {
-            alert("권한이 없거나 오류가 발생했습니다.");
+        data.forEach(log => {
+            const item = document.createElement("div");
+            item.className = "log-item";
+            item.innerHTML = `
+                <div class="log-header">
+                    <span class="log-version">${log.version}</span>
+                    <span class="log-date">${log.date}</span>
+                </div>
+                <div class="log-text">${log.content}</div>
+            `;
+            logList.appendChild(item);
         });
     });
-}
 
-    // 1. Firebase 초기화
-const app = initializeApp(firebaseConfig);
+    // --- 업데이트 로그 추가 ---
+    function addUpdateLog() {
+        const version = document.getElementById("updateVersion").value;
+        const content = document.getElementById("updateContent").value;
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
 
-// 2. App Check 초기화
-// 로컬 테스트(localhost) 중인지 확인하는 로직을 넣으면 편리합니다.
-if (location.hostname === "localhost") {
-  // 로컬 개발 환경용 디버그 토큰 (나중에 필요시 설정)
-  self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-}
+        if(!version.trim() || !content.trim()) return alert("버전과 내용을 모두 입력해주세요.");
 
-const appCheck = initializeAppCheck(app, {
-  provider: new ReCaptchaV3Provider('여러분의-reCAPTCHA-사이트-키'), // 1단계의 Site Key
-  isTokenAutoRefreshEnabled: true // 사용자가 페이지에 오래 머물 때 토큰 자동 갱신
-});
-
-export { app, appCheck };
+        db.ref("updateLogs").once("value", snapshot => {
+            let logs = [];
+            snapshot.forEach(child => { logs.push({ key: child.key, timestamp: child.val().timestamp }); });
+            if (logs.length >= 5) {
+                logs.sort((a, b) => a.timestamp - b.timestamp);
+                for (let i = 0; i <= logs.length - 5; i++) {
+                    db.ref("updateLogs").child(logs[i].key).remove();
+                }
+            }
+            const newLogRef = db.ref("updateLogs").push();
+            newLogRef.set({
+                version: version,
+                content: content,
+                date: dateStr,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            }).then(() => {
+                alert("업데이트 로그 기록 완료");
+                document.getElementById("updateVersion").value = "";
+                document.getElementById("updateContent").value = "";
+            }).catch(err => alert("권한이 없거나 오류가 발생했습니다."));
+        });
+    }
 </script>
 </body>
 </html>
