@@ -277,6 +277,7 @@ async function saveAnswer(qKey) {
 /**
  * 이메일 알림 전송 (EmailJS)
  */
+// 이 부분을 다시 확인하세요 (Service ID, Template ID)
 function sendAdminAlert(qText, author, msg) {
     const templateParams = {
         question_text: qText,
@@ -285,8 +286,15 @@ function sendAdminAlert(qText, author, msg) {
         admin_email: ADMIN_EMAIL
     };
 
-    emailjs.send("DEEP SKY_question", "template_a17vklg", templateParams)
-        .then(() => console.log('메일 알림 전송 성공'), err => console.error('메일 전송 실패', err));
+    // 만약 Service ID에 공백이 있다면 정확히 입력해야 합니다.
+    emailjs.send("DEEP_SKY_question", "template_a17vklg", templateParams)
+        .then(() => {
+            console.log('메일 알림 전송 성공!');
+        }, (err) => {
+            console.error('메일 전송 실패 원인:', err);
+            // 에러 메시지가 'User forbidden'이면 Public Key 문제, 
+            // 'Service not found'면 Service ID 문제입니다.
+        });
 }
 
 /**
