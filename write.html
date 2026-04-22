@@ -122,106 +122,116 @@ const urlParams = new URLSearchParams(window.location.search);
 const editPostId = urlParams.get('id');
 let currentUserName = "익명";
 
-// 2. 인증 상태 확인 (핵심 수정 부분)
+// 2. 인증 상태 확인 및 데이터 로드 통합
 auth.onAuthStateChanged(async (user) => {
+    const statusText = document.getElementById("userStatus");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+
     if (user) {
-        console.log("인증 확인됨:", user.email);
+        console.log("인증 성공:", user.email);
         
-        // App Check 인증 시도 (실패해도 로딩은 진행되도록 try-catch)
+        // 버튼 상태 즉시 변경
+        loginBtn.classList.add("hidden");
+        logoutBtn.classList.remove("hidden");
+
+        // App Check 토큰 확보 (보안 정책 대응)
         try {
             await appCheck.getToken();
         } catch (e) {
-            console.error("App Check 토큰 획득 실패:", e);
+            console.warn("App Check 인증 지연 중...");
         }
 
-        // 유저 정보 가져오기
+        // 유저 이름 실시간 로드
         db.ref("users/" + user.uid + "/name").once("value").then(snap => {
-            currentUserName = snap.val() || "회원";
-            document.getElementById("userStatus").innerText = `${currentUserName}님`;
+            currentUserName = snap.val() || user.displayName || "회원";
+            statusText.innerText = `${currentUserName}님`;
         });
-        
-        document.getElementById("loginBtn").classList.add("hidden");
-        document.getElementById("logoutBtn").classList.remove("hidden");
 
-        // [중요] 인증이 확실히 된 후에 데이터를 불러옵니다.
+        // [핵심] 유저 인증이 완료된 시점에만 수정 데이터를 불러옵니다.
         if (editPostId) {
+            console.log("수정 모드 데이터를 불러옵니다. ID:", editPostId);
             loadEditData(user);
         }
     } else {
-        // 인증 세션이 아직 로딩 중일 수 있으므로 아주 짧은 대기 후 재확인하거나 경고
-        console.log("로그인 상태 확인 불가");
-        // 주의: 페이지 로드 직후 잠깐 null일 수 있으므로 바로 alert 띄우지 않도록 처리 가능
+        // 유저가 확실히 없을 때만 2초 후 로그인 페이지로 이동
+        console.log("인증 정보 로딩 중...");
         setTimeout(() => {
             if (!auth.currentUser) {
-                alert("로그인이 필요한 서비스입니다.");
+                alert("로그인 세션이 만료되었습니다. 다시 로그인해주세요.");
                 location.href = "login.html";
             }
-        }, 1500); 
+        }, 2000);
     }
 });
 
-// 3. 수정 데이터 로드 (보안 검증 포함)
+// 3. 수정 데이터 로드 함수 (수정 권한 검사 포함)
 async function loadEditData(user) {
-    document.querySelector("h2").innerText = "게시글 수정하기";
-    document.querySelector(".btn-submit").innerText = "수정 완료";
+    const titleHeader = document.querySelector("h2");
+    const submitBtn = document.querySelector(".btn-submit");
+
+    titleHeader.innerText = "게시글 수정하기";
+    submitBtn.innerText = "수정 완료";
 
     db.ref("freeboard/" + editPostId).once("value").then(snapshot => {
         const data = snapshot.val();
         if (!data) {
-            alert("게시글을 찾을 수 없습니다.");
-            return;
-        }
-        
-        // 작성자 본인 확인
-        if (data.uid !== user.uid && user.email !== 'leader.deepsky@gmail.com') {
-            alert("수정 권한이 없습니다.");
+            alert("게시글을 찾을 수 없거나 이미 삭제되었습니다.");
             location.href = "board.html";
             return;
         }
+        
+        // 작성자 본인 및 관리자 권한 확인 (보안 강화)
+        if (data.uid !== user.uid && user.email !== 'leader.deepsky@gmail.com') {
+            alert("본인이 작성한 글만 수정할 수 있습니다.");
+            location.href = `view.html?id=${editPostId}`;
+            return;
+        }
 
-        // 필드 채우기
-        document.getElementById("postTitle").value = data.title;
-        document.getElementById("postContent").value = data.content;
+        // 폼에 데이터 채우기
+        document.getElementById("postTitle").value = data.title || "";
+        document.getElementById("postContent").value = data.content || "";
 
+        // 링크 데이터 처리 (다중 링크 대응)
         const container = document.getElementById("linkContainer");
         if (data.links && data.links.length > 0) {
-            container.innerHTML = ""; 
+            container.innerHTML = ""; // 기존 초기 필드 제거
             data.links.forEach((link, index) => {
-                addLinkField();
+                addLinkField(); // 입력 필드 생성
                 const urlInputs = document.querySelectorAll(".postFileUrl");
                 const nameInputs = document.querySelectorAll(".postFileName");
                 urlInputs[index].value = link.url;
                 nameInputs[index].value = link.name;
             });
-            // 첫 번째 버튼만 +로 변경
-            const firstBtn = container.querySelector("button");
-            firstBtn.innerText = "+";
-            firstBtn.style.background = "#5a7aff";
-            firstBtn.onclick = addLinkField;
+            // 첫 번째 필드만 + 버튼으로 유지 (addLinkField는 기본적으로 - 버튼을 만듦)
+            const firstItem = container.firstElementChild;
+            const btn = firstItem.querySelector("button");
+            btn.innerText = "+";
+            btn.style.background = "#5a7aff";
+            btn.onclick = addLinkField;
         } else if (data.fileUrl) {
+            // 구버전(단일 링크) 호환성 유지
             document.querySelector(".postFileUrl").value = data.fileUrl;
             document.querySelector(".postFileName").value = data.fileName || "";
         }
     }).catch(err => {
-        console.error("데이터 로드 에러:", err);
-        if(err.message.includes("permission_denied")) {
-            alert("데이터를 읽어올 권한이 없습니다. (App Check 또는 규칙 오류)");
-        }
+        console.error("데이터 로드 중 오류:", err);
+        alert("데이터를 가져오지 못했습니다. (권한 오류)");
     });
 }
 
-// 4. 게시글 제출 (수정/등록 공용)
+// 4. 게시글 등록/수정 실행
 async function submitPost() {
     const title = document.getElementById("postTitle").value.trim();
     const content = document.getElementById("postContent").value.trim();
-    if(!title || !content) return alert("제목과 내용을 입력해주세요.");
+    if(!title || !content) return alert("제목과 내용을 모두 입력해주세요.");
 
     const submitBtn = document.querySelector(".btn-submit");
-    submitBtn.disabled = true;
+    submitBtn.disabled = true; // 중복 클릭 방지
     submitBtn.innerText = "처리 중...";
 
     try {
-        await appCheck.getToken(); // 전송 전 토큰 재확인
+        await appCheck.getToken();
 
         const urlInputs = document.querySelectorAll(".postFileUrl");
         const nameInputs = document.querySelectorAll(".postFileName");
@@ -231,7 +241,10 @@ async function submitPost() {
             let url = input.value.trim();
             if (url) {
                 if (!url.startsWith('http')) url = 'https://' + url;
-                links.push({ url: url, name: nameInputs[index].value.trim() || "첨부 링크" });
+                links.push({ 
+                    url: url, 
+                    name: nameInputs[index].value.trim() || "첨부 링크" 
+                });
             }
         });
 
@@ -246,36 +259,35 @@ async function submitPost() {
 
         if (editPostId) {
             await db.ref("freeboard/" + editPostId).update(postData);
-            alert("수정되었습니다.");
+            alert("게시글이 성공적으로 수정되었습니다.");
             location.href = `view.html?id=${editPostId}`;
         } else {
             postData.createdAt = firebase.database.ServerValue.TIMESTAMP;
             await db.ref("freeboard").push(postData);
-            alert("성공적으로 등록되었습니다.");
+            alert("게시글이 등록되었습니다.");
             location.href = "board.html";
         }
     } catch (err) {
-        alert("실패: " + err.message);
+        alert("저장 실패: " + err.message);
         submitBtn.disabled = false;
         submitBtn.innerText = editPostId ? "수정 완료" : "게시글 등록하기";
     }
 }
 
-// 링크 필드 추가 함수
 function addLinkField() {
     const container = document.getElementById("linkContainer");
     const div = document.createElement("div");
     div.className = "link-item";
     div.style = "display: flex; gap: 10px; margin-bottom: 10px;";
     div.innerHTML = `
-        <input type="text" class="postFileUrl" placeholder="링크 주소" style="flex: 2; margin-bottom: 0;">
+        <input type="text" class="postFileUrl" placeholder="링크 주소 (https://...)" style="flex: 2; margin-bottom: 0;">
         <input type="text" class="postFileName" placeholder="표시될 이름" style="flex: 1; margin-bottom: 0;">
         <button type="button" onclick="this.parentElement.remove()" style="width: 40px; background: #ff4d4d; color: white; border: none; border-radius: 5px; cursor: pointer;">-</button>
     `;
     container.appendChild(div);
 }
 
-function logout() { if(confirm("로그아웃?")) auth.signOut().then(() => location.href = "index.html"); }
+function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.href = "index.html"); }
 </script>
 </body>
 </html>
