@@ -153,10 +153,7 @@ const firebaseConfig = {
     appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
 };
 
-// 1. Firebase 초기화
 firebase.initializeApp(firebaseConfig);
-
-// 2. App Check 설정 및 즉시 활성화
 const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
@@ -165,7 +162,7 @@ const db = firebase.database();
 
 let currentUser = null;
 
-// 3. 인증 상태 변경 감시
+// 인증 상태 감시 및 초기 로드
 auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     const status = document.getElementById("userStatus");
@@ -173,7 +170,6 @@ auth.onAuthStateChanged(async (user) => {
     const logoutBtn = document.getElementById("logoutBtn");
 
     if (user) {
-        // 사용자 이름 실시간 연동
         db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
             status.innerText = `${snapshot.val() || user.displayName || "회원"}님`;
         });
@@ -185,36 +181,30 @@ auth.onAuthStateChanged(async (user) => {
         logoutBtn.classList.add("hidden");
     }
 
-    // [핵심 수정] App Check 토큰이 유효한지 확인될 때까지 기다린 후 게시글 로드
-    console.log("App Check 확인 중...");
+    // App Check 확인 후 게시글 로드
     try {
-        await appCheck.getToken(); 
+        await appCheck.getToken();
         console.log("App Check 인증 완료. 데이터 로딩 시작.");
-    } catch (err) {
-        console.warn("App Check 토큰 획득 실패, 하지만 로딩을 시도합니다.");
+    } catch (e) {
+        console.warn("App Check 대기 중...");
     }
-    loadPosts(); 
+    loadPosts();
 });
 
-// 4. 로그아웃 함수
 function logout() { 
     if(confirm("로그아웃 하시겠습니까?")) {
         auth.signOut().then(() => { location.reload(); });
     }
 }
 
-// 5. 게시글 로드 함수 (원래 로직 유지 + 안정성 강화)
 async function loadPosts() {
     const list = document.getElementById("postList");
-    const keywordInput = document.getElementById("searchInput");
-    const keyword = keywordInput ? keywordInput.value.toLowerCase().trim() : "";
+    const keyword = document.getElementById("searchInput") ? document.getElementById("searchInput").value.toLowerCase().trim() : "";
 
-    // 실시간 리스너 중복 방지
-    db.ref("freeboard").off(); 
-    
-    db.ref("freeboard").on("value", async (snapshot) => {
-        const data = snapshot.val();
+    // 실시간 리스너 연결 (기존 데이터 로직 그대로 유지)
+    db.ref("freeboard").on("value", async (s) => {
         list.innerHTML = "";
+        const data = s.val();
         
         if(!data) {
             list.innerHTML = "<p style='text-align:center; padding:40px; color:#888;'>등록된 글이 없습니다.</p>";
@@ -223,22 +213,22 @@ async function loadPosts() {
 
         const keys = Object.keys(data).reverse();
         let hasResult = false;
-        const nameCache = {}; // 성능을 위한 이름 캐싱
 
         for (const key of keys) {
             const p = data[key];
+            
+            // 작성자 실시간 이름 조회
             let latestName = p.author || "익명";
-
-            // 작성자 이름 실시간 조회
             if (p.uid) {
-                if (!nameCache[p.uid]) {
+                try {
                     const userSnap = await db.ref('users/' + p.uid + '/name').once('value');
-                    nameCache[p.uid] = userSnap.val() || p.author || "회원";
+                    if (userSnap.exists()) latestName = userSnap.val();
+                } catch (e) {
+                    console.log("작성자 정보 읽기 제한됨");
                 }
-                latestName = nameCache[p.uid];
             }
 
-            // 검색 필터링
+            // 검색 필터
             if (keyword !== "") {
                 const titleMatch = (p.title || "").toLowerCase().includes(keyword);
                 const authorMatch = latestName.toLowerCase().includes(keyword);
@@ -247,7 +237,6 @@ async function loadPosts() {
             
             hasResult = true;
 
-            // 게시글 요소 생성
             const item = document.createElement("div");
             item.className = "post-item";
 
@@ -255,8 +244,8 @@ async function loadPosts() {
             infoArea.className = "post-info-area";
             infoArea.onclick = () => location.href = `view.html?id=${key}`;
             infoArea.innerHTML = `
-                <div class="post-title">${escapeHtml(p.title)}</div>
-                <div class="post-meta">${escapeHtml(latestName)}</div>
+                <div class="post-title">${p.title}</div>
+                <div class="post-meta">${latestName}</div>
             `;
             item.appendChild(infoArea);
 
@@ -268,9 +257,9 @@ async function loadPosts() {
                 delBtn.innerText = "삭제";
                 delBtn.onclick = (e) => {
                     e.stopPropagation();
-                    if(confirm("정말로 삭제하시겠습니까?")) {
+                    if(confirm("정말로 이 글을 삭제하시겠습니까?")) {
                         db.ref("freeboard/" + key).remove()
-                        .then(() => alert("삭제되었습니다."))
+                        .then(() => alert("성공적으로 삭제되었습니다."))
                         .catch(err => alert("삭제 실패: " + err.message));
                     }
                 };
@@ -282,20 +271,12 @@ async function loadPosts() {
         if (!hasResult && keyword !== "") {
             list.innerHTML = `<p style='text-align:center; padding:40px; color:#888;'>'${keyword}'에 대한 검색 결과가 없습니다.</p>`;
         }
-    }, (error) => {
-        console.error("데이터 로드 실패:", error);
-        list.innerHTML = `<p style='text-align:center; padding:40px; color:#ff4d4d;'>데이터를 불러올 권한이 없습니다.</p>`;
+    }, (err) => {
+        console.error("Firebase 로드 에러:", err);
     });
 }
 
-// XSS 방지를 위한 안전한 텍스트 변환 함수
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.innerText = text;
-    return div.innerHTML;
-}
-
-// 엔터키 검색 이벤트
+// 엔터키 검색
 document.addEventListener("keyup", (e) => {
     if (e.key === "Enter" && document.activeElement.id === "searchInput") {
         loadPosts();
