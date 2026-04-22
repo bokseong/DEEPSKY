@@ -183,21 +183,13 @@ auth.onAuthStateChanged(async (user) => {
     const logoutBtn = document.getElementById("logoutBtn");
 
     if (user) {
-        // 1. 로그인 유저 정보 표시
+        // 로그인 성공 시 UI 업데이트
         db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
             currentUserName = snapshot.val() || user.displayName || user.email.split('@')[0];
             if(status) status.innerText = `${currentUserName}님`;
         });
-        
         loginBtn?.classList.add("hidden");
         logoutBtn?.classList.remove("hidden");
-
-        // 2. App Check 토큰은 배경에서 조용히 갱신 (에러 나도 로그인 상태는 유지되도록)
-        try {
-            await appCheck.getToken(false); // true 대신 false로 시도하여 불필요한 리로드 방지
-        } catch (e) {
-            console.warn("App Check 토큰 갱신 실패, 하지만 로그인은 유지합니다.");
-        }
     } else {
         // 로그아웃 상태
         currentUserName = "익명";
@@ -206,7 +198,15 @@ auth.onAuthStateChanged(async (user) => {
         logoutBtn?.classList.add("hidden");
     }
     
-    // 유저 상태와 상관없이 질문 목록은 무조건 로드
+    //  중요: App Check 토큰 갱신은 인증 로직과 완전히 별개로 실행 (실패해도 무시하도록)
+    try {
+        if (typeof appCheck !== 'undefined') {
+            appCheck.getToken(false).catch(err => console.warn("AppCheck 대기 중..."));
+        }
+    } catch (e) {
+        console.error("AppCheck 초기화 에러:", e);
+    }
+
     loadQuestions();
 });
 
