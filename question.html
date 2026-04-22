@@ -175,22 +175,38 @@ let currentUser = null;
 let currentUserName = "익명";
 let cachedData = null;
 
+// 인증 상태 감시 로직 수정
 auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     const status = document.getElementById("userStatus");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+
     if (user) {
+        // 1. 로그인 유저 정보 표시
         db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
             currentUserName = snapshot.val() || user.displayName || user.email.split('@')[0];
-            status.innerText = `${currentUserName}님`;
+            if(status) status.innerText = `${currentUserName}님`;
         });
-        document.getElementById("loginBtn").classList.add("hidden");
-        document.getElementById("logoutBtn").classList.remove("hidden");
+        
+        loginBtn?.classList.add("hidden");
+        logoutBtn?.classList.remove("hidden");
+
+        // 2. App Check 토큰은 배경에서 조용히 갱신 (에러 나도 로그인 상태는 유지되도록)
+        try {
+            await appCheck.getToken(false); // true 대신 false로 시도하여 불필요한 리로드 방지
+        } catch (e) {
+            console.warn("App Check 토큰 갱신 실패, 하지만 로그인은 유지합니다.");
+        }
     } else {
+        // 로그아웃 상태
         currentUserName = "익명";
-        status.innerText = "로그인 해주세요";
-        document.getElementById("loginBtn").classList.remove("hidden");
-        document.getElementById("logoutBtn").classList.add("hidden");
+        if(status) status.innerText = "로그인 해주세요";
+        loginBtn?.classList.remove("hidden");
+        logoutBtn?.classList.add("hidden");
     }
+    
+    // 유저 상태와 상관없이 질문 목록은 무조건 로드
     loadQuestions();
 });
 
