@@ -50,14 +50,12 @@
     </style>
 </head>
 <body>
-
 <div class="top-bar">
     <a href="index.html" class="logo-area">
         <img src="logo.png" onerror="this.src='https://via.placeholder.com/35'">
         <span>DEEP SKY</span>
     </a>
 </div>
-
 <div class="login-container">
     <div class="login-box">
         <h2>로그인/회원가입</h2><br>
@@ -73,31 +71,25 @@
             <label>비밀번호</label>
             <input type="password" id="password" placeholder="6자리 이상">
         </div>
-
         <div class="btn-group">
             <button class="btn-login" onclick="login()">로그인</button>
             <button class="btn-signup" onclick="signup()">회원가입</button>
-            
             <button type="button" class="btn-google" onclick="googleLogin()">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18"> Google로 시작하기
             </button>
-            
             <button type="button" class="btn-github" onclick="githubLogin()">
                 <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="18"> GitHub로 시작하기
             </button>
         </div>
-        
         <div class="link-group">
             <a class="sub-link" onclick="resetPassword()">비밀번호 찾기</a>
         </div>
-
         <p class="info-text">
             이메일 인증이 완료되어야 활동이 가능합니다.<br>
             문의: leader.deepsky@gmail.com
         </p>
     </div>
 </div>
-
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
     <br>
@@ -109,8 +101,10 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
+    // 1. Firebase 설정
     const firebaseConfig = {
         apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
         authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -121,79 +115,79 @@
         appId: "1:800777151311:web:8c901fcf0ded04b1941b3a",
         measurementId: "G-LNZFCW099Z"
     };
-
+    // 2. 초기화 및 App Check 활성화
     firebase.initializeApp(firebaseConfig);
+    const appCheck = firebase.appCheck();
+    appCheck.activate(
+        '6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', // reCAPTCHA v3 Site Key
+        true // 토큰 자동 갱신
+    );
     const auth = firebase.auth();
     const db = firebase.database();
-    
     const googleProvider = new firebase.auth.GoogleAuthProvider();
     const githubProvider = new firebase.auth.GithubAuthProvider();
-
-    // 1. 구글 로그인
+    // 3. 구글 로그인
     function googleLogin() {
         auth.signInWithPopup(googleProvider)
             .then((result) => {
                 const user = result.user;
-                const updates = {};
-                updates['/users/' + user.uid] = {
+                return db.ref('users/' + user.uid).update({
                     name: user.displayName || "구글 사용자",
                     email: user.email,
                     lastLogin: new Date().toLocaleString()
-                };
-                return db.ref().update(updates).then(() => {
-                    alert(user.displayName + "님, 환영합니다!");
-                    location.href = "index.html";
                 });
+            })
+            .then(() => {
+                alert("환영합니다!");
+                location.href = "index.html";
             })
             .catch((error) => handleAuthError(error));
     }
-
-    // 2. 깃허브 로그인
+    // 4. 깃허브 로그인
     function githubLogin() {
         auth.signInWithPopup(githubProvider)
             .then((result) => {
                 const user = result.user;
-                const userName = user.displayName || "GitHub 유저";
-                const userEmail = user.email || "Private Email";
-                const userData = {
-                    name: userName,
-                    email: userEmail,
+                return db.ref('users/' + user.uid).update({
+                    name: user.displayName || "GitHub 유저",
+                    email: user.email || "Private Email",
                     lastLogin: new Date().toLocaleString()
-                };
-                return db.ref('users/' + user.uid).update(userData).then(() => {
-                    alert(userName + "님, 환영합니다! (GitHub)");
-                    location.href = "index.html";
                 });
+            })
+            .then(() => {
+                alert("환영합니다!");
+                location.href = "index.html";
             })
             .catch((error) => handleAuthError(error));
     }
-
+    // 5. 에러 핸들러 (auth/internal-error 포함)
     function handleAuthError(error) {
-        if (error.code === 'auth/account-exists-with-different-credential') {
-            alert("이미 다른 로그인 방식으로 가입된 이메일입니다.");
+        console.error("Auth Error:", error);
+        if (error.code === 'auth/internal-error') {
+            alert("Firebase 내부 오류입니다. \n1. Firebase 콘솔에서 '승인된 도메인'에 현재 주소가 있는지 확인하세요.\n2. 구글/깃허브 로그인이 활성화되어 있는지 확인하세요.");
+        } else if (error.code === 'auth/account-exists-with-different-credential') {
+            alert("이미 다른 방식으로 가입된 이메일입니다.");
+        } else if (error.code === 'auth/popup-closed-by-user') {
+            // 사용자가 팝업을 그냥 닫은 경우 - 알림 불필요
         } else {
             alert("오류 발생: " + error.message);
         }
     }
-
-    // 3. 이메일 회원가입
+    // 6. 이메일 회원가입
     function signup() {
         const name = document.getElementById("name").value.trim();
         const email = document.getElementById("email").value.trim();
         const pw = document.getElementById("password").value.trim();
-
         if(!name || !email || !pw) return alert("모든 항목을 입력해주세요.");
-
         auth.createUserWithEmailAndPassword(email, pw)
             .then(result => {
                 const user = result.user;
                 user.updateProfile({ displayName: name });
-                db.ref('users/' + user.uid).set({
+                return db.ref('users/' + user.uid).set({
                     name: name,
                     email: email,
                     uid: user.uid
-                });
-                return user.sendEmailVerification();
+                }).then(() => user.sendEmailVerification());
             })
             .then(() => {
                 alert("가입 성공! 메일함을 확인하여 인증을 완료해주세요.");
@@ -201,14 +195,11 @@
             })
             .catch(err => alert("가입 실패: " + err.message));
     }
-
-    // 4. 이메일 로그인
+    // 7. 이메일 로그인
     function login() {
         const email = document.getElementById("email").value.trim();
         const pw = document.getElementById("password").value.trim();
-
         if(!email || !pw) return alert("이메일과 비밀번호를 입력해주세요.");
-
         auth.signInWithEmailAndPassword(email, pw)
             .then(result => {
                 if (!result.user.emailVerified) {
@@ -221,8 +212,7 @@
             })
             .catch(err => alert("로그인 실패: " + err.message));
     }
-
-    // 5. 비밀번호 찾기
+    // 8. 비밀번호 찾기
     function resetPassword() {
         const email = document.getElementById("email").value.trim();
         if (!email) return alert("이메일을 먼저 입력해주세요.");
@@ -231,7 +221,6 @@
             .catch(err => alert("에러: " + err.message));
     }
 </script>
-
 </body>
 </html>
 
