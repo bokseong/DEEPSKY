@@ -202,6 +202,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -214,31 +215,44 @@ const firebaseConfig = {
     appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
 };
 
-firebase.initializeApp(firebaseConfig);
+// 1. Firebase 초기화
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
-// 1. 로그인 상태 감지
-auth.onAuthStateChanged(user => {
+// 2. App Check 활성화 및 작동 확인
+const appCheck = firebase.appCheck();
+appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
+
+// 3. 로그인 상태 감지 및 보안 토큰 검증
+auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtn = document.getElementById("logoutBtn");
 
-    if (user) {
-        db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
-            const currentName = snapshot.val() || user.displayName || user.email.split('@')[0];
-            status.innerText = `${currentName}님`;
-        });
-        loginBtn.classList.add("hidden");
-        logoutBtn.classList.remove("hidden");
-    } else {
-        status.innerText = "로그인 해주세요";
-        loginBtn.classList.remove("hidden");
-        logoutBtn.classList.add("hidden");
+    try {
+        // App Check 작동 여부 콘솔 확인
+        await appCheck.getToken(true);
+        console.log("✅ [App Check] Introduce Page 보호 활성화");
+
+        if (user) {
+            db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
+                const currentName = snapshot.val() || user.displayName || user.email.split('@')[0];
+                status.innerText = `${currentName}님`;
+            });
+            loginBtn.classList.add("hidden");
+            logoutBtn.classList.remove("hidden");
+        } else {
+            status.innerText = "로그인 해주세요";
+            loginBtn.classList.remove("hidden");
+            logoutBtn.classList.add("hidden");
+        }
+    } catch (e) {
+        console.error("[App Check] 인증 실패:", e.message);
     }
 });
 
-// 2. 로그아웃
+// 4. 로그아웃 함수
 function logout() { 
     if(confirm("로그아웃 하시겠습니까?")) {
         auth.signOut().then(() => { location.reload(); });
