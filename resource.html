@@ -197,6 +197,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -209,13 +210,22 @@ const firebaseConfig = {
     appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
 };
 
-firebase.initializeApp(firebaseConfig);
+// 1. Firebase 초기화
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-let allResources = []; // 전체 자료 보관용 배열
+// [추가] 로그인 유지 설정 (세션 지속성 보장)
+auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
 
+// [추가] App Check (reCAPTCHA v3) 활성화
+const appCheck = firebase.appCheck();
+appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
+
+let allResources = []; 
+
+// 2. 로그인 상태 감지 및 UI 제어
 auth.onAuthStateChanged(user => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
@@ -225,19 +235,27 @@ auth.onAuthStateChanged(user => {
     const adminUpload = document.getElementById("adminUpload");
 
     if (user) {
-        db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
-            const name = snapshot.val() || user.email.split('@')[0];
-            status.innerText = `${name}님`;
-        });
+        // [수정] 로그인 확인 시 즉시 UI 활성화
         loginBtn.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
         lockMsg.classList.add("hidden");
         mainContent.classList.remove("hidden");
 
         if(user.email === ADMIN_EMAIL) adminUpload.classList.remove("hidden");
+
+        // 유저 이름 실시간 가져오기
+        db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
+            const name = snapshot.val() || user.displayName || user.email.split('@')[0];
+            status.innerText = `${name}님`;
+        });
         
         loadResources(user);
+        
+        // 백그라운드 보안 토큰 검증
+        appCheck.getToken(false).catch(err => console.warn("App Check 지연:", err.message));
+        
     } else {
+        // 실제 로그아웃 상태
         status.innerText = "로그인 해주세요";
         loginBtn.classList.remove("hidden");
         logoutBtn.classList.add("hidden");
@@ -246,11 +264,12 @@ auth.onAuthStateChanged(user => {
     }
 });
 
+// --- 기존 로직 최적화 유지 ---
+
 function loadResources(user) {
     db.ref("resources").on("value", snapshot => {
         const data = snapshot.val();
-        allResources = []; // 초기화
-
+        allResources = []; 
         if(data) {
             Object.keys(data).forEach(key => {
                 allResources.push({ id: key, ...data[key] });
@@ -261,7 +280,6 @@ function loadResources(user) {
     });
 }
 
-// 화면에 자료 리스트를 그리는 함수
 function renderResources(items, user) {
     const list = document.getElementById("resourceList");
     list.innerHTML = "";
@@ -274,7 +292,6 @@ function renderResources(items, user) {
     items.forEach(item => {
         const div = document.createElement("div");
         div.className = "resource-item";
-        
         const isManager = (user && user.email === ADMIN_EMAIL);
         const delBtn = isManager ? `<button class="btn-delete" onclick="deleteRes('${item.id}')">삭제하기</button>` : "";
 
@@ -291,24 +308,17 @@ function renderResources(items, user) {
         list.appendChild(div);
     });
 }
-    
-// 🔍 검색 필터링 함수 (보강 버전)
+
 function filterResources() {
     const searchInput = document.getElementById("searchInput");
     if (!searchInput) return;
-
     const keyword = searchInput.value.toLowerCase();
-    
-    // items 필터링 시 데이터가 없는 경우(null)를 대비해 빈 문자열 처리 추가
     const filtered = allResources.filter(item => {
         const title = (item.title || "").toLowerCase();
         const desc = (item.desc || "").toLowerCase();
         return title.includes(keyword) || desc.includes(keyword);
     });
-
-    // auth.currentUser 대신 현재 세션의 user 객체를 안전하게 가져와 전달
-    const currentUser = firebase.auth().currentUser;
-    renderResources(filtered, currentUser);
+    renderResources(filtered, auth.currentUser);
 }
 
 function uploadResource() {
@@ -317,21 +327,32 @@ function uploadResource() {
     let link = document.getElementById("fileLink").value.trim();
     if(!title || !link) return alert("필수 항목 입력 누락");
     if(!link.startsWith('http')) link = 'https://' + link;
-    db.ref("resources").push({ title, desc, link, createdAt: firebase.database.ServerValue.TIMESTAMP })
-    .then(() => {
+    
+    db.ref("resources").push({ 
+        title, 
+        desc, 
+        link, 
+        createdAt: firebase.database.ServerValue.TIMESTAMP 
+    }).then(() => {
         alert("등록 완료");
         document.getElementById("fileTitle").value = "";
         document.getElementById("fileDesc").value = "";
         document.getElementById("fileLink").value = "";
-    });
+    }).catch(err => alert("업로드 실패: " + err.message));
 }
 
 function deleteRes(key) {
-    if(confirm("삭제하시겠습니까?")) db.ref("resources/" + key).remove();
+    if(confirm("삭제하시겠습니까?")) {
+        db.ref("resources/" + key).remove();
+    }
 }
 
 function logout() { 
-    if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload());
+    if(confirm("로그아웃 하시겠습니까?")) {
+        auth.signOut().then(() => {
+            location.href = 'index.html'; // 새로고침 대신 홈으로 이동
+        });
+    }
 }
 </script>
 </body>
