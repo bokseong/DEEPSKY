@@ -158,7 +158,6 @@
     </style>
 </head>
 <body>
-
 <div class="top-bar">
     <a href="index.html" class="logo-area">
         <img src="logo.png" onerror="this.src='https://via.placeholder.com/40'">
@@ -170,7 +169,6 @@
         <button id="logoutBtn" class="hidden" onclick="logout()">로그아웃</button>
     </div>
 </div>
-
 <header>
     <div class="header-content">
         <div class="header-logo">
@@ -182,7 +180,6 @@
         </div>
     </div>
 </header>
-
 <nav>
     <div class="nav-inner">
         <a href="index.html">홈</a>
@@ -195,26 +192,22 @@
         <a href="mypage.html">정보 수정</a>
     </div>
 </nav>
-
 <div class="container">
     <div class="card">
         <h3 style="color: #7fc7ff; margin-top: 0;">예정된 프로그램</h3>
         <p id="weekProgramText" style="font-size: 1.1rem; line-height: 1.6;">공지사항을 불러오는 중입니다...</p>
     </div>
-
     <div id="adminBox" class="card hidden">
         <h3 style="color: #ff4d4d; margin-top: 0;">관리자 메뉴 (공지 수정)</h3>
         <textarea id="weekProgramInput" placeholder="새로운 내용을 입력하세요..."></textarea>
         <button onclick="saveProgram()" style="margin-top:10px; padding:10px 20px; background:#ff4d4d; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">수정하기</button>
     </div>
-
     <div class="card">
     <h3 style="color: #7fc7ff; margin-top: 0;">업데이트 기록</h3>
     <div id="updateLogList" style="max-height: 300px; overflow-y: auto; font-size: 0.95rem;">
         <p>기록을 불러오는 중입니다...</p>
     </div>
 </div>
-
 <div id="adminUpdateBox" class="card hidden" style="border: 1px solid #4a9eff; background: rgba(74, 158, 255, 0.05);">
     <h3 style="color: #4a9eff; margin-top: 0;">관리자 메뉴 (업데이트 기록 추가)</h3>
     <input type="text" id="updateVersion" placeholder="버전 (규칙: 첫번째 자리에는 대규모 개편, 두번째 자리는 기능 추가, 세번째 자리는 버그나 문구 수정 -> 예:v 1.0.1)" style="width: 100%; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
@@ -222,13 +215,11 @@
     <button onclick="addUpdateLog()" style="margin-top:10px; padding:10px 20px; background:#4a9eff; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">기록하기</button>
 </div>
 </div>
-
 <div class="slide-container">
     <div class="slide-header">
         <h3 style="margin:0; color:#fff;">동아리 관측 기록</h3>
         <p style="margin:5px 0 0; font-size:12px; color:#ccc;">사진 게시 문의 : leader.deepsky@gmail.com</p>
     </div>
-    
     <div class="slide-item active"><img src="https://i.ibb.co/svKGfcrG/p1.jpg"></div>
     <div class="slide-item"><img src="https://i.ibb.co/ZqpHPJd/p3.jpg"></div>
     <div class="slide-item"><img src="https://i.ibb.co/hFGNWDyZ/p4.jpg"></div>
@@ -239,11 +230,9 @@
     <div class="slide-item"><img src="https://i.ibb.co/DPSQTQFS/p9.jpg"></div>
     <div class="slide-item"><img src="https://i.ibb.co/HRScqtB/p10.jpg"></div>
     <div class="slide-item"><img src="https://i.ibb.co/8nZqccMV/p11.jpg"></div>
-
     <button class="slide-btn btn-prev" onclick="changeSlide(-1)">❮</button>
     <button class="slide-btn btn-next" onclick="changeSlide(1)">❯</button>
 </div>
-
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
     <br>
@@ -251,15 +240,12 @@
     <br>
     <a href="https://forms.gle/5MZf7MEZwNxAefXw9">&nbsp; &nbsp;시스템 오류 또는 오타 수정 건의하기</a>
 </footer>
-
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-    
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
+<script>
+    // 1. 설정값
     const firebaseConfig = {
         apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
         authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -269,53 +255,22 @@
         messagingSenderId: "800777151311",
         appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
     };
+    // 2. 초기화 (동기적 순서 보장)
+    const app = firebase.initializeApp(firebaseConfig);
+    // 3. App Check 설정 (reCAPTCHA v3)
+    const appCheck = firebase.appCheck();
+    appCheck.activate(
+        '6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', // 질문자님의 Site Key
+        true // 토큰 자동 갱신 활성화
+    );
+    const auth = firebase.auth();
+    const db = firebase.database();
+    const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-    // 1. 초기화
-    const app = initializeApp(firebaseConfig);
-    const appCheck = initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0'),
-        isTokenAutoRefreshEnabled: true
-    });
-
-    // 2. 토큰 획득 및 전역 전달
-    getToken(appCheck)
-        .then((result) => {
-            window.appCheckToken = result.token; // 토큰 저장
-            window.firebaseConfig = firebaseConfig; // 설정 저장
-            window.isAppCheckReady = true; // 준비 완료 신호
-            console.log("App Check Token 획득 성공!");
-        })
-        .catch((err) => {
-            console.error("App Check Token 획득 실패:", err);
-            window.isAppCheckReady = true; // 실패해도 앱은 실행 시도
-        });
-</script>
-
-<script>
-    const startApp = async () => {
-        // App Check가 완료될 때까지 대기
-        if (!window.isAppCheckReady) {
-            console.log("App Check 대기 중...");
-            return setTimeout(startApp, 300);
-        }
-
-        // Firebase 앱 초기화 (중복 방지)
-        if (firebase.apps.length === 0) {
-            firebase.initializeApp(window.firebaseConfig);
-        }
-
-        const auth = firebase.auth();
-        const db = firebase.database();
-        const ADMIN_EMAIL = "leader.deepsky@gmail.com";
-        const starCountRef = ref(db, 'weekProgram');
-onValue(starCountRef, (snapshot) => {
-    const data = snapshot.val();
-    document.getElementById("weekProgramText").innerText = data.text;
-});
-
-        console.log("App Check 토큰 연결 완료. 데이터 로딩 시작.");
-
-        // [핵심] 사용자 인증 상태 처리
+    // 메인 앱 로직 시작
+    const startApp = () => {
+        console.log("App Check active. 데이터 로딩 시작.");
+        // 사용자 인증 상태 처리
         auth.onAuthStateChanged(user => {
             const status = document.getElementById("userStatus");
             const loginBtn = document.getElementById("loginBtn");
@@ -369,10 +324,10 @@ onValue(starCountRef, (snapshot) => {
             });
         });
 
-        // 슬라이드 기능 유지
         setupSlides();
     };
 
+    // 슬라이드 기능
     function setupSlides() {
         let slideIndex = 0;
         const slides = document.querySelectorAll(".slide-item");
@@ -383,13 +338,16 @@ onValue(starCountRef, (snapshot) => {
             slideIndex = (slideIndex + n + slides.length) % slides.length;
             slides[slideIndex].classList.add("active");
         };
-        setInterval(() => window.changeSlide(1), 4000);
+        // 기존에 중복 실행될 수 있으므로 타이머 설정 확인
+        if(!window.slideInterval) {
+            window.slideInterval = setInterval(() => window.changeSlide(1), 4000);
+        }
     }
 
-    // 초기 실행
+    // 실행
     startApp();
 
-    window.logout = () => { if(confirm("로그아웃 하시겠습니까?")) firebase.auth().signOut().then(() => location.reload()); };
+    window.logout = () => { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); };
 </script>
 </body>
 </html>
