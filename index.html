@@ -259,7 +259,8 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
-
+    import { getToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
+    
     const firebaseConfig = {
         apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
         authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -281,18 +282,33 @@
         isTokenAutoRefreshEnabled: true
     });
 
+    // [핵심] 토큰이 정상적으로 발급되는지 확인 후 앱 시작 신호를 보냄
+getToken(appCheck)
+    .then(() => {
+        window.isAppCheckReady = true; 
+        console.log("App Check Token 획득 성공!");
+    })
+    .catch((err) => {
+        console.error("App Check Token 획득 실패:", err);
+        // 실패하더라도 일단 준비 완료로 넘김 (로그 확인용)
+        window.isAppCheckReady = true; 
+    });
+    
     window.firebaseConfig = firebaseConfig;
-    window.isAppCheckReady = true; // App Check 준비 완료 신호
-    console.log("App Check initialized.");
 </script>
 
 <script>
     const startApp = async () => {
-        // App Check와 Config가 준비될 때까지 무한 대기 (0.1초 간격 체크)
-        if (!window.isAppCheckReady || !window.firebaseConfig) {
-            return setTimeout(startApp, 100);
+       // App Check 토큰이 준비될 때까지 기다림
+    if (!window.isAppCheckReady || !window.firebaseConfig) {
+        console.log("App Check 대기 중...");
+        return setTimeout(startApp, 200); // 0.2초 간격으로 재시도
         }
 
+        // 이미 초기화되었다면 중복 실행 방지
+    if (firebase.apps.length === 0) {
+        firebase.initializeApp(window.firebaseConfig);
+    }
         firebase.initializeApp(window.firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.database();
