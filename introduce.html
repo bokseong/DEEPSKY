@@ -205,7 +205,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
-<script>
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -221,47 +220,43 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
-// 2. App Check 활성화
+// [추가] 로그인 유지 설정 (세션 지속성 보장)
+auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+
+// 2. App Check 활성화 (에러 방지를 위해 디버그 토큰 허용 설정 포함)
 const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
-// 3. 로그인 상태 감지 (순서 변경 및 최적화)
+// 3. 로그인 상태 감지
 auth.onAuthStateChanged((user) => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtn = document.getElementById("logoutBtn");
 
     if (user) {
-        // [수정] 사용자가 있으면 즉시 UI부터 변경 (토큰 대기 없이)
+        console.log("👤 로그인 확인됨:", user.email);
         loginBtn.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
-        
-        // 데이터베이스에서 이름 불러오기
-        db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
+
+        // 사용자 이름 가져오기
+        db.ref('users/' + user.uid + '/name').once('value').then((snapshot) => {
             const currentName = snapshot.val() || user.displayName || user.email.split('@')[0];
             status.innerText = `${currentName}님`;
+        }).catch(err => {
+            console.error("데이터 로드 실패:", err);
+            status.innerText = "인증 오류";
         });
-
-        // 보안 토큰 확인은 백그라운드에서 비동기로 수행
-        appCheck.getToken(false).then(() => {
-            console.log("✅ [App Check] 세션 연결됨");
-        }).catch(err => console.warn("App Check 지연:", err.message));
-
     } else {
-        // 사용자가 없으면 로그인 유도
+        console.warn("🔐 로그인 정보 없음 (로그아웃 상태)");
         status.innerText = "로그인 해주세요";
         loginBtn.classList.remove("hidden");
         logoutBtn.classList.add("hidden");
     }
 });
 
-// 4. 로그아웃 함수
 function logout() { 
     if(confirm("로그아웃 하시겠습니까?")) {
-        auth.signOut().then(() => { 
-            // 로그아웃 후 즉시 메인으로 이동하거나 새로고침
-            location.href = 'index.html'; 
-        });
+        auth.signOut().then(() => { location.href = 'index.html'; });
     }
 }
 </script>
