@@ -197,6 +197,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -209,11 +210,19 @@ const firebaseConfig = {
     appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
 };
 
-firebase.initializeApp(firebaseConfig);
+// 1. Firebase 초기화
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
-// 1. 초기 데이터 로드 및 실시간 동기화
+// [추가] 로그인 유지 설정 (세션 지속성 보장)
+auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+
+// [추가] App Check (reCAPTCHA v3) 활성화
+const appCheck = firebase.appCheck();
+appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
+
+// 2. 초기 데이터 로드 및 실시간 동기화
 auth.onAuthStateChanged(user => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
@@ -226,7 +235,7 @@ auth.onAuthStateChanged(user => {
         loginBtn.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
 
-        // DB에서 이름 실시간 동기화 (탈퇴 시 이 연결을 끊어줘야 함)
+        // DB에서 이름 실시간 동기화
         db.ref('users/' + user.uid).on('value', (snapshot) => {
             const data = snapshot.val();
             let finalName = (data && data.name) ? data.name : 
@@ -235,13 +244,18 @@ auth.onAuthStateChanged(user => {
             nameInput.value = finalName;
             status.innerText = `${finalName}님`;
         });
+        
+        // 보안 토큰 확인
+        appCheck.getToken(false).catch(err => console.warn("App Check 지연:", err.message));
+        
     } else {
+        // 페이지 특성상 로그인이 안 되어 있으면 로그인 페이지로 튕김
         alert("로그인이 필요합니다.");
         location.href = "login.html";
     }
 });
 
-// 2. 이름 변경 함수 (UID 필드 추가 저장)
+// 3. 이름 변경 함수
 function updateProfile() {
     const user = auth.currentUser;
     const newName = document.getElementById("userName").value.trim();
@@ -249,7 +263,7 @@ function updateProfile() {
     if (!user) return;
     if (!newName) return alert("이름을 입력해주세요.");
 
-    // 보안 규칙 준수를 위해 name과 uid를 함께 저장합니다.
+    // DB 업데이트
     db.ref('users/' + user.uid).update({
         name: newName,
         uid: user.uid 
@@ -262,7 +276,7 @@ function updateProfile() {
     });
 }
 
-// 3. 비밀번호 재설정 메일 발송
+// 4. 비밀번호 재설정 메일 발송
 function resetPassword() {
     const user = auth.currentUser;
     if (!user) return;
@@ -278,7 +292,7 @@ function resetPassword() {
     }
 }
 
-// 4. 회원 탈퇴 (DB 삭제 -> 계정 삭제 순서)
+// 5. 회원 탈퇴
 function deleteAccount() {
     const user = auth.currentUser;
     if (!user) return;
@@ -288,25 +302,19 @@ function deleteAccount() {
     }
 
     const uid = user.uid;
+    db.ref('users/' + uid).off(); // 감시 해제
 
-    // [중요] 탈퇴 전 실시간 DB 감시(on)를 먼저 해제합니다.
-    db.ref('users/' + uid).off();
-
-    // 1단계: Realtime Database에서 사용자 노드 삭제
     db.ref('users/' + uid).remove()
         .then(() => {
-            console.log("Database record deleted.");
-            // 2단계: Firebase Authentication에서 계정 삭제
             return user.delete();
         })
         .then(() => {
-            alert("회원 탈퇴가 정상적으로 완료되었습니다. 이용해 주셔서 감사합니다.");
+            alert("회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다.");
             location.href = "index.html";
         })
         .catch(err => {
-            // 최근에 로그인하지 않은 경우 발생하는 보안 에러 처리
             if (err.code === 'auth/requires-recent-login') {
-                alert("보안을 위해 다시 로그인한 직후에만 탈퇴가 가능합니다. 다시 로그인해주세요.");
+                alert("보안을 위해 다시 로그인한 직후에만 탈퇴가 가능합니다. 재로그인 후 시도해주세요.");
                 auth.signOut().then(() => { location.href = 'login.html'; });
             } else {
                 alert("탈퇴 오류: " + err.message);
@@ -314,7 +322,7 @@ function deleteAccount() {
         });
 }
 
-// 5. 로그아웃
+// 6. 로그아웃
 function logout() {
     if(confirm("로그아웃 하시겠습니까?")) {
         auth.signOut().then(() => {
