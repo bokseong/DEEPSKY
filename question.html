@@ -143,7 +143,7 @@ async function sendAdminAlert(qText, author, msg) {
 
     try {
         // [필독] 여기서 "service_deepsky"가 본인의 실제 ID가 맞는지 확인 필수!
-        await emailjs.send("service_deepsky", "template_a17vklg", templateParams);
+        await emailjs.send("deepsky", "template_a17vklg", templateParams);
     } catch (err) {
         console.error('메일 발송 실패:', err);
     }
@@ -215,7 +215,7 @@ async function addQuestion() {
         textInput.value = "";
         alert("질문이 등록되었습니다.");
     } catch (err) {
-        alert("등록 실패: 보안 인증(App Check) 오류입니다. 새로고침 후 다시 시도하세요.");
+        alert("등록 실패: 보안 인증 오류입니다. 새로고침 후 다시 시도하세요.");
     } finally {
         btn.disabled = false;
     }
