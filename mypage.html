@@ -200,7 +200,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
-// 1. Firebase 설정 및 초기화
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -211,126 +210,92 @@ const firebaseConfig = {
     appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
 };
 
+// 1. 초기화
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
-// [인증 강화] 세션 유지 설정
-auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+// [중요] 로그인 유지 설정을 LOCAL로 변경 (브라우저 꺼도 유지)
+// 설정이 완료된 후에 인증 감지 로직이 돌아가도록 순서를 보장합니다.
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+    .then(() => {
+        // 보안 App Check 활성화
+        const appCheck = firebase.appCheck();
+        appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
-// [보안 강화] App Check 활성화
-const appCheck = firebase.appCheck();
-appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
+        // 2. 인증 상태 감지 시작
+        return auth.onAuthStateChanged(user => {
+            const status = document.getElementById("userStatus");
+            const loginBtn = document.getElementById("loginBtn");
+            const logoutBtn = document.getElementById("logoutBtn");
+            const emailInput = document.getElementById("userEmail");
+            const nameInput = document.getElementById("userName");
 
-// 2. 로그인 상태 감지 및 데이터 로드
-auth.onAuthStateChanged(user => {
-    const status = document.getElementById("userStatus");
-    const loginBtn = document.getElementById("loginBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const emailInput = document.getElementById("userEmail");
-    const nameInput = document.getElementById("userName");
+            if (user) {
+                // 로그인 성공 시
+                emailInput.value = user.email || "";
+                loginBtn.classList.add("hidden");
+                logoutBtn.classList.remove("hidden");
 
-    if (user) {
-        // UI 기본 설정
-        emailInput.value = user.email || "이메일 정보 없음";
-        loginBtn.classList.add("hidden");
-        logoutBtn.classList.remove("hidden");
-
-        // DB 이름 실시간 동기화 (오류 발생 시 기본값 제공)
-        const userRef = db.ref('users/' + user.uid);
-        userRef.on('value', (snapshot) => {
-            const data = snapshot.val();
-            let finalName = (data && data.name) ? data.name : 
-                            (user.displayName ? user.displayName : user.email.split('@')[0]);
-
-            nameInput.value = finalName;
-            status.innerText = `${finalName}님`;
-        }, (error) => {
-            console.error("데이터 로드 실패:", error);
+                // 실시간 이름 동기화
+                db.ref('users/' + user.uid).on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    let finalName = (data && data.name) ? data.name : 
+                                    (user.displayName ? user.displayName : user.email.split('@')[0]);
+                    nameInput.value = finalName;
+                    status.innerText = `${finalName}님`;
+                });
+            } else {
+                // 로그인 안 되어 있을 시
+                status.innerText = "로그인 해주세요";
+                loginBtn.classList.remove("hidden");
+                logoutBtn.classList.add("hidden");
+                alert("로그인이 필요합니다.");
+                location.href = "login.html";
+            }
         });
-        
-    } else {
-        // 미인증 사용자 차단
-        alert("로그인이 필요합니다.");
-        location.href = "login.html";
-    }
-});
+    })
+    .catch((error) => {
+        console.error("인증 설정 오류:", error);
+    });
 
-// 3. 이름 변경 저장
+// 3. 이름 변경
 function updateProfile() {
     const user = auth.currentUser;
-    const nameField = document.getElementById("userName");
-    const newName = nameField.value.trim();
+    const newName = document.getElementById("userName").value.trim();
+    if (!user || !newName) return alert("이름을 입력하세요.");
 
-    if (!user) return;
-    if (!newName) return alert("이름을 입력해주세요.");
-
-    // 중복 클릭 방지
-    const btn = document.querySelector(".btn-save");
-    btn.disabled = true;
-    btn.innerText = "저장 중...";
-
-    db.ref('users/' + user.uid).update({
-        name: newName,
-        uid: user.uid 
-    }).then(() => {
-        return user.updateProfile({ displayName: newName });
-    }).then(() => {
-        alert("이름이 성공적으로 변경되었습니다.");
-    }).catch(err => {
-        alert("변경 실패: " + err.message);
-    }).finally(() => {
-        btn.disabled = false;
-        btn.innerText = "이름 변경 저장";
-    });
+    db.ref('users/' + user.uid).update({ name: newName, uid: user.uid })
+        .then(() => user.updateProfile({ displayName: newName }))
+        .then(() => alert("변경되었습니다."))
+        .catch(err => alert("실패: " + err.message));
 }
 
-// 4. 비밀번호 재설정 (보안 링크 발송)
+// 4. 비밀번호 재설정
 function resetPassword() {
     const user = auth.currentUser;
     if (!user) return;
-
-    if (confirm(`${user.email} 계정으로 비밀번호 재설정 메일을 발송할까요?`)) {
+    if (confirm("메일을 발송할까요?")) {
         auth.sendPasswordResetEmail(user.email)
-            .then(() => {
-                alert("비밀번호 재설정 메일이 발송되었습니다. 받은 편지함을 확인해 주세요!");
-            })
-            .catch(err => {
-                alert("발송 실패: " + err.message);
-            });
+            .then(() => alert("메일이 발송되었습니다."))
+            .catch(err => alert("실패: " + err.message));
     }
 }
 
-// 5. 회원 탈퇴 (DB 선삭제 후 계정 삭제)
+// 5. 탈퇴
 function deleteAccount() {
     const user = auth.currentUser;
-    if (!user) return;
-
-    if (!confirm("정말로 탈퇴하시겠습니까? 작성하신 모든 데이터가 영구 삭제됩니다.")) {
-        return;
-    }
+    if (!user || !confirm("정말 탈퇴하시겠습니까?")) return;
 
     const uid = user.uid;
-    // 실시간 감시 해제 (에러 방지)
-    db.ref('users/' + uid).off();
-
-    // 1단계: DB 데이터 삭제
+    db.ref('users/' + uid).off(); // 감시 종료
     db.ref('users/' + uid).remove()
-        .then(() => {
-            // 2단계: 계정 삭제
-            return user.delete();
-        })
-        .then(() => {
-            alert("그동안 이용해 주셔서 감사합니다. 회원 탈퇴가 완료되었습니다.");
-            location.href = "index.html";
-        })
+        .then(() => user.delete())
+        .then(() => { alert("탈퇴되었습니다."); location.href = "index.html"; })
         .catch(err => {
-            // 민감한 작업은 최근 로그인이 필요함
             if (err.code === 'auth/requires-recent-login') {
-                alert("보안을 위해 다시 로그인한 후에만 탈퇴가 가능합니다. 자동으로 로그아웃합니다.");
-                auth.signOut().then(() => { location.href = 'login.html'; });
-            } else {
-                alert("탈퇴 처리 중 오류가 발생했습니다: " + err.message);
+                alert("보안을 위해 다시 로그인 후 시도해주세요.");
+                auth.signOut().then(() => location.href = 'login.html');
             }
         });
 }
@@ -338,9 +303,7 @@ function deleteAccount() {
 // 6. 로그아웃
 function logout() {
     if(confirm("로그아웃 하시겠습니까?")) {
-        auth.signOut().then(() => {
-            location.href = "index.html";
-        });
+        auth.signOut().then(() => { location.href = "index.html"; });
     }
 }
 </script>
