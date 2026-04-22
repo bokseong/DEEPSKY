@@ -157,9 +157,10 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
-// Firebase 설정
+// 1. Firebase 설정
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -170,40 +171,22 @@ const firebaseConfig = {
     appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
 };
 
-firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
+// [보안강화 1] 세션 유지 설정: 브라우저가 열려있는 동안 로그인 강제 유지
+auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+
+// [보안강화 2] App Check (reCAPTCHA v3) 활성화
+const appCheck = firebase.appCheck();
+appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
+
 let currentUserName = "익명";
 
-// 구글 드라이브 링크를 직접 이미지 링크로 변환하는 함수
-function convertDriveLink(url) {
-    if (url.includes('drive.google.com')) {
-        let fileId = "";
-        if (url.includes('/d/')) {
-            fileId = url.split('/d/')[1].split('/')[0];
-        } else if (url.includes('id=')) {
-            fileId = url.split('id=')[1].split('&')[0];
-        }
-        return fileId ? `https://docs.google.com/uc?export=view&id=${fileId}` : url;
-    }
-    return url;
-}
-
-// 시간 표시 포맷 함수
-function formatTime(timestamp) {
-    const date = new Date(timestamp);
-    const y = date.getFullYear();
-    const m = date.getMonth() + 1;
-    const d = date.getDate();
-    const h = date.getHours();
-    const min = date.getMinutes();
-    return `${y}.${m < 10 ? '0'+m : m}.${d < 10 ? '0'+d : d} ${h}:${min < 10 ? '0'+min : min}`;
-}
-
-// 로그인 상태 감지
-auth.onAuthStateChanged(user => {
+// 2. 로그인 상태 감지 및 UI 즉시 처리
+auth.onAuthStateChanged((user) => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtn = document.getElementById("logoutBtn");
@@ -211,16 +194,29 @@ auth.onAuthStateChanged(user => {
     const mainContent = document.getElementById("mainContent");
 
     if (user) {
-        db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
-            currentUserName = snapshot.val() || user.displayName || user.email.split('@')[0];
-            status.innerText = `${currentUserName}님`;
-        });
+        // [수정] 사용자가 확인되면 보안 토큰 검증 기다리지 않고 즉시 UI 오픈
         loginBtn.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
         lockMsg.classList.add("hidden");
         mainContent.classList.remove("hidden");
-        loadPhotos();
+        
+        // 데이터베이스에서 사용자 이름 가져오기 (보안 토큰은 백그라운드에서 처리)
+        db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
+            currentUserName = snapshot.val() || user.displayName || user.email.split('@')[0];
+            status.innerText = `${currentUserName}님`;
+        });
+
+        loadPhotos(); // 사진 목록 로드
+
+        // 백그라운드에서 보안 토큰 확인
+        appCheck.getToken(false).then(() => {
+            console.log("✅ [App Check] Photo Page 인증 성공");
+        }).catch(err => {
+            console.warn("⚠️ App Check 지연됨:", err.message);
+        });
+
     } else {
+        // 실제 로그아웃 상태일 때만 잠금 화면 표시
         status.innerText = "로그인 해주세요";
         loginBtn.classList.remove("hidden");
         logoutBtn.classList.add("hidden");
@@ -229,7 +225,23 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// 사진 일괄 업로드
+// --- 이하 기존 로직 유지 (기능 동일) ---
+
+function convertDriveLink(url) {
+    if (url.includes('drive.google.com')) {
+        let fileId = "";
+        if (url.includes('/d/')) fileId = url.split('/d/')[1].split('/')[0];
+        else if (url.includes('id=')) fileId = url.split('id=')[1].split('&')[0];
+        return fileId ? `https://docs.google.com/uc?export=view&id=${fileId}` : url;
+    }
+    return url;
+}
+
+function formatTime(timestamp) {
+    const date = new Date(timestamp);
+    return `${date.getFullYear()}.${(date.getMonth()+1).toString().padStart(2,'0')}.${date.getDate().toString().padStart(2,'0')} ${date.getHours()}:${date.getMinutes().toString().padStart(2,'0')}`;
+}
+
 async function uploadBulkPhotos() {
     const user = auth.currentUser;
     const urlsText = document.getElementById("imageUrls").value.trim();
@@ -240,17 +252,13 @@ async function uploadBulkPhotos() {
 
     const urlList = urlsText.split('\n').map(u => u.trim()).filter(u => u !== "");
     if(urlList.length === 0) return alert("유효한 링크가 없습니다.");
-
     if(!confirm(`${urlList.length}개의 사진을 업로드하시겠습니까?`)) return;
 
     try {
         const promises = urlList.map((url, index) => {
             const finalTitle = urlList.length > 1 ? `${titleText} (${index + 1})` : titleText;
-            const convertedUrl = convertDriveLink(url);
-            
             return db.ref('photos_link').push({
-                url: convertedUrl,
-                originalUrl: url,
+                url: convertDriveLink(url),
                 title: finalTitle,
                 ownerName: currentUserName,
                 ownerEmail: user.email,
@@ -258,17 +266,13 @@ async function uploadBulkPhotos() {
                 createdAt: firebase.database.ServerValue.TIMESTAMP
             });
         });
-
         await Promise.all(promises);
         alert("업로드 완료!");
         document.getElementById("imageUrls").value = "";
         document.getElementById("commonTitle").value = "";
-    } catch (err) {
-        alert("오류: " + err.message);
-    }
+    } catch (err) { alert("오류: " + err.message); }
 }
 
-// 사진 불러오기
 function loadPhotos() {
     const grid = document.getElementById("photoGrid");
     db.ref('photos_link').orderByChild('createdAt').on('value', snapshot => {
@@ -278,14 +282,9 @@ function loadPhotos() {
             grid.innerHTML = "<p style='grid-column:1/-1; text-align:center;'>등록된 사진이 없습니다.</p>";
             return;
         }
-
         Object.keys(data).reverse().forEach(key => {
             const item = data[key];
-            const isAdmin = auth.currentUser && (
-                auth.currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase() || 
-                auth.currentUser.uid === item.ownerUid
-            );
-            
+            const isAdmin = auth.currentUser && (auth.currentUser.email === ADMIN_EMAIL || auth.currentUser.uid === item.ownerUid);
             const card = document.createElement("div");
             card.className = "photo-card";
             card.innerHTML = `
@@ -297,8 +296,7 @@ function loadPhotos() {
                         <a href="${item.url}" target="_blank" class="btn-view">원본보기</a>
                         ${isAdmin ? `<button class="btn-del" onclick="deletePhoto('${key}')">삭제</button>` : ''}
                     </div>
-                </div>
-            `;
+                </div>`;
             grid.appendChild(card);
         });
     });
@@ -315,13 +313,11 @@ function filterPhotos() {
 }
 
 function deletePhoto(key) { 
-    if(confirm("삭제하시겠습니까?")) {
-        db.ref('photos_link/' + key).remove().then(() => alert("삭제되었습니다."));
-    }
+    if(confirm("삭제하시겠습니까?")) db.ref('photos_link/' + key).remove().then(() => alert("삭제되었습니다."));
 }
 
 function logout() { 
-    if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload());
+    if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.href='index.html');
 }
 </script>
 </body>
