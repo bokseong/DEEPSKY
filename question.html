@@ -107,11 +107,12 @@
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
 <script>
-// EmailJS 초기화
+// 1. EmailJS 초기화
 (function() {
     emailjs.init({ publicKey: "p2O8bkjE2HkqQef3q" });
 })();
 
+// 2. Firebase 설정 정보
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -122,12 +123,13 @@ const firebaseConfig = {
     appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
 };
 
+// Firebase 초기화
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-// ★ App Check 보안 활성화
+// 3. App Check 보안 활성화 (이미지의 "Missing appcheck token" 해결책)
 const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
@@ -135,42 +137,83 @@ let currentUser = null;
 let currentUserName = "익명";
 let cachedData = null;
 
-// 인증 상태 감지 (비동기 처리 최적화)
+/**
+ * [중요] 인증 상태 감지 및 보안 토큰 처리
+ * 페이지 로드 시 보안 토큰을 먼저 확보한 후 DB 데이터를 불러옵니다.
+ */
 auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtn = document.getElementById("logoutBtn");
 
-    if (user) {
-        // 관리자나 회원은 App Check 토큰을 미리 확보 시도
-        try { await appCheck.getToken(); } catch (e) { console.warn("App Check 로딩 중..."); }
+    try {
+        // 데이터 요청 전 보안 토큰(App Check)을 명시적으로 확보합니다.
+        await appCheck.getToken(true);
+        console.log("App Check 보안 인증 성공");
 
-        db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
-            currentUserName = snapshot.val() || user.displayName || user.email.split('@')[0];
-            status.innerText = `${currentUserName}님`;
-        });
-        loginBtn.classList.add("hidden");
-        logoutBtn.classList.remove("hidden");
-    } else {
-        currentUserName = "익명";
-        status.innerText = "로그인 해주세요";
-        loginBtn.classList.remove("hidden");
-        logoutBtn.classList.add("hidden");
+        if (user) {
+            // 로그인 사용자 이름 로드
+            db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
+                currentUserName = snapshot.val() || user.displayName || user.email.split('@')[0];
+                status.innerText = `${currentUserName}님`;
+            }, (error) => {
+                console.error("유저 정보 접근 권한 오류:", error);
+            });
+            loginBtn.classList.add("hidden");
+            logoutBtn.classList.remove("hidden");
+        } else {
+            currentUserName = "익명";
+            status.innerText = "로그인 해주세요";
+            loginBtn.classList.remove("hidden");
+            logoutBtn.classList.add("hidden");
+        }
+
+        // 인증 절차 완료 후 질문 목록 로드
+        loadQuestions();
+
+    } catch (e) {
+        console.error("App Check 인증 실패:", e);
+        // 인증 실패 시에도 로드를 시도하지만 DB 규칙에 의해 차단될 수 있습니다.
+        loadQuestions();
     }
-    loadQuestions();
 });
 
-// 질문 등록 (App Check 보안 적용)
+/**
+ * 질문 목록 불러오기 (권한 에러 핸들링 포함)
+ */
+function loadQuestions() {
+    const listContainer = document.getElementById("questionList");
+    
+    db.ref("questions").on("value", snapshot => {
+        cachedData = snapshot.val();
+        renderList(cachedData);
+    }, (error) => {
+        console.error("DB 로드 에러:", error);
+        // permission_denied 발생 시 안내 표시
+        if(error.message.includes("permission_denied")) {
+            listContainer.innerHTML = `
+                <p style="text-align:center; color:#ff4d4d; padding:20px;">
+                    보안 인증 오류로 데이터를 불러올 수 없습니다.<br>
+                    잠시 후 페이지를 새로고침(F5) 해주세요.
+                </p>`;
+        }
+    });
+}
+
+/**
+ * 질문 등록 (보안 토큰 체크 포함)
+ */
 async function addQuestion() {
-    const text = document.getElementById("qInput").value.trim();
+    const textInput = document.getElementById("qInput");
+    const text = textInput.value.trim();
     if(!text) return alert("질문을 입력해주세요.");
 
     const btn = document.querySelector(".btn-main");
-    btn.disabled = true; // 중복 클릭 방지
+    btn.disabled = true;
 
     try {
-        // 전송 전 보안 인증 확인
+        // 쓰기 작업 전 최신 토큰 확인
         await appCheck.getToken();
 
         await db.ref("questions").push({
@@ -180,21 +223,24 @@ async function addQuestion() {
             createdAt: firebase.database.ServerValue.TIMESTAMP
         });
 
+        // 관리자가 아닐 때만 메일 발송
         if (!currentUser || currentUser.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
             sendAdminAlert(text, currentUserName, "새로운 질문이 게시되었습니다.");
         }
         
-        document.getElementById("qInput").value = "";
+        textInput.value = "";
         alert("질문이 등록되었습니다.");
     } catch (err) {
-        console.error(err);
-        alert("등록 실패: 보안 인증에 실패했거나 서버 오류입니다.");
+        console.error("등록 실패:", err);
+        alert("등록 실패: 보안 인증에 실패했거나 권한이 없습니다.");
     } finally {
         btn.disabled = false;
     }
 }
 
-// 답글 저장 (App Check 보안 적용)
+/**
+ * 답글 등록 (보안 토큰 체크 포함)
+ */
 async function saveAnswer(qKey) {
     const ansInput = document.getElementById("ans_"+qKey);
     const ansText = ansInput.value.trim();
@@ -228,7 +274,9 @@ async function saveAnswer(qKey) {
     }
 }
 
-// 이메일 알림 함수
+/**
+ * 이메일 알림 전송 (EmailJS)
+ */
 function sendAdminAlert(qText, author, msg) {
     const templateParams = {
         question_text: qText,
@@ -238,27 +286,21 @@ function sendAdminAlert(qText, author, msg) {
     };
 
     emailjs.send("DEEP SKY_question", "template_a17vklg", templateParams)
-        .then(() => console.log('알림 성공'), err => console.error('알림 실패', err));
+        .then(() => console.log('메일 알림 전송 성공'), err => console.error('메일 전송 실패', err));
 }
 
-// 질문 불러오기
-function loadQuestions() {
-    db.ref("questions").on("value", snapshot => {
-        cachedData = snapshot.val();
-        renderList(cachedData);
-    }, (error) => {
-        if(error.message.includes("permission_denied")) {
-            console.error("보안 정책에 의해 접근이 거부되었습니다.");
-        }
-    });
-}
-
-// 리스트 렌더링
+/**
+ * 목록 화면 표시 및 검색 필터링
+ */
 function renderList(data) {
     const list = document.getElementById("questionList");
     const searchTerm = document.getElementById("qSearch").value.toLowerCase();
     list.innerHTML = "";
-    if(!data) { list.innerHTML = "<p style='text-align:center;'>첫 질문을 기다리고 있습니다.</p>"; return; }
+    
+    if(!data) { 
+        list.innerHTML = "<p style='text-align:center;'>첫 질문을 기다리고 있습니다.</p>"; 
+        return; 
+    }
     
     const keys = Object.keys(data).reverse();
     let hasMatch = false;
@@ -304,13 +346,37 @@ function renderList(data) {
         `;
         list.appendChild(card);
     });
-    if (!hasMatch && searchTerm) { list.innerHTML = "<p style='text-align:center;'>검색 결과가 없습니다.</p>"; }
+    
+    if (!hasMatch && searchTerm) { 
+        list.innerHTML = "<p style='text-align:center;'>검색 결과가 없습니다.</p>"; 
+    }
 }
 
 function filterQuestions() { renderList(cachedData); }
-function deleteQuestion(qKey) { if(confirm("이 질문과 모든 답글이 삭제됩니다.")) db.ref("questions/"+qKey).remove(); }
-function deleteReply(qKey, rKey) { if(confirm("이 답글을 삭제하시겠습니까?")) db.ref(`questions/${qKey}/replies/${rKey}`).remove(); }
-function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
+
+async function deleteQuestion(qKey) { 
+    if(confirm("이 질문과 모든 답글이 삭제됩니다.")) {
+        try {
+            await appCheck.getToken();
+            db.ref("questions/"+qKey).remove();
+        } catch (e) { alert("삭제 권한이 없습니다."); }
+    }
+}
+
+async function deleteReply(qKey, rKey) { 
+    if(confirm("이 답글을 삭제하시겠습니까?")) {
+        try {
+            await appCheck.getToken();
+            db.ref(`questions/${qKey}/replies/${rKey}`).remove();
+        } catch (e) { alert("삭제 권한이 없습니다."); }
+    }
+}
+
+function logout() { 
+    if(confirm("로그아웃 하시겠습니까?")) {
+        auth.signOut().then(() => location.reload());
+    }
+}
 </script>
 </body>
 </html>
