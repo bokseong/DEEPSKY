@@ -258,8 +258,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
-    import { getToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
+    import { initializeAppCheck, ReCaptchaV3Provider, getToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
     
     const firebaseConfig = {
         apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
@@ -271,57 +270,53 @@
         appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
     };
 
-    // 로컬 환경 디버깅 허용
-    if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
-        self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-    }
-
+    // 1. 초기화
     const app = initializeApp(firebaseConfig);
     const appCheck = initializeAppCheck(app, {
         provider: new ReCaptchaV3Provider('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0'),
         isTokenAutoRefreshEnabled: true
     });
 
-    // [핵심] 토큰이 정상적으로 발급되는지 확인 후 앱 시작 신호를 보냄
-getToken(appCheck)
-    .then(() => {
-        window.isAppCheckReady = true; 
-        console.log("App Check Token 획득 성공!");
-    })
-    .catch((err) => {
-        console.error("App Check Token 획득 실패:", err);
-        // 실패하더라도 일단 준비 완료로 넘김 (로그 확인용)
-        window.isAppCheckReady = true; 
-    });
-    
-    window.firebaseConfig = firebaseConfig;
+    // 2. 토큰 획득 및 전역 전달
+    getToken(appCheck)
+        .then((result) => {
+            window.appCheckToken = result.token; // 토큰 저장
+            window.firebaseConfig = firebaseConfig; // 설정 저장
+            window.isAppCheckReady = true; // 준비 완료 신호
+            console.log("App Check Token 획득 성공!");
+        })
+        .catch((err) => {
+            console.error("App Check Token 획득 실패:", err);
+            window.isAppCheckReady = true; // 실패해도 앱은 실행 시도
+        });
 </script>
 
 <script>
     const startApp = async () => {
-       // App Check 토큰이 준비될 때까지 기다림
-    if (!window.isAppCheckReady || !window.firebaseConfig) {
-        console.log("App Check 대기 중...");
-        return setTimeout(startApp, 200); // 0.2초 간격으로 재시도
+        // App Check가 완료될 때까지 대기
+        if (!window.isAppCheckReady) {
+            console.log("App Check 대기 중...");
+            return setTimeout(startApp, 300);
         }
 
-        // 이미 초기화되었다면 중복 실행 방지
-    if (firebase.apps.length === 0) {
-        firebase.initializeApp(window.firebaseConfig);
-    }
-        firebase.initializeApp(window.firebaseConfig);
+        // Firebase 앱 초기화 (중복 방지)
+        if (firebase.apps.length === 0) {
+            firebase.initializeApp(window.firebaseConfig);
+        }
+
         const auth = firebase.auth();
         const db = firebase.database();
         const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-        console.log("App Check 검증 완료. 데이터 로딩 시작.");
+        console.log("App Check 토큰 연결 완료. 데이터 로딩 시작.");
 
-        // [기능] 사용자 인증 상태 및 데이터 불러오기
+        // [핵심] 사용자 인증 상태 처리
         auth.onAuthStateChanged(user => {
             const status = document.getElementById("userStatus");
             const loginBtn = document.getElementById("loginBtn");
             const logoutBtn = document.getElementById("logoutBtn");
             const adminBox = document.getElementById("adminBox");
+            const adminUpdateBox = document.getElementById("adminUpdateBox");
 
             if (user) {
                 db.ref('users/' + user.uid + '/name').on('value', snapshot => {
@@ -330,12 +325,17 @@ getToken(appCheck)
                 });
                 loginBtn?.classList.add("hidden");
                 logoutBtn?.classList.remove("hidden");
-                if (user.email === ADMIN_EMAIL) adminBox?.classList.remove("hidden");
+                
+                if (user.email === ADMIN_EMAIL) {
+                    adminBox?.classList.remove("hidden");
+                    adminUpdateBox?.classList.remove("hidden");
+                }
             } else {
                 if(status) status.innerText = "로그인 해주세요";
                 loginBtn?.classList.remove("hidden");
                 logoutBtn?.classList.add("hidden");
                 adminBox?.classList.add("hidden");
+                adminUpdateBox?.classList.add("hidden");
             }
         });
 
@@ -345,40 +345,45 @@ getToken(appCheck)
             const el = document.getElementById("weekProgramText");
             if(el) el.innerText = data ? data.text : "공지가 없습니다.";
         }, (error) => {
-            console.error("데이터 로드 실패 (App Check 오류 가능성):", error);
+            console.error("데이터 로드 실패:", error);
+            document.getElementById("weekProgramText").innerText = "데이터를 불러올 권한이 없습니다.";
         });
 
         // 업데이트 로그 로드
-        db.ref("updateLogs").orderByChild("timestamp").limitToLast(5).on("value", snapshot => {
+        db.ref("updateLogs").on("value", snapshot => {
             const logList = document.getElementById("updateLogList");
             if(!logList) return;
             logList.innerHTML = "";
             let logs = [];
             snapshot.forEach(child => { logs.push(child.val()); });
-            logs.reverse().forEach(log => {
+            logs.reverse().slice(0, 5).forEach(log => {
                 const item = document.createElement("div");
                 item.className = "log-item";
-                item.innerHTML = `<strong>${log.version}</strong> (${log.date})<br>${log.content}`;
+                item.innerHTML = `<div class="log-header"><span class="log-version">${log.version}</span><span class="log-date">${log.date || ''}</span></div><div class="log-text">${log.content}</div>`;
                 logList.appendChild(item);
             });
         });
 
-        // 슬라이드 기능
+        // 슬라이드 기능 유지
+        setupSlides();
+    };
+
+    function setupSlides() {
         let slideIndex = 0;
         const slides = document.querySelectorAll(".slide-item");
+        if(slides.length === 0) return;
+        
         window.changeSlide = (n) => {
-            if(slides.length === 0) return;
             slides.forEach(s => s.classList.remove("active"));
             slideIndex = (slideIndex + n + slides.length) % slides.length;
             slides[slideIndex].classList.add("active");
         };
-        if(slides.length > 0) setInterval(() => window.changeSlide(1), 3000);
-    };
+        setInterval(() => window.changeSlide(1), 4000);
+    }
 
-    // 앱 시작
+    // 초기 실행
     startApp();
-    
-    // 로그아웃 함수 전역 등록
+
     window.logout = () => { if(confirm("로그아웃 하시겠습니까?")) firebase.auth().signOut().then(() => location.reload()); };
 </script>
 </body>
