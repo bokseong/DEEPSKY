@@ -260,7 +260,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
 
-    // Firebase 설정 (기존과 동일)
     const firebaseConfig = {
         apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
         authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -271,170 +270,124 @@
         appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
     };
 
-    // App Check 전용 앱 초기화
+    // 앱 초기화 및 App Check 활성화
     const app = initializeApp(firebaseConfig);
 
-    // 로컬 환경(localhost)에서 차단되지 않도록 디버그 모드 활성화
     if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
         self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
     }
 
-    // App Check 활성화
     const appCheck = initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0'), // ★ 여기에 발급받은 사이트 키를 넣으세요
+        provider: new ReCaptchaV3Provider('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0'),
         isTokenAutoRefreshEnabled: true
     });
 
-    console.log("App Check가 백그라운드에서 실행 중입니다.");
+    console.log("App Check active.");
+    window.firebaseConfig = firebaseConfig; // 하단 스크립트 공유용
 </script>
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
 <script>
-    // 기존 설정값 다시 정의 (Compat 용)
-    const firebaseConfigCompat = {
-        apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
-        authDomain: "bokseong-deep-sky.firebaseapp.com",
-        databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "bokseong-deep-sky",
-        storageBucket: "bokseong-deep-sky.firebasestorage.app",
-        messagingSenderId: "800777151311",
-        appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
+    const startApp = () => {
+        if (!window.firebaseConfig) return setTimeout(startApp, 50);
+
+        firebase.initializeApp(window.firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+        const ADMIN_EMAIL = "leader.deepsky@gmail.com";
+
+        // [기능] 슬라이드
+        let slideIndex = 0;
+        const slides = document.querySelectorAll(".slide-item");
+        function showSlides(n) {
+            if(slides.length === 0) return;
+            slides.forEach(s => s.classList.remove("active"));
+            slideIndex = (n + slides.length) % slides.length;
+            slides[slideIndex].classList.add("active");
+        }
+        window.changeSlide = (n) => { showSlides(slideIndex + n); resetTimer(); };
+        let slideTimer = setInterval(() => window.changeSlide(1), 3000);
+        function resetTimer() { clearInterval(slideTimer); slideTimer = setInterval(() => window.changeSlide(1), 3000); }
+
+        // [기능] 사용자 인증 상태
+        auth.onAuthStateChanged(user => {
+            const status = document.getElementById("userStatus");
+            const loginBtn = document.getElementById("loginBtn");
+            const logoutBtn = document.getElementById("logoutBtn");
+            const adminBox = document.getElementById("adminBox");
+            const adminUpdateBox = document.getElementById("adminUpdateBox");
+
+            if (user) {
+                db.ref('users/' + user.uid + '/name').on('value', snapshot => {
+                    const finalName = snapshot.val() || user.displayName || user.email.split('@')[0];
+                    status.innerText = `${finalName}님`;
+                });
+                loginBtn.classList.add("hidden");
+                logoutBtn.classList.remove("hidden");
+                if (user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+                    adminBox?.classList.remove("hidden");
+                    adminUpdateBox?.classList.remove("hidden");
+                }
+            } else {
+                status.innerText = "로그인 해주세요";
+                loginBtn.classList.remove("hidden");
+                logoutBtn.classList.add("hidden");
+                adminBox?.classList.add("hidden");
+                adminUpdateBox?.classList.add("hidden");
+            }
+        });
+
+        // [기능] 공지사항 및 업데이트 로그
+        db.ref("weekProgram").on("value", snapshot => {
+            const data = snapshot.val();
+            if(document.getElementById("weekProgramText"))
+                document.getElementById("weekProgramText").innerText = data ? data.text : "공지가 없습니다.";
+        });
+
+        db.ref("updateLogs").orderByChild("timestamp").limitToLast(5).on("value", snapshot => {
+            const logList = document.getElementById("updateLogList");
+            if(!logList) return;
+            logList.innerHTML = "";
+            const data = [];
+            snapshot.forEach(child => { data.push(child.val()); });
+            data.reverse().forEach(log => {
+                const item = document.createElement("div");
+                item.className = "log-item";
+                item.innerHTML = `<div class="log-header"><span class="log-version">${log.version}</span><span class="log-date">${log.date}</span></div><div class="log-text">${log.content}</div>`;
+                logList.appendChild(item);
+            });
+        });
+
+        // [관리자 함수] 전역 바인딩
+        window.saveProgram = () => {
+            const txt = document.getElementById("weekProgramInput").value;
+            if(!txt.trim()) return alert("내용을 입력하세요.");
+            db.ref("weekProgram").set({ text: txt }).then(() => alert("수정 완료"));
+        };
+
+        window.addUpdateLog = () => {
+            const version = document.getElementById("updateVersion").value;
+            const content = document.getElementById("updateContent").value;
+            if(!version.trim() || !content.trim()) return alert("내용을 입력하세요.");
+
+            db.ref("updateLogs").once("value", snapshot => {
+                let logs = [];
+                snapshot.forEach(child => logs.push({ key: child.key, timestamp: child.val().timestamp }));
+                if (logs.length >= 5) {
+                    logs.sort((a, b) => a.timestamp - b.timestamp);
+                    db.ref("updateLogs").child(logs[0].key).remove();
+                }
+                db.ref("updateLogs").push().set({
+                    version, content, 
+                    date: new Date().toISOString().split('T')[0],
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                }).then(() => alert("기록 완료"));
+            });
+        };
+
+        window.logout = () => { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); };
     };
 
-    firebase.initializeApp(firebaseConfigCompat);
-    const auth = firebase.auth();
-    const db = firebase.database();
-    const ADMIN_EMAIL = "leader.deepsky@gmail.com";
-
-    // --- 슬라이드 기능 ---
-    let slideIndex = 0;
-    const slides = document.querySelectorAll(".slide-item");
-    function showSlides(n) {
-        if(slides.length === 0) return;
-        slides.forEach(s => s.classList.remove("active"));
-        slideIndex = (n + slides.length) % slides.length;
-        slides[slideIndex].classList.add("active");
-    }
-    function changeSlide(n) { showSlides(slideIndex + n); resetTimer(); }
-    let slideTimer = setInterval(() => changeSlide(1), 3000);
-    function resetTimer() { clearInterval(slideTimer); slideTimer = setInterval(() => changeSlide(1), 3000); }
-
-    // --- 사용자 상태 확인 및 관리자 권한 ---
-    auth.onAuthStateChanged(user => {
-        const status = document.getElementById("userStatus");
-        const loginBtn = document.getElementById("loginBtn");
-        const logoutBtn = document.getElementById("logoutBtn");
-        const adminBox = document.getElementById("adminBox");
-        const adminUpdateBox = document.getElementById("adminUpdateBox");
-
-        if (user) {
-            db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
-                const finalName = snapshot.val() || user.displayName || user.email.split('@')[0];
-                status.innerText = `${finalName}님`;
-            });
-
-            loginBtn.classList.add("hidden");
-            logoutBtn.classList.remove("hidden");
-
-            if (user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-                adminBox.classList.remove("hidden");
-                adminUpdateBox.classList.remove("hidden");
-            } else {
-                adminBox.classList.add("hidden");
-                adminUpdateBox.classList.add("hidden");
-            }
-        } else {
-            status.innerText = "로그인 해주세요";
-            loginBtn.classList.remove("hidden");
-            logoutBtn.classList.add("hidden");
-            adminBox.classList.add("hidden");
-            adminUpdateBox.classList.add("hidden");
-        }
-    });
-
-    // --- 예정된 프로그램 로드 및 저장 ---
-    db.ref("weekProgram").on("value", snapshot => {
-        const data = snapshot.val();
-        document.getElementById("weekProgramText").innerText = data ? data.text : "공지가 없습니다.";
-    });
-
-    function saveProgram() {
-        const txt = document.getElementById("weekProgramInput").value;
-        if(!txt.trim()) return alert("내용을 입력하세요.");
-        db.ref("weekProgram").set({ text: txt }).then(() => {
-            alert("수정 완료");
-            document.getElementById("weekProgramInput").value = "";
-        });
-    }
-
-    // --- 로그아웃 ---
-    function logout() { 
-        if(confirm("로그아웃 하시겠습니까?")) {
-            auth.signOut().then(() => location.reload());
-        }
-    }
-
-    // --- 업데이트 로그 불러오기 ---
-    db.ref("updateLogs").orderByChild("timestamp").limitToLast(5).on("value", snapshot => {
-        const logList = document.getElementById("updateLogList");
-        logList.innerHTML = "";
-        const data = [];
-        snapshot.forEach(child => { data.push(child.val()); });
-        data.reverse();
-
-        if (data.length === 0) {
-            logList.innerHTML = "<p>등록된 기록이 없습니다.</p>";
-            return;
-        }
-
-        data.forEach(log => {
-            const item = document.createElement("div");
-            item.className = "log-item";
-            item.innerHTML = `
-                <div class="log-header">
-                    <span class="log-version">${log.version}</span>
-                    <span class="log-date">${log.date}</span>
-                </div>
-                <div class="log-text">${log.content}</div>
-            `;
-            logList.appendChild(item);
-        });
-    });
-
-    // --- 업데이트 로그 추가 ---
-    function addUpdateLog() {
-        const version = document.getElementById("updateVersion").value;
-        const content = document.getElementById("updateContent").value;
-        const now = new Date();
-        const dateStr = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
-
-        if(!version.trim() || !content.trim()) return alert("버전과 내용을 모두 입력해주세요.");
-
-        db.ref("updateLogs").once("value", snapshot => {
-            let logs = [];
-            snapshot.forEach(child => { logs.push({ key: child.key, timestamp: child.val().timestamp }); });
-            if (logs.length >= 5) {
-                logs.sort((a, b) => a.timestamp - b.timestamp);
-                for (let i = 0; i <= logs.length - 5; i++) {
-                    db.ref("updateLogs").child(logs[i].key).remove();
-                }
-            }
-            const newLogRef = db.ref("updateLogs").push();
-            newLogRef.set({
-                version: version,
-                content: content,
-                date: dateStr,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            }).then(() => {
-                alert("업데이트 로그 기록 완료");
-                document.getElementById("updateVersion").value = "";
-                document.getElementById("updateContent").value = "";
-            }).catch(err => alert("권한이 없거나 오류가 발생했습니다."));
-        });
-    }
+    startApp();
 </script>
 </body>
 </html>
