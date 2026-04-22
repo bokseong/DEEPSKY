@@ -102,15 +102,14 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
 <script>
 // EmailJS 초기화
 (function() {
-    emailjs.init({
-      publicKey: "p2O8bkjE2HkqQef3q",
-    });
+    emailjs.init({ publicKey: "p2O8bkjE2HkqQef3q" });
 })();
 
 const firebaseConfig = {
@@ -123,22 +122,30 @@ const firebaseConfig = {
     appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
 };
 
-firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
+
+// ★ App Check 보안 활성화
+const appCheck = firebase.appCheck();
+appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
 let currentUser = null;
 let currentUserName = "익명";
 let cachedData = null;
 
-auth.onAuthStateChanged(user => {
+// 인증 상태 감지 (비동기 처리 최적화)
+auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtn = document.getElementById("logoutBtn");
 
     if (user) {
+        // 관리자나 회원은 App Check 토큰을 미리 확보 시도
+        try { await appCheck.getToken(); } catch (e) { console.warn("App Check 로딩 중..."); }
+
         db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
             currentUserName = snapshot.val() || user.displayName || user.email.split('@')[0];
             status.innerText = `${currentUserName}님`;
@@ -154,52 +161,74 @@ auth.onAuthStateChanged(user => {
     loadQuestions();
 });
 
-// 질문 등록 시 관리자 알림
-function addQuestion() {
+// 질문 등록 (App Check 보안 적용)
+async function addQuestion() {
     const text = document.getElementById("qInput").value.trim();
     if(!text) return alert("질문을 입력해주세요.");
-    
-    db.ref("questions").push({
-        text: text,
-        author: currentUserName,
-        email: currentUser ? currentUser.email : "anonymous",
-        createdAt: firebase.database.ServerValue.TIMESTAMP
-    }).then(() => {
-        // 관리자가 아닐 때만 관리자에게 메일 발송
+
+    const btn = document.querySelector(".btn-main");
+    btn.disabled = true; // 중복 클릭 방지
+
+    try {
+        // 전송 전 보안 인증 확인
+        await appCheck.getToken();
+
+        await db.ref("questions").push({
+            text: text,
+            author: currentUserName,
+            email: currentUser ? currentUser.email : "anonymous",
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
         if (!currentUser || currentUser.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
             sendAdminAlert(text, currentUserName, "새로운 질문이 게시되었습니다.");
         }
         
         document.getElementById("qInput").value = "";
         alert("질문이 등록되었습니다.");
-    });
+    } catch (err) {
+        console.error(err);
+        alert("등록 실패: 보안 인증에 실패했거나 서버 오류입니다.");
+    } finally {
+        btn.disabled = false;
+    }
 }
 
-// 답글 등록 시 관리자 알림
-function saveAnswer(qKey) {
+// 답글 저장 (App Check 보안 적용)
+async function saveAnswer(qKey) {
     const ansInput = document.getElementById("ans_"+qKey);
     const ansText = ansInput.value.trim();
     if(!ansText) return alert("내용을 입력하세요.");
-    
-    const originalQuestion = cachedData[qKey].text;
-    
-    db.ref(`questions/${qKey}/replies`).push({
-        text: ansText,
-        author: currentUserName,
-        email: currentUser.email,
-        createdAt: firebase.database.ServerValue.TIMESTAMP
-    }).then(() => {
-        // 관리자가 아닐 때만 관리자에게 메일 발송
+    if(!currentUser) return alert("답글은 로그인 후 이용 가능합니다.");
+
+    const btn = document.querySelector(`#ans_${qKey} + button`);
+    btn.disabled = true;
+
+    try {
+        await appCheck.getToken();
+        const originalQuestion = cachedData[qKey].text;
+        
+        await db.ref(`questions/${qKey}/replies`).push({
+            text: ansText,
+            author: currentUserName,
+            email: currentUser.email,
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
         if (currentUser.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
             sendAdminAlert(originalQuestion, currentUserName, ansText);
         }
         
         ansInput.value = "";
         alert("답글이 등록되었습니다.");
-    });
+    } catch (err) {
+        alert("등록 실패: " + err.message);
+    } finally {
+        btn.disabled = false;
+    }
 }
 
-// 공용 메일 발송 함수 (Service ID의 공백 주의!)
+// 이메일 알림 함수
 function sendAdminAlert(qText, author, msg) {
     const templateParams = {
         question_text: qText,
@@ -209,44 +238,70 @@ function sendAdminAlert(qText, author, msg) {
     };
 
     emailjs.send("DEEP SKY_question", "template_a17vklg", templateParams)
-        .then(res => console.log('알림 전송 성공'), err => console.error('알림 전송 실패', err));
+        .then(() => console.log('알림 성공'), err => console.error('알림 실패', err));
 }
 
-// [나머지 함수들은 기존과 동일]
+// 질문 불러오기
 function loadQuestions() {
     db.ref("questions").on("value", snapshot => {
         cachedData = snapshot.val();
         renderList(cachedData);
+    }, (error) => {
+        if(error.message.includes("permission_denied")) {
+            console.error("보안 정책에 의해 접근이 거부되었습니다.");
+        }
     });
 }
 
+// 리스트 렌더링
 function renderList(data) {
     const list = document.getElementById("questionList");
     const searchTerm = document.getElementById("qSearch").value.toLowerCase();
     list.innerHTML = "";
     if(!data) { list.innerHTML = "<p style='text-align:center;'>첫 질문을 기다리고 있습니다.</p>"; return; }
+    
     const keys = Object.keys(data).reverse();
     let hasMatch = false;
+    
     keys.forEach(qKey => {
         const q = data[qKey];
         const isAdmin = currentUser && currentUser.email && currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
         const isAuthor = currentUser && currentUser.email === q.email;
+        
         const repliesText = q.replies ? Object.values(q.replies).map(r => r.text + r.author).join(" ") : "";
         const searchPool = (q.text + q.author + repliesText).toLowerCase();
+        
         if (searchTerm && !searchPool.includes(searchTerm)) return;
         hasMatch = true;
+        
         let repliesHtml = '<div class="replies-container">';
         if (q.replies) {
             Object.keys(q.replies).forEach(rKey => {
                 const r = q.replies[rKey];
                 const isReplyAuthor = currentUser && currentUser.email === r.email;
-                repliesHtml += `<div class="ans-box"><div class="ans-content"><b>A.</b> ${r.text}</div><span class="ans-author">By ${r.author}</span>${(isReplyAuthor || isAdmin) ? `<button class="btn-ans-del" onclick="deleteReply('${qKey}', '${rKey}')">삭제</button>` : ""}</div>`;
+                repliesHtml += `
+                    <div class="ans-box">
+                        <div class="ans-content"><b>A.</b> ${r.text}</div>
+                        <span class="ans-author">By ${r.author}</span>
+                        ${(isReplyAuthor || isAdmin) ? `<button class="btn-ans-del" onclick="deleteReply('${qKey}', '${rKey}')">삭제</button>` : ""}
+                    </div>`;
             });
         }
         repliesHtml += '</div>';
+        
         const card = document.createElement("div");
         card.className = "q-card";
-        card.innerHTML = `<div class="q-meta">${q.author} | ${new Date(q.createdAt).toLocaleDateString()}</div><span class="q-text">Q. ${q.text}</span>${repliesHtml}${currentUser ? `<div class="answer-controls"><input type="text" id="ans_${qKey}" placeholder="답글을 남겨주세요..."><button class="btn-ans" onclick="saveAnswer('${qKey}')">등록</button>${(isAuthor || isAdmin) ? `<button class="btn-del" onclick="deleteQuestion('${qKey}')">전체삭제</button>` : ""}</div>` : ""}`;
+        card.innerHTML = `
+            <div class="q-meta">${q.author} | ${new Date(q.createdAt).toLocaleDateString()}</div>
+            <span class="q-text">Q. ${q.text}</span>
+            ${repliesHtml}
+            ${currentUser ? `
+                <div class="answer-controls">
+                    <input type="text" id="ans_${qKey}" placeholder="답글을 남겨주세요...">
+                    <button class="btn-ans" onclick="saveAnswer('${qKey}')">등록</button>
+                    ${(isAuthor || isAdmin) ? `<button class="btn-del" onclick="deleteQuestion('${qKey}')">전체삭제</button>` : ""}
+                </div>` : ""}
+        `;
         list.appendChild(card);
     });
     if (!hasMatch && searchTerm) { list.innerHTML = "<p style='text-align:center;'>검색 결과가 없습니다.</p>"; }
