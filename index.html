@@ -258,7 +258,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { initializeAppCheck, ReCaptchaV3Provider, getToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
     
     const firebaseConfig = {
         apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
@@ -307,6 +307,11 @@
         const auth = firebase.auth();
         const db = firebase.database();
         const ADMIN_EMAIL = "leader.deepsky@gmail.com";
+        const starCountRef = ref(db, 'weekProgram');
+onValue(starCountRef, (snapshot) => {
+    const data = snapshot.val();
+    document.getElementById("weekProgramText").innerText = data.text;
+});
 
         console.log("App Check 토큰 연결 완료. 데이터 로딩 시작.");
 
