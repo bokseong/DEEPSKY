@@ -133,6 +133,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
 // 1. Firebase 설정
@@ -147,11 +148,16 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+
+// 2. App Check 활성화
+const appCheck = firebase.appCheck();
+appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
+
 const auth = firebase.auth();
 const db = firebase.database();
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-// 2. 전역 변수
+// 3. 전역 변수
 const urlParams = new URLSearchParams(window.location.search);
 const postId = urlParams.get('id');
 
@@ -159,8 +165,8 @@ let currentUserName = "";
 let currentPostAuthorUid = ""; 
 let currentPostTitle = "";
 
-// 3. 로그인 상태 감지 및 UI 제어
-auth.onAuthStateChanged(user => {
+// 4. 로그인 상태 감지 및 초기화
+auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtn = document.getElementById("logoutBtn");
@@ -168,50 +174,43 @@ auth.onAuthStateChanged(user => {
     const commentLoginNotice = document.getElementById("commentLoginNotice");
 
     if (user) {
-        // 로그인 시: 사용자 이름 가져오기
         db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
             currentUserName = snapshot.val() || user.displayName || user.email.split('@')[0];
             status.innerText = `${currentUserName}님`;
         });
-        
         loginBtn.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
-        
-        // 댓글 입력창 보여주고 안내문구 숨기기
         commentFormArea.classList.remove("hidden");
         commentLoginNotice.classList.add("hidden");
     } else {
-        // 미로그인 시
         currentUserName = "익명";
         status.innerText = "로그인 해주세요";
         loginBtn.classList.remove("hidden");
         logoutBtn.classList.add("hidden");
-        
-        // 댓글 입력창 숨기고 안내문구 보여주기
         commentFormArea.classList.add("hidden");
         commentLoginNotice.classList.remove("hidden");
     }
+
+    // [핵심] App Check 토큰 대기 후 데이터 로드
+    try {
+        await appCheck.getToken();
+        console.log("App Check 인증 완료");
+    } catch (err) {
+        console.warn("App Check 토큰 획득 대기 중...");
+    }
     
-    loadPost(user);
-    loadComments(user);
+    if(postId) {
+        loadPost(user);
+        loadComments(user);
+    } else {
+        alert("게시글 ID가 없습니다.");
+        location.href = "board.html";
+    }
 });
 
-// 4. 로그아웃
-function logout() {
-    if(confirm("로그아웃 하시겠습니까?")) {
-        auth.signOut().then(() => {
-            alert("로그아웃 되었습니다.");
-            location.reload();
-        });
-    }
-}
-
-// 5. 게시글 불러오기
-// 5. 게시글 불러오기
+// 5. 게시글 상세 불러오기
 function loadPost(user) {
-    if(!postId) return;
-
-    db.ref("freeboard/" + postId).once("value").then(snapshot => {
+    db.ref("freeboard/" + postId).once("value").then(async (snapshot) => {
         const post = snapshot.val();
         const postArea = document.getElementById("postArea");
 
@@ -226,44 +225,22 @@ function loadPost(user) {
 
         postArea.classList.remove("hidden");
         document.getElementById("viewTitle").innerText = post.title;
-        document.getElementById("viewAuthor").innerText = "작성자: " + (post.author || "익명");
+        
+        // 작성자 실시간 이름 조회 (옵션: 작성 시점 이름 대신 현재 이름 표시)
+        let authorDisplayName = post.author || "익명";
+        if(post.uid) {
+            const nameSnap = await db.ref('users/' + post.uid + '/name').once('value');
+            if(nameSnap.exists()) authorDisplayName = nameSnap.val();
+        }
+
+        document.getElementById("viewAuthor").innerText = "작성자: " + authorDisplayName;
         document.getElementById("viewDate").innerText = post.createdAt ? new Date(post.createdAt).toLocaleString() : "";
         document.getElementById("viewContent").innerText = post.content;
 
-        // --- [여기서부터 링크 출력 로직] ---
-        const linkArea = document.getElementById("linkArea");
-        const viewFileLink = document.getElementById("viewFileLink");
+        // 링크 처리 로직
+        renderLinks(post);
 
-        // 기존 동적 링크 초기화
-        const oldDynamicLinks = linkArea.querySelectorAll(".dynamic-link");
-        oldDynamicLinks.forEach(l => l.remove());
-
-        if (post.links && post.links.length > 0) {
-            linkArea.classList.remove("hidden");
-            viewFileLink.classList.add("hidden"); 
-
-            post.links.forEach(link => {
-                const newBtn = document.createElement("a");
-                newBtn.href = link.url;
-                newBtn.target = "_blank";
-                newBtn.className = "btn-link dynamic-link"; // btn-link 클래스로 스타일 통일
-                newBtn.style.display = "block";
-                newBtn.style.marginBottom = "8px";
-                newBtn.innerText = "🔗 " + link.name;
-                linkArea.appendChild(newBtn);
-            });
-        } else if (post.fileUrl && post.fileUrl.trim() !== "") {
-            linkArea.classList.remove("hidden");
-            viewFileLink.classList.remove("hidden");
-            let finalUrl = post.fileUrl.trim();
-            if (!finalUrl.startsWith('http')) finalUrl = 'https://' + finalUrl;
-            viewFileLink.href = finalUrl;
-            viewFileLink.innerText = "🔗 " + (post.fileName || "첨부 링크 열기");
-        } else {
-            linkArea.classList.add("hidden");
-        }
-        // ---------------------------------
-
+        // 수정/삭제 권한 버튼 표시
         const deleteBtn = document.getElementById("deleteBtn");
         const editBtn = document.getElementById("editBtn");
 
@@ -271,15 +248,51 @@ function loadPost(user) {
             deleteBtn.classList.remove("hidden");
             if(user.uid === post.uid) {
                 editBtn.classList.remove("hidden");
-                editBtn.onclick = () => {
-                    location.href = `write.html?id=${postId}`;
-                };
+                editBtn.onclick = () => { location.href = `write.html?id=${postId}`; };
             }
         }
+    }).catch(err => {
+        console.error("게시글 로드 실패:", err);
+        alert("데이터를 불러올 권한이 없습니다.");
     });
 }
 
-// 6. 댓글 불러오기
+// 링크 렌더링 함수 (분리)
+function renderLinks(post) {
+    const linkArea = document.getElementById("linkArea");
+    const viewFileLink = document.getElementById("viewFileLink");
+    
+    // 초기화
+    const oldDynamicLinks = linkArea.querySelectorAll(".dynamic-link");
+    oldDynamicLinks.forEach(l => l.remove());
+
+    if (post.links && post.links.length > 0) {
+        linkArea.classList.remove("hidden");
+        viewFileLink.classList.add("hidden"); 
+
+        post.links.forEach(link => {
+            const newBtn = document.createElement("a");
+            newBtn.href = link.url;
+            newBtn.target = "_blank";
+            newBtn.className = "btn-link dynamic-link";
+            newBtn.style.display = "block";
+            newBtn.style.marginBottom = "8px";
+            newBtn.innerText = "🔗 " + link.name;
+            linkArea.appendChild(newBtn);
+        });
+    } else if (post.fileUrl && post.fileUrl.trim() !== "") {
+        linkArea.classList.remove("hidden");
+        viewFileLink.classList.remove("hidden");
+        let finalUrl = post.fileUrl.trim();
+        if (!finalUrl.startsWith('http')) finalUrl = 'https://' + finalUrl;
+        viewFileLink.href = finalUrl;
+        viewFileLink.innerText = "🔗 " + (post.fileName || "첨부 링크 열기");
+    } else {
+        linkArea.classList.add("hidden");
+    }
+}
+
+// 6. 댓글 리스트 불러오기 (실시간)
 function loadComments(user) {
     db.ref("freeboard/" + postId + "/comments").on("value", (snapshot) => {
         const listArea = document.getElementById("commentList");
@@ -293,19 +306,18 @@ function loadComments(user) {
         snapshot.forEach((child) => {
             const comment = child.val();
             const commentId = child.key;
-            // 삭제 권한: 댓글 작성자 본인 OR 게시글 주인 OR 관리자
             const canDelete = user && (user.uid === comment.uid || user.uid === currentPostAuthorUid || user.email === ADMIN_EMAIL);
             
             const commentHtml = `
                 <div class="comment-item">
                     <div class="comment-meta">
-                        <span class="comment-author">${comment.author}</span>
+                        <span class="comment-author">${escapeHtml(comment.author)}</span>
                         <span>
                             ${new Date(comment.createdAt).toLocaleString()}
                             ${canDelete ? `<button class="btn-comment-del" onclick="deleteComment('${commentId}')" style="margin-left:10px;">삭제</button>` : ""}
                         </span>
                     </div>
-                    <div class="comment-text">${comment.content}</div>
+                    <div class="comment-text">${escapeHtml(comment.content)}</div>
                 </div>
             `;
             listArea.innerHTML += commentHtml;
@@ -329,48 +341,38 @@ function addComment() {
         createdAt: Date.now()
     }).then(() => {
         input.value = "";
-        // 본인이 쓴 글이 아닐 때만 알림 메일 전송
         if (currentPostAuthorUid && currentPostAuthorUid !== user.uid) {
             sendNotificationEmail(content);
         }
     });
 }
 
-// 8. 이메일 알림 전송 (EmailJS)
+// 8. 이메일 알림 (EmailJS)
 function sendNotificationEmail(commentContent) {
     db.ref("users/" + currentPostAuthorUid).once("value").then(snapshot => {
         const authorData = snapshot.val();
-        
         if (authorData && authorData.email) {
             const templateParams = {
-                target_email: authorData.email,   // 받는 사람 이메일
-                name: authorData.name || "회원", // 템플릿의 {{name}}과 매칭
-                post_title: currentPostTitle,     // 템플릿의 {{post_title}}
-                comment_author: currentUserName,   // 댓글 쓴 사람 이름
-                comment_content: commentContent,  // 템플릿의 {{comment_content}}
-                link: window.location.href        // 게시글 링크
+                target_email: authorData.email,
+                name: authorData.name || "회원",
+                post_title: currentPostTitle,
+                comment_author: currentUserName,
+                comment_content: commentContent,
+                link: window.location.href
             };
-
-            // 사진에서 확인된 Service ID: deepsky / Template ID: template_q20mjcb
             emailjs.send("deepsky", "template_qxgegja", templateParams)
-                .then(() => {
-                    console.log("알림 메일 발송 성공!");
-                })
-                .catch(err => {
-                    console.error("발송 실패:", err);
-                });
+                .catch(err => console.error("메일 발송 실패:", err));
         }
     });
 }
 
-// 9. 댓글 삭제
+// 9. 삭제 기능들
 function deleteComment(commentId) {
     if (confirm("댓글을 삭제하시겠습니까?")) {
         db.ref("freeboard/" + postId + "/comments/" + commentId).remove();
     }
 }
 
-// 10. 게시글 삭제
 function deletePost() {
     if(confirm("정말로 게시글을 삭제하시겠습니까?")) {
         db.ref("freeboard/" + postId).remove().then(() => {
@@ -380,44 +382,17 @@ function deletePost() {
     }
 }
 
-// 게시글의 링크들을 보여주는 영역 처리
-const linkArea = document.getElementById("linkArea");
-const viewFileLink = document.getElementById("viewFileLink"); // 기존의 단일 링크 버튼
+function logout() {
+    if(confirm("로그아웃 하시겠습니까?")) {
+        auth.signOut().then(() => { location.reload(); });
+    }
+}
 
-// 1. 기존에 생성되었던 동적 링크 버튼들이 있다면 초기화 (삭제)
-const oldDynamicLinks = linkArea.querySelectorAll(".dynamic-link");
-oldDynamicLinks.forEach(l => l.remove());
-
-// 2. 여러 개의 링크(links 배열)가 존재하는 경우
-if (post.links && post.links.length > 0) {
-    linkArea.classList.remove("hidden");
-    viewFileLink.classList.add("hidden"); // 기존 고정 버튼은 숨김
-
-    post.links.forEach(link => {
-        const newBtn = document.createElement("a");
-        newBtn.href = link.url;
-        newBtn.target = "_blank";
-        newBtn.className = "btn dynamic-link"; // 스타일 유지를 위해 btn 클래스 사용
-        newBtn.style.display = "block";
-        newBtn.style.marginBottom = "8px";
-        newBtn.style.background = "#2a3a7d"; // 여러 링크 구분용 색상 (원하는 색으로 변경 가능)
-        newBtn.innerText = "🔗 " + link.name;
-        linkArea.appendChild(newBtn);
-    });
-} 
-// 3. 예전에 올린 단일 링크(fileUrl)만 있는 경우 (하위 호환성)
-else if (post.fileUrl && post.fileUrl.trim() !== "") {
-    linkArea.classList.remove("hidden");
-    viewFileLink.classList.remove("hidden");
-    
-    let finalUrl = post.fileUrl.trim();
-    if (!finalUrl.startsWith('http')) finalUrl = 'https://' + finalUrl;
-    viewFileLink.href = finalUrl;
-    viewFileLink.innerText = "🔗 " + (post.fileName || "첨부 링크 열기");
-} 
-// 4. 링크가 아예 없는 경우
-else {
-    linkArea.classList.add("hidden");
+// XSS 방지 함수
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.innerText = text;
+    return div.innerHTML;
 }
 </script>
 </body>
