@@ -200,6 +200,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
+// 1. Firebase 설정 및 초기화
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -210,19 +211,18 @@ const firebaseConfig = {
     appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
 };
 
-// 1. Firebase 초기화
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
-// [추가] 로그인 유지 설정 (세션 지속성 보장)
+// [인증 강화] 세션 유지 설정
 auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
 
-// [추가] App Check (reCAPTCHA v3) 활성화
+// [보안 강화] App Check 활성화
 const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
-// 2. 초기 데이터 로드 및 실시간 동기화
+// 2. 로그인 상태 감지 및 데이터 로드
 auth.onAuthStateChanged(user => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
@@ -231,39 +231,45 @@ auth.onAuthStateChanged(user => {
     const nameInput = document.getElementById("userName");
 
     if (user) {
+        // UI 기본 설정
         emailInput.value = user.email || "이메일 정보 없음";
         loginBtn.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
 
-        // DB에서 이름 실시간 동기화
-        db.ref('users/' + user.uid).on('value', (snapshot) => {
+        // DB 이름 실시간 동기화 (오류 발생 시 기본값 제공)
+        const userRef = db.ref('users/' + user.uid);
+        userRef.on('value', (snapshot) => {
             const data = snapshot.val();
             let finalName = (data && data.name) ? data.name : 
                             (user.displayName ? user.displayName : user.email.split('@')[0]);
 
             nameInput.value = finalName;
             status.innerText = `${finalName}님`;
+        }, (error) => {
+            console.error("데이터 로드 실패:", error);
         });
         
-        // 보안 토큰 확인
-        appCheck.getToken(false).catch(err => console.warn("App Check 지연:", err.message));
-        
     } else {
-        // 페이지 특성상 로그인이 안 되어 있으면 로그인 페이지로 튕김
+        // 미인증 사용자 차단
         alert("로그인이 필요합니다.");
         location.href = "login.html";
     }
 });
 
-// 3. 이름 변경 함수
+// 3. 이름 변경 저장
 function updateProfile() {
     const user = auth.currentUser;
-    const newName = document.getElementById("userName").value.trim();
+    const nameField = document.getElementById("userName");
+    const newName = nameField.value.trim();
 
     if (!user) return;
     if (!newName) return alert("이름을 입력해주세요.");
 
-    // DB 업데이트
+    // 중복 클릭 방지
+    const btn = document.querySelector(".btn-save");
+    btn.disabled = true;
+    btn.innerText = "저장 중...";
+
     db.ref('users/' + user.uid).update({
         name: newName,
         uid: user.uid 
@@ -273,18 +279,21 @@ function updateProfile() {
         alert("이름이 성공적으로 변경되었습니다.");
     }).catch(err => {
         alert("변경 실패: " + err.message);
+    }).finally(() => {
+        btn.disabled = false;
+        btn.innerText = "이름 변경 저장";
     });
 }
 
-// 4. 비밀번호 재설정 메일 발송
+// 4. 비밀번호 재설정 (보안 링크 발송)
 function resetPassword() {
     const user = auth.currentUser;
     if (!user) return;
 
-    if (confirm(`${user.email} 계정으로 비밀번호 재설정 메일을 보내시겠습니까?`)) {
+    if (confirm(`${user.email} 계정으로 비밀번호 재설정 메일을 발송할까요?`)) {
         auth.sendPasswordResetEmail(user.email)
             .then(() => {
-                alert("비밀번호 재설정 메일이 발송되었습니다. 메일함을 확인해주세요!");
+                alert("비밀번호 재설정 메일이 발송되었습니다. 받은 편지함을 확인해 주세요!");
             })
             .catch(err => {
                 alert("발송 실패: " + err.message);
@@ -292,32 +301,36 @@ function resetPassword() {
     }
 }
 
-// 5. 회원 탈퇴
+// 5. 회원 탈퇴 (DB 선삭제 후 계정 삭제)
 function deleteAccount() {
     const user = auth.currentUser;
     if (!user) return;
 
-    if (!confirm("정말로 탈퇴하시겠습니까? 모든 활동 데이터가 영구 삭제되며 복구할 수 없습니다.")) {
+    if (!confirm("정말로 탈퇴하시겠습니까? 작성하신 모든 데이터가 영구 삭제됩니다.")) {
         return;
     }
 
     const uid = user.uid;
-    db.ref('users/' + uid).off(); // 감시 해제
+    // 실시간 감시 해제 (에러 방지)
+    db.ref('users/' + uid).off();
 
+    // 1단계: DB 데이터 삭제
     db.ref('users/' + uid).remove()
         .then(() => {
+            // 2단계: 계정 삭제
             return user.delete();
         })
         .then(() => {
-            alert("회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다.");
+            alert("그동안 이용해 주셔서 감사합니다. 회원 탈퇴가 완료되었습니다.");
             location.href = "index.html";
         })
         .catch(err => {
+            // 민감한 작업은 최근 로그인이 필요함
             if (err.code === 'auth/requires-recent-login') {
-                alert("보안을 위해 다시 로그인한 직후에만 탈퇴가 가능합니다. 재로그인 후 시도해주세요.");
+                alert("보안을 위해 다시 로그인한 후에만 탈퇴가 가능합니다. 자동으로 로그아웃합니다.");
                 auth.signOut().then(() => { location.href = 'login.html'; });
             } else {
-                alert("탈퇴 오류: " + err.message);
+                alert("탈퇴 처리 중 오류가 발생했습니다: " + err.message);
             }
         });
 }
