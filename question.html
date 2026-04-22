@@ -48,7 +48,6 @@
     </style>
 </head>
 <body>
-
 <div class="top-bar">
     <a href="index.html" class="logo-area">
         <img src="logo.png" onerror="this.src='https://via.placeholder.com/35'">
@@ -60,9 +59,7 @@
         <button id="logoutBtn" class="hidden" onclick="logout()">로그아웃</button>
     </div>
 </div>
-
 <header><h1>질문 게시판</h1></header>
-
 <nav>
     <div class="nav-inner">
         <a href="index.html">홈</a>
@@ -75,22 +72,18 @@
         <a href="mypage.html">정보 수정</a>
     </div>
 </nav>
-
 <div class="container">
     <div class="search-box">
         <input type="text" id="qSearch" onkeyup="filterQuestions()" placeholder="질문 내용, 작성자, 답글을 검색하세요...">
     </div>
-
     <div class="write-card">
         <input type="text" id="qInput" placeholder="질문 내용을 입력하세요. (비로그인은 익명) 최대한 빠르게 답변하겠습니다!">
         <button class="btn-main" onclick="addQuestion()">질문 등록</button>
     </div>
-
     <div id="questionList">
         <p style="text-align:center;">데이터를 불러오는 중입니다...</p>
     </div>
 </div>
-
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
     <br>
@@ -103,13 +96,11 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
-
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-
 <script>
-// 1. EmailJS 초기화 (가장 먼저 실행하여 reCAPTCHA의 간섭을 최소화)
+// 1. EmailJS 초기화 (가장 먼저 실행하여 보안 정책 차단을 방해받지 않도록 함)
 (function() {
-    // Public Key 확인: p2O8bkjE2HkqQef3q
+    // Public Key: p2O8bkjE2HkqQef3q
     emailjs.init({ publicKey: "p2O8bkjE2HkqQef3q" });
 })();
 
@@ -124,13 +115,13 @@ const firebaseConfig = {
     appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
 };
 
-// Firebase 초기화
+// Firebase 초기화 확인
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-// 3. App Check 보안 활성화
+// 3. App Check 보안 활성화 (reCAPTCHA v3)
 const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
@@ -139,7 +130,30 @@ let currentUserName = "익명";
 let cachedData = null;
 
 /**
- * 인증 상태 감지 및 초기화
+ * [관리자 알림 함수]
+ * EmailJS 대시보드의 Service ID를 정확히 입력해야 작동합니다.
+ */
+async function sendAdminAlert(qText, author, msg) {
+    const templateParams = {
+        question_text: qText,    // 질문 내용
+        reply_author: author,    // 작성자 이름
+        reply_text: msg,         // 추가 메시지 또는 답글 내용
+        admin_email: ADMIN_EMAIL // 받는 사람 (관리자)
+    };
+
+    try {
+        // [중요] "service_deepsky" 부분을 본인의 EmailJS 실제 Service ID로 수정하세요.
+        // ID는 EmailJS 홈페이지의 'Email Services' 메뉴에 표시된 영문+숫자 조합입니다.
+        await emailjs.send("service_deepsky", "template_a17vklg", templateParams);
+        console.log('✅ 관리자 알림 메일 전송 성공');
+    } catch (err) {
+        console.error('❌ 메일 전송 실패:', err);
+    }
+}
+
+/**
+ * [인증 상태 감지]
+ * 보안 토큰(App Check)을 먼저 확보한 후 DB 데이터를 불러와 permission_denied 에러를 방지합니다.
  */
 auth.onAuthStateChanged(async (user) => {
     currentUser = user;
@@ -148,11 +162,11 @@ auth.onAuthStateChanged(async (user) => {
     const logoutBtn = document.getElementById("logoutBtn");
 
     try {
-        // 데이터 요청 전 보안 토큰 확보
+        // 데이터 요청 전 보안 토큰 강제 확보
         await appCheck.getToken(true);
-        console.log("App Check 인증 성공");
-
+        
         if (user) {
+            // 유저 이름 실시간 로드
             db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
                 currentUserName = snapshot.val() || user.displayName || user.email.split('@')[0];
                 status.innerText = `${currentUserName}님`;
@@ -165,10 +179,11 @@ auth.onAuthStateChanged(async (user) => {
             loginBtn.classList.remove("hidden");
             logoutBtn.classList.add("hidden");
         }
+        // 인증 후 목록 로드
         loadQuestions();
     } catch (e) {
-        console.error("인증 실패:", e);
-        loadQuestions();
+        console.error("보안 인증 실패:", e);
+        loadQuestions(); // 실패하더라도 시도는 함
     }
 });
 
@@ -182,35 +197,13 @@ function loadQuestions() {
         renderList(cachedData);
     }, (error) => {
         if(error.message.includes("permission_denied")) {
-            listContainer.innerHTML = `<p style="text-align:center; color:#ff4d4d; padding:20px;">보안 인증 오류가 발생했습니다. 새로고침 해주세요.</p>`;
+            listContainer.innerHTML = `<p style="text-align:center; color:#ff4d4d; padding:20px;">보안 인증 오류가 발생했습니다. 잠시 후 새로고침 해주세요.</p>`;
         }
     });
 }
 
 /**
- * [중요] 이메일 알림 전송 함수
- * reCAPTCHA 차단을 피하기 위해 독립적인 예외처리를 적용합니다.
- */
-async function sendAdminAlert(qText, author, msg) {
-    const templateParams = {
-        question_text: qText,
-        reply_author: author,
-        reply_text: msg,
-        admin_email: ADMIN_EMAIL
-    };
-
-    try {
-        // ★ 필수 수정: "service_xxxx" 부분에 EmailJS 대시보드의 Service ID를 넣으세요.
-        // "DEEP SKY_question" 처럼 공백이 있으면 안 됩니다.
-        await emailjs.send("service_deepsky", "template_a17vklg", templateParams);
-        console.log('메일 알림 전송 성공');
-    } catch (err) {
-        console.error('메일 전송 실패:', err);
-    }
-}
-
-/**
- * 질문 등록
+ * 질문 등록 및 메일 발송
  */
 async function addQuestion() {
     const textInput = document.getElementById("qInput");
@@ -221,7 +214,10 @@ async function addQuestion() {
     btn.disabled = true;
 
     try {
+        // App Check 토큰 재확인
         await appCheck.getToken();
+
+        // 1. Firebase DB에 저장
         await db.ref("questions").push({
             text: text,
             author: currentUserName,
@@ -229,22 +225,23 @@ async function addQuestion() {
             createdAt: firebase.database.ServerValue.TIMESTAMP
         });
 
-        // 질문 등록 후 메일 발송 시도
+        // 2. 관리자 메일 알림 (작성자가 관리자가 아닐 때만)
         if (!currentUser || currentUser.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-            await sendAdminAlert(text, currentUserName, "새로운 질문이 게시되었습니다.");
+            await sendAdminAlert(text, currentUserName, "새로운 질문이 등록되었습니다.");
         }
         
         textInput.value = "";
         alert("질문이 등록되었습니다.");
     } catch (err) {
-        alert("등록 실패: 보안 인증 오류입니다.");
+        console.error("등록 에러:", err);
+        alert("등록 실패: 보안 인증에 실패했거나 서버 오류입니다.");
     } finally {
         btn.disabled = false;
     }
 }
 
 /**
- * 답글 등록
+ * 답글 등록 및 메일 발송
  */
 async function saveAnswer(qKey) {
     const ansInput = document.getElementById("ans_"+qKey);
@@ -266,8 +263,9 @@ async function saveAnswer(qKey) {
             createdAt: firebase.database.ServerValue.TIMESTAMP
         });
 
+        // 답글 알림 메일 발송
         if (currentUser.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-            await sendAdminAlert(originalQuestion, currentUserName, ansText);
+            await sendAdminAlert(originalQuestion, currentUserName, `답글이 등록되었습니다: ${ansText}`);
         }
         
         ansInput.value = "";
@@ -280,7 +278,7 @@ async function saveAnswer(qKey) {
 }
 
 /**
- * 목록 렌더링
+ * 목록 렌더링 함수
  */
 function renderList(data) {
     const list = document.getElementById("questionList");
