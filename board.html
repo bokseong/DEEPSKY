@@ -39,8 +39,16 @@
         .intro-card { background: #161b4a; padding: 30px; border-radius: 20px; border: 1px solid #2d367a; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         .intro-card h2 { color: #7fc7ff; border-left: 5px solid #3a5aff; padding-left: 15px; margin-bottom: 25px; font-size: 24px; }
 
+        /* 검색 및 글쓰기 바 */
+        .action-bar { display: flex; gap: 8px; margin-bottom: 20px; }
+        .btn-write { 
+            background: #3a5aff; color: white; padding: 10px 20px; border-radius: 5px; 
+            text-decoration: none; font-weight: bold; white-space: nowrap; display: flex; align-items: center;
+        }
+        .btn-write:hover { background: #2a47d6; text-decoration: none; }
+
         /* 게시판 리스트 */
-        .post-list { border-radius: 10px; overflow: hidden; }
+        .post-list { border-radius: 10px; overflow: hidden; min-height: 400px; }
         .post-item { 
             display: flex; justify-content: space-between; align-items: center; 
             padding: 15px 20px; border-bottom: 1px solid rgba(58, 90, 255, 0.2); 
@@ -52,7 +60,6 @@
         .post-title { font-weight: bold; color: #7fc7ff; }
         .post-meta { font-size: 13px; color: #aaa; }
 
-        /* 삭제 버튼 스타일 */
         .del-btn { 
             background: #ff4d4d; color: white; border: none; 
             padding: 5px 12px; border-radius: 6px; cursor: pointer; 
@@ -61,7 +68,15 @@
         }
         .del-btn:hover { background: #e60000; }
 
-        .btn-write { display: block; width: 100%; max-width: 150px; margin: 20px 0 0 auto; text-align: center; background: #3a5aff; color: white; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; }
+        /* 페이지네이션 */
+        .pagination { display: flex; justify-content: center; gap: 5px; margin-top: 30px; }
+        .page-num { 
+            padding: 8px 15px; border: 1px solid #2d367a; background: #0b0f2b; 
+            color: #7fc7ff; cursor: pointer; border-radius: 5px; transition: 0.2s;
+        }
+        .page-num:hover { background: #3a5aff; color: white; }
+        .page-num.active { background: #3a5aff; color: white; border-color: #3a5aff; }
+
         footer { background: #070a1d; text-align: center; padding: 30px; font-size: 12px; color: #888; border-top: 1px solid #1b2f80; margin-top: 50px; }
         
         a:link, a:visited { color: #dedede; text-decoration: none; }
@@ -69,8 +84,10 @@
 
         @media (max-width: 600px) {
             .logo-area span { font-size: 16px; }
-            nav a { padding: 10px 12px; font-size: 13px; }
+            .nav a { padding: 10px 12px; font-size: 13px; }
             header h1 { font-size: 22px; }
+            .action-bar { flex-direction: column; }
+            .btn-write { justify-content: center; }
         }
     </style>
 </head>
@@ -107,17 +124,21 @@
 <div class="container">
     <div class="intro-card">
         <h2>COMMUNITY</h2>  
-        <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+        
+        <div class="action-bar">
             <input type="text" id="searchInput" placeholder="제목 또는 작성자로 검색..." 
                style="flex: 1; background: #0b0f2b; color: white; border: 1px solid #2d367a; border-radius: 5px; padding: 10px 15px; outline: none; font-size: 14px;">
-            <button onclick="loadPosts()" style="background: #3a5aff; color: white; border: none; border-radius: 5px; padding: 0 20px; cursor: pointer; font-weight: bold; transition: 0.2s;">
+            <button onclick="currentPage=1; loadPosts();" style="background: #3a5aff; color: white; border: none; border-radius: 5px; padding: 0 20px; cursor: pointer; font-weight: bold; transition: 0.2s;">
                 검색
             </button>
+            <a href="write.html" class="btn-write" id="topWriteBtn">글쓰기</a>
         </div>
+
         <div class="post-list" id="postList">
             <p style="text-align:center; padding:50px; color:#888;">게시글을 불러오는 중...</p>
         </div>
-        <a href="write.html" class="btn-write">글쓰기</a>
+
+        <div id="pagination" class="pagination"></div>
     </div>
 </div>
 
@@ -135,7 +156,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
-// 1. 초기 설정 (Firebase)
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -156,13 +176,17 @@ const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 let currentUser = null;
 let currentUserRole = "guest";
 
-// 2. 인증 상태 감시 및 사용자 정보 로드
+// 페이지네이션 설정
+let currentPage = 1;
+const postsPerPage = 10;
+let allPosts = []; // 필터링된 모든 게시글을 담을 배열
+
 auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtn = document.getElementById("logoutBtn");
-    const writeBtn = document.querySelector(".btn-write");
+    const topWriteBtn = document.getElementById("topWriteBtn");
 
     if (user) {
         db.ref('users/' + user.uid).on('value', (snapshot) => {
@@ -170,7 +194,7 @@ auth.onAuthStateChanged(async (user) => {
             const finalName = userData.name || user.email.split('@')[0];
             currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
             if(status) status.innerText = `${finalName}님 (${getRoleName(currentUserRole)})`;
-            if (writeBtn) writeBtn.classList.remove("hidden");
+            if (topWriteBtn) topWriteBtn.classList.remove("hidden");
         });
         loginBtn?.classList.add("hidden");
         logoutBtn?.classList.remove("hidden");
@@ -179,12 +203,11 @@ auth.onAuthStateChanged(async (user) => {
         if(status) status.innerText = "로그인 해주세요";
         loginBtn?.classList.remove("hidden");
         logoutBtn?.classList.add("hidden");
-        if (writeBtn) writeBtn.classList.add("hidden");
+        if (topWriteBtn) topWriteBtn.classList.add("hidden");
     }
-    loadPosts(); // 사용자 정보 확인 후 게시글 로드
+    loadPosts();
 });
 
-// 등급 명칭 변환
 function getRoleName(role) {
     switch(role) {
         case 'admin': return '관리자';
@@ -193,104 +216,129 @@ function getRoleName(role) {
     }
 }
 
-// 날짜/시간 포맷 변환 (YYYY-MM-DD HH:mm)
 function formatDate(timestamp) {
     if (!timestamp) return "시간 정보 없음";
     const date = new Date(timestamp);
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    const h = String(date.getHours()).padStart(2, '0');
-    const min = String(date.getMinutes()).padStart(2, '0');
-    return `${y}-${m}-${d} ${h}:${min}`;
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
-// 3. 게시글 로드 및 검색 기능
-// 3. 게시글 로드 및 검색 기능
 async function loadPosts() {
     const list = document.getElementById("postList");
     const keyword = document.getElementById("searchInput")?.value.toLowerCase().trim() || "";
 
-    db.ref("freeboard").on("value", async (snapshot) => {
-        list.innerHTML = "";
+    db.ref("freeboard").off(); // 중복 리스너 방지
+    db.ref("freeboard").on("value", (snapshot) => {
         const data = snapshot.val();
         if(!data) {
             list.innerHTML = "<p style='text-align:center; padding:40px; color:#888;'>등록된 글이 없습니다.</p>";
+            document.getElementById("pagination").innerHTML = "";
             return;
         }
 
-        // [수정된 정렬 로직] 
-        // write.html에서 저장하는 'createdAt' 필드를 기준으로 정렬합니다.
-        // createdAt이 없으면 updatedAt을, 둘 다 없으면 0으로 처리하여 최신순 정렬을 보장합니다.
+        // 1. 전체 게시글을 배열로 변환 및 정렬
         const keys = Object.keys(data).sort((a, b) => {
             const timeA = data[a].createdAt || data[a].updatedAt || 0;
             const timeB = data[b].createdAt || data[b].updatedAt || 0;
-            return timeB - timeA; 
+            return timeB - timeA;
         });
 
-        let hasResult = false;
+        // 2. 검색 필터링
+        allPosts = keys.map(key => ({ id: key, ...data[key] })).filter(p => {
+            const authorName = p.author || "익명";
+            return p.title.toLowerCase().includes(keyword) || authorName.toLowerCase().includes(keyword);
+        });
 
-        for (const key of keys) {
-            const p = data[key];
-            let authorName = p.author || "익명";
-            
-            // 검색 필터링 (제목 또는 작성자)
-            if (keyword !== "") {
-                const titleMatch = (p.title || "").toLowerCase().includes(keyword);
-                const authorMatch = authorName.toLowerCase().includes(keyword);
-                if (!titleMatch && !authorMatch) continue;
-            }
-            
-            hasResult = true;
-            const item = document.createElement("div");
-            item.className = "post-item";
+        renderPage();
+    });
+}
 
-            const infoArea = document.createElement("div");
-            infoArea.className = "post-info-area";
-            infoArea.onclick = () => location.href = `view.html?id=${key}`;
-            
-            // [업데이트] 표시 시간도 p.createdAt을 우선적으로 참조하도록 수정
-            const displayTime = p.createdAt || p.updatedAt || 0;
+function renderPage() {
+    const list = document.getElementById("postList");
+    const paginArea = document.getElementById("pagination");
+    list.innerHTML = "";
+    
+    if (allPosts.length === 0) {
+        list.innerHTML = "<p style='text-align:center; padding:40px; color:#888;'>검색 결과가 없습니다.</p>";
+        paginArea.innerHTML = "";
+        return;
+    }
 
-            infoArea.innerHTML = `
+    // 3. 페이지 슬라이싱 (10개씩)
+    const startIndex = (currentPage - 1) * postsPerPage;
+    const endIndex = startIndex + postsPerPage;
+    const pagePosts = allPosts.slice(startIndex, endIndex);
+
+    // 4. 화면 출력
+    pagePosts.forEach(p => {
+        const item = document.createElement("div");
+        item.className = "post-item";
+        
+        const displayTime = p.createdAt || p.updatedAt || 0;
+        const authorName = p.author || "익명";
+
+        let html = `
+            <div class="post-info-area" onclick="location.href='view.html?id=${p.id}'">
                 <div>
                     <div class="post-title">${p.title}</div>
                     <div class="post-meta">${authorName} | ${formatDate(displayTime)}</div>
                 </div>
-            `;
-            item.appendChild(infoArea);
+            </div>
+        `;
+        item.innerHTML = html;
 
-            // 삭제 권한: 본인 또는 관리자
-            if(currentUser && (currentUser.uid === p.uid || currentUserRole === 'admin')) {
-                const delBtn = document.createElement("button");
-                delBtn.className = "del-btn";
-                delBtn.innerText = "삭제";
-                delBtn.onclick = async (e) => {
-                    e.stopPropagation();
-                    if(confirm("정말로 이 글을 삭제하시겠습니까?")) {
-                        try {
-                            await appCheck.getToken(false);
-                            await db.ref("freeboard/" + key).remove();
-                            alert("성공적으로 삭제되었습니다.");
-                        } catch (err) {
-                            alert("삭제 실패: 권한이 없거나 네트워크 오류입니다.");
-                        }
-                    }
-                };
-                item.appendChild(delBtn);
-            }
-            list.appendChild(item);
+        // 삭제 권한 확인
+        if(currentUser && (currentUser.uid === p.uid || currentUserRole === 'admin')) {
+            const delBtn = document.createElement("button");
+            delBtn.className = "del-btn";
+            delBtn.innerText = "삭제";
+            delBtn.onclick = (e) => deletePost(e, p.id);
+            item.appendChild(delBtn);
         }
-
-        if (!hasResult && keyword !== "") {
-            list.innerHTML = `<p style='text-align:center; padding:40px; color:#888;'>'${keyword}'에 대한 검색 결과가 없습니다.</p>`;
-        }
+        list.appendChild(item);
     });
+
+    // 5. 페이지네이션 버튼 생성
+    renderPagination();
 }
 
-// 4. 기타 이벤트 핸들러
+function renderPagination() {
+    const paginArea = document.getElementById("pagination");
+    paginArea.innerHTML = "";
+    
+    const totalPages = Math.ceil(allPosts.length / postsPerPage);
+    if (totalPages <= 1) return;
+
+    for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement("button");
+        btn.innerText = i;
+        btn.className = `page-num ${i === currentPage ? 'active' : ''}`;
+        btn.onclick = () => {
+            currentPage = i;
+            renderPage();
+            window.scrollTo(0, 0); // 페이지 이동 시 상단으로 이동
+        };
+        paginArea.appendChild(btn);
+    }
+}
+
+async function deletePost(e, key) {
+    e.stopPropagation();
+    if(confirm("정말로 이 글을 삭제하시겠습니까?")) {
+        try {
+            await appCheck.getToken(false);
+            await db.ref("freeboard/" + key).remove();
+            alert("성공적으로 삭제되었습니다.");
+        } catch (err) {
+            alert("삭제 실패: 권한이 없거나 네트워크 오류입니다.");
+        }
+    }
+}
+
 document.getElementById("searchInput")?.addEventListener("keyup", (e) => {
-    if (e.key === "Enter") loadPosts();
+    if (e.key === "Enter") {
+        currentPage = 1;
+        loadPosts();
+    }
 });
 
 function logout() { 
