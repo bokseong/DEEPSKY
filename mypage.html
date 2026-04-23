@@ -141,6 +141,33 @@
 
 <div class="container">
     <div class="card">
+        <h3 style="color: #7fc7ff; margin-top: 0; margin-bottom: 25px; text-align: center;">프로필 수정</h3>
+        
+        <div class="info-group">
+            <label>활동 이름 (닉네임)</label>
+            <input type="text" id="userName" placeholder="이름을 입력하세요">
+        </div>
+        <button class="btn-save" onclick="updateProfile()">정보 저장하기</button>
+
+        <hr style="border: 0; border-top: 1px solid #1b2f80; margin: 30px 0;">
+
+        <div class="info-group">
+            <label>이메일 계정 (수정 불가)</label>
+            <input type="text" id="userEmail" disabled>
+        </div>
+
+        <div class="info-group">
+            <label>보안 설정</label>
+            <button class="btn-pw-reset" onclick="resetPassword()">비밀번호 재설정 메일 발송</button>
+        </div>
+
+        <div class="danger-zone">
+            <p style="font-size: 12px; color: #888; margin-bottom: 15px;">계정 삭제 시 모든 데이터가 즉시 소멸됩니다.</p>
+            <button class="btn-withdraw" onclick="deleteAccount()">회원 탈퇴</button>
+        </div>
+    </div>
+
+     <div class="card">
         <div class="role-badge-box">
             <div class="role-title">나의 회원 등급</div>
             <div id="displayRole" class="role-name">확인 중...</div>
@@ -177,33 +204,6 @@
                 </tr>
             </tbody>
         </table>
-    </div>
-
-    <div class="card">
-        <h3 style="color: #7fc7ff; margin-top: 0; margin-bottom: 25px; text-align: center;">프로필 수정</h3>
-        
-        <div class="info-group">
-            <label>활동 이름 (닉네임)</label>
-            <input type="text" id="userName" placeholder="이름을 입력하세요">
-        </div>
-        <button class="btn-save" onclick="updateProfile()">정보 저장하기</button>
-
-        <hr style="border: 0; border-top: 1px solid #1b2f80; margin: 30px 0;">
-
-        <div class="info-group">
-            <label>이메일 계정 (수정 불가)</label>
-            <input type="text" id="userEmail" disabled>
-        </div>
-
-        <div class="info-group">
-            <label>보안 설정</label>
-            <button class="btn-pw-reset" onclick="resetPassword()">비밀번호 재설정 메일 발송</button>
-        </div>
-
-        <div class="danger-zone">
-            <p style="font-size: 12px; color: #888; margin-bottom: 15px;">계정 삭제 시 모든 데이터가 즉시 소멸됩니다.</p>
-            <button class="btn-withdraw" onclick="deleteAccount()">회원 탈퇴</button>
-        </div>
     </div>
 </div>
 
