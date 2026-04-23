@@ -4,12 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="logo.png" type="image/png">
-    <title>DEEP SKY</title>
+    <title>DEEP SKY - 마이페이지</title>
     <style>
         /* 1. 공통 스타일 */
         * { box-sizing: border-box; }
-        body { margin: 0; font-family: "Segoe UI", sans-serif; background: #0b0f2b; color: white; }
-
+        body { margin: 0; font-family: "Segoe UI", sans-serif; background: #0b0f2b; color: white; line-height: 1.6; }
         .hidden { display: none !important; }
 
         /* 2. 상단 바 */
@@ -28,40 +27,39 @@
             background: #3a5aff; color: white; cursor: pointer; font-weight: bold;
         }
 
-        /* 3. 헤더 및 내비게이션 (디자인 통일) */
+        /* 3. 헤더 및 내비게이션 */
         header { background: linear-gradient(to right, #0d1b52, #1b2f80); padding: 40px 20px; text-align: center; }
-        nav { 
-            background: #11153a; 
-            border-bottom: 1px solid #2d367a; 
-            padding: 10px 0;
-        }
-        nav .nav-inner { 
-            max-width: 1000px; 
-            margin: 0 auto; 
-            display: flex; 
-            flex-wrap: wrap; 
-            justify-content: center; 
-            gap: 5px; 
-        }
-        nav a { 
-            display: inline-block; 
-            color: white; 
-            padding: 12px 18px; 
-            text-decoration: none; 
-            font-weight: bold; 
-            font-size: 15px; 
-            border-radius: 8px;
-        }
+        nav { background: #11153a; border-bottom: 1px solid #2d367a; padding: 10px 0; }
+        nav .nav-inner { max-width: 1000px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
+        nav a { display: inline-block; color: white; padding: 12px 18px; text-decoration: none; font-weight: bold; font-size: 15px; border-radius: 8px; }
         nav a:hover { background: rgba(127, 199, 255, 0.1); color: #7fc7ff; }
 
         /* 4. 본문 컨테이너 */
-        .container { max-width: 600px; margin: 30px auto; padding: 0 20px 100px; }
+        .container { max-width: 700px; margin: 30px auto; padding: 0 20px 100px; }
         
         .card { 
             background: #161b4a; padding: 30px; border-radius: 15px; 
             border: 1px solid #2d367a; margin-bottom: 25px; 
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
+
+        /* 등급 표시 칸 */
+        .role-badge-box {
+            background: rgba(58, 90, 255, 0.15); border: 1px solid #3a5aff;
+            padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 30px;
+        }
+        .role-title { font-size: 14px; color: #7fc7ff; margin-bottom: 5px; }
+        .role-name { font-size: 24px; font-weight: bold; color: white; letter-spacing: 1px; }
+
+        /* 권한 안내 표 */
+        .permission-table {
+            width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px;
+        }
+        .permission-table th, .permission-table td {
+            padding: 10px; border: 1px solid #2d367a; text-align: center;
+        }
+        .permission-table th { background: rgba(58, 90, 255, 0.2); color: #7fc7ff; }
+        .check { color: #3a5aff; font-weight: bold; }
 
         .info-group { margin-bottom: 20px; }
         .info-group label { display: block; font-size: 13px; color: #7fc7ff; margin-bottom: 8px; font-weight: bold; }
@@ -70,12 +68,11 @@
             background: #0b0f2b; color: white; font-size: 15px; outline: none;
         }
         .info-group input:disabled { background: #070a1d; color: #666; cursor: not-allowed; }
-        .info-group input:focus { border-color: #3a5aff; }
 
         .btn-save { 
             width: 100%; padding: 14px; background: #3a5aff; color: white; 
             border: none; border-radius: 8px; font-weight: bold; cursor: pointer; 
-            font-size: 16px; transition: background 0.3s; margin-bottom: 10px;
+            font-size: 16px; transition: 0.3s; margin-bottom: 10px;
         }
         .btn-save:hover { background: #2846d1; }
 
@@ -90,7 +87,6 @@
             margin-top: 40px; border-top: 1px solid #2d367a; padding-top: 25px; 
             text-align: center;
         }
-        .danger-zone p { font-size: 13px; color: #888; margin-bottom: 15px; }
         .btn-withdraw { 
             background: #ff4d4d; color: white; border: none; 
             padding: 10px 20px; border-radius: 6px; cursor: pointer; 
@@ -102,24 +98,14 @@
             font-size: 12px; color: #888; border-top: 1px solid #1b2f80; 
             width: 100%; margin-top: 50px;
         }
-
-        /* 방문 전(:link)과 방문 후(:visited)를 쉼표로 연결 */
-        a:link, a:visited {
-            color: #dedede;      
-            text-decoration: none; /* 밑줄을 없애고 싶을 때 */
-        }
-
-        /* 마우스를 올렸을 때의 변화 (선택 사항) */
-        a:hover {
-            color: #b2b2b2;
-            text-decoration: underline;
-        }
+        a:link, a:visited { color: #dedede; text-decoration: none; }
+        a:hover { color: #b2b2b2; text-decoration: underline; }
 
         @media (max-width: 600px) {
             .logo-area span { font-size: 16px; }
-            nav a { padding: 10px 12px; font-size: 13px; }
+            nav a { padding: 10px 8px; font-size: 12px; }
             header h1 { font-size: 22px; }
-            .header-logo { width: 100px; height: 100px; }
+            .permission-table { font-size: 11px; }
         }
     </style>
 </head>
@@ -155,34 +141,68 @@
 
 <div class="container">
     <div class="card">
-        <h3 style="color: #7fc7ff; margin-top: 0; margin-bottom: 25px; text-align: center;">내 프로필 관리</h3>
+        <div class="role-badge-box">
+            <div class="role-title">나의 회원 등급</div>
+            <div id="displayRole" class="role-name">확인 중...</div>
+        </div>
+
+        <h3 style="color: #7fc7ff; font-size: 16px; margin-bottom: 10px;">등급별 권한 안내</h3>
+        <table class="permission-table">
+            <thead>
+                <tr>
+                    <th>권한 범위</th>
+                    <th>일반</th>
+                    <th>부원</th>
+                    <th>관리자</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>게시글 작성</td>
+                    <td class="check">V</td>
+                    <td class="check">V</td>
+                    <td class="check">V</td>
+                </tr>
+                <tr>
+                    <td>자료실 접근</td>
+                    <td>-</td>
+                    <td class="check">V</td>
+                    <td class="check">V</td>
+                </tr>
+                <tr>
+                    <td>관리자 메뉴</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td class="check">V</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h3 style="color: #7fc7ff; margin-top: 0; margin-bottom: 25px; text-align: center;">프로필 수정</h3>
         
         <div class="info-group">
             <label>활동 이름 (닉네임)</label>
-            <input type="text" id="userName" placeholder="이름을 불러오는 중...">
+            <input type="text" id="userName" placeholder="이름을 입력하세요">
         </div>
-        <button class="btn-save" onclick="updateProfile()">이름 변경 저장</button>
+        <button class="btn-save" onclick="updateProfile()">정보 저장하기</button>
 
         <hr style="border: 0; border-top: 1px solid #1b2f80; margin: 30px 0;">
 
-        <h3 style="color: #7fc7ff; margin-bottom: 20px; text-align: center; font-size: 18px;">보안 설정</h3>
-        
         <div class="info-group">
-            <label>이메일 계정</label>
+            <label>이메일 계정 (수정 불가)</label>
             <input type="text" id="userEmail" disabled>
         </div>
 
         <div class="info-group">
-            <label>비밀번호 재설정</label>
-            <p style="font-size: 12px; color: #aaa; margin-bottom: 10px;">
-                비밀번호를 변경하려면 아래 버튼을 누르세요. 등록된 이메일로 재설정 링크가 발송됩니다.
-            </p>
-            <button class="btn-pw-reset" onclick="resetPassword()">비밀번호 재설정 메일 보내기</button>
+            <label>보안 설정</label>
+            <button class="btn-pw-reset" onclick="resetPassword()">비밀번호 재설정 메일 발송</button>
         </div>
 
         <div class="danger-zone">
-            <p>계정을 삭제하면 모든 활동 정보가 초기화됩니다.</p>
-            <button class="btn-withdraw" onclick="deleteAccount()">회원 탈퇴하기</button>
+            <p style="font-size: 12px; color: #888; margin-bottom: 15px;">계정 삭제 시 모든 데이터가 즉시 소멸됩니다.</p>
+            <button class="btn-withdraw" onclick="deleteAccount()">회원 탈퇴</button>
         </div>
     </div>
 </div>
@@ -190,9 +210,7 @@
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
     <br>
-    Email : leader.deepsky@gmail.com &nbsp;	&nbsp; &nbsp; &nbsp;|	&nbsp; &nbsp; &nbsp; &nbsp;Designed by jw-astro09
-    <br>
-    <a href="https://forms.gle/5MZf7MEZwNxAefXw9">시스템 오류 또는 오타 수정 건의하기</a>
+    Email : leader.deepsky@gmail.com | Designed by jw-astro09
 </footer>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -211,66 +229,77 @@ const firebaseConfig = {
     appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
 };
 
-// 1. Firebase 초기화
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
+const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-// 2. App Check 설정 (재시도)
-try {
-    const appCheck = firebase.appCheck();
-    
-    // [팁] 로컬 테스트 시 401 에러가 난다면 아래 주석을 해제하세요.
-    // self.FIREBASE_APPCHECK_DEBUG_TOKEN = true; 
-    
-    appCheck.activate(
-        '6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', // 발급받은 reCAPTCHA v3 사이트 키
-        true // 자동 토큰 갱신 활성화
-    );
-    console.log("App Check가 활성화되었습니다.");
-} catch (err) {
-    console.error("App Check 설정 중 오류 발생:", err.message);
+auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+const appCheck = firebase.appCheck();
+appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
+
+// 로그인 상태 감지
+auth.onAuthStateChanged(async (user) => {
+    const status = document.getElementById("userStatus");
+    const displayRole = document.getElementById("displayRole");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const emailInput = document.getElementById("userEmail");
+    const nameInput = document.getElementById("userName");
+
+    if (user) {
+        if(emailInput) emailInput.value = user.email;
+        loginBtn.classList.add("hidden");
+        logoutBtn.classList.remove("hidden");
+
+        db.ref('users/' + user.uid).on('value', (snapshot) => {
+            const userData = snapshot.val() || {};
+            const currentName = userData.name || user.email.split('@')[0];
+            
+            let roleName = "일반 회원";
+            if (user.email === ADMIN_EMAIL) roleName = "관리자";
+            else if (userData.role === 'student') roleName = "동아리 부원";
+
+            if(status) status.innerText = `${currentName}님 (${roleName})`;
+            if(displayRole) displayRole.innerText = roleName;
+            if(nameInput) nameInput.value = currentName;
+        });
+
+        try { await appCheck.getToken(false); } catch (e) {}
+    } else {
+        alert("로그인이 필요합니다.");
+        location.href = "login.html";
+    }
+});
+
+function updateProfile() {
+    const user = auth.currentUser;
+    const newName = document.getElementById("userName").value.trim();
+    if (!newName) return alert("이름을 입력해주세요.");
+
+    db.ref('users/' + user.uid).update({ name: newName })
+      .then(() => alert("성공적으로 저장되었습니다."))
+      .catch(err => alert("오류: " + err.message));
 }
 
-// 3. 로그인 영속성 및 상태 감지
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-    .then(() => {
-        return auth.onAuthStateChanged(user => {
-            const status = document.getElementById("userStatus");
-            const loginBtn = document.getElementById("loginBtn");
-            const logoutBtn = document.getElementById("logoutBtn");
-            const emailInput = document.getElementById("userEmail");
-            const nameInput = document.getElementById("userName");
+function resetPassword() {
+    const email = auth.currentUser.email;
+    if(confirm("재설정 메일을 발송할까요?")) {
+        auth.sendPasswordResetEmail(email)
+            .then(() => alert("메일이 발송되었습니다."))
+            .catch(err => alert(err.message));
+    }
+}
 
-            if (user) {
-                if(emailInput) emailInput.value = user.email || "";
-                if(loginBtn) loginBtn.classList.add("hidden");
-                if(logoutBtn) logoutBtn.classList.remove("hidden");
+function deleteAccount() {
+    if (confirm("정말 탈퇴하시겠습니까? 데이터는 복구할 수 없습니다.")) {
+        const user = auth.currentUser;
+        db.ref('users/' + user.uid).remove().then(() => user.delete())
+          .then(() => { alert("탈퇴되었습니다."); location.href="index.html"; })
+          .catch(() => alert("다시 로그인 후 시도해주세요."));
+    }
+}
 
-                db.ref('users/' + user.uid).on('value', (snapshot) => {
-                    const data = snapshot.val();
-                    let finalName = (data && data.name) ? data.name : 
-                                    (user.displayName ? user.displayName : user.email.split('@')[0]);
-                    if(nameInput) nameInput.value = finalName;
-                    if(status) status.innerText = `${finalName}님`;
-                });
-            } else {
-                if(status) status.innerText = "로그인 해주세요";
-                if(loginBtn) loginBtn.classList.remove("hidden");
-                if(logoutBtn) logoutBtn.classList.add("hidden");
-                
-                if (location.pathname.includes("mypage.html")) {
-                    alert("로그인이 필요합니다.");
-                    location.href = "login.html";
-                }
-            }
-        });
-    })
-    .catch((error) => {
-        console.error("인증 영속성 설정 오류:", error.message);
-    });
-
-// --- 나머지 함수들 (updateProfile, resetPassword, logout 등) 동일하게 유지 ---
 function logout() {
     if(confirm("로그아웃 하시겠습니까?")) {
         auth.signOut().then(() => { location.href = "index.html"; });
@@ -279,4 +308,3 @@ function logout() {
 </script>
 </body>
 </html>
-
