@@ -121,8 +121,18 @@ appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 const urlParams = new URLSearchParams(window.location.search);
 const editPostId = urlParams.get('id');
 let currentUserName = "익명";
+const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-// 2. 인증 상태 확인 및 데이터 로드 통합
+// [추가] 등급 명칭 변환 함수
+function getRoleName(role) {
+    switch(role) {
+        case 'admin': return '관리자';
+        case 'student': return '동아리 부원';
+        default: return '일반 회원';
+    }
+}
+
+// 2. 인증 상태 확인 및 데이터 로드 통합 (등급 표시 로직 추가)
 auth.onAuthStateChanged(async (user) => {
     const statusText = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
@@ -131,30 +141,28 @@ auth.onAuthStateChanged(async (user) => {
     if (user) {
         console.log("인증 성공:", user.email);
         
-        // 버튼 상태 즉시 변경
         loginBtn.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
 
-        // App Check 토큰 확보 (보안 정책 대응)
         try {
             await appCheck.getToken();
         } catch (e) {
             console.warn("App Check 인증 지연 중...");
         }
 
-        // 유저 이름 실시간 로드
-        db.ref("users/" + user.uid + "/name").once("value").then(snap => {
-            currentUserName = snap.val() || user.displayName || "회원";
-            statusText.innerText = `${currentUserName}님`;
+        // [수정] 유저 이름 및 등급 실시간 로드
+        db.ref("users/" + user.uid).on("value", (snap) => {
+            const userData = snap.val() || {};
+            currentUserName = userData.name || user.displayName || user.email.split('@')[0];
+            const role = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+            
+            statusText.innerText = `${currentUserName}님 (${getRoleName(role)})`;
         });
 
-        // [핵심] 유저 인증이 완료된 시점에만 수정 데이터를 불러옵니다.
         if (editPostId) {
-            console.log("수정 모드 데이터를 불러옵니다. ID:", editPostId);
             loadEditData(user);
         }
     } else {
-        // 유저가 확실히 없을 때만 2초 후 로그인 페이지로 이동
         console.log("인증 정보 로딩 중...");
         setTimeout(() => {
             if (!auth.currentUser) {
@@ -165,7 +173,7 @@ auth.onAuthStateChanged(async (user) => {
     }
 });
 
-// 3. 수정 데이터 로드 함수 (수정 권한 검사 포함)
+// 3. 수정 데이터 로드 함수
 async function loadEditData(user) {
     const titleHeader = document.querySelector("h2");
     const submitBtn = document.querySelector(".btn-submit");
@@ -181,42 +189,34 @@ async function loadEditData(user) {
             return;
         }
         
-        // 작성자 본인 및 관리자 권한 확인 (보안 강화)
-        if (data.uid !== user.uid && user.email !== 'leader.deepsky@gmail.com') {
+        if (data.uid !== user.uid && user.email !== ADMIN_EMAIL) {
             alert("본인이 작성한 글만 수정할 수 있습니다.");
             location.href = `view.html?id=${editPostId}`;
             return;
         }
 
-        // 폼에 데이터 채우기
         document.getElementById("postTitle").value = data.title || "";
         document.getElementById("postContent").value = data.content || "";
 
-        // 링크 데이터 처리 (다중 링크 대응)
         const container = document.getElementById("linkContainer");
         if (data.links && data.links.length > 0) {
-            container.innerHTML = ""; // 기존 초기 필드 제거
+            container.innerHTML = ""; 
             data.links.forEach((link, index) => {
-                addLinkField(); // 입력 필드 생성
+                addLinkField(); 
                 const urlInputs = document.querySelectorAll(".postFileUrl");
                 const nameInputs = document.querySelectorAll(".postFileName");
                 urlInputs[index].value = link.url;
                 nameInputs[index].value = link.name;
             });
-            // 첫 번째 필드만 + 버튼으로 유지 (addLinkField는 기본적으로 - 버튼을 만듦)
             const firstItem = container.firstElementChild;
             const btn = firstItem.querySelector("button");
             btn.innerText = "+";
             btn.style.background = "#5a7aff";
             btn.onclick = addLinkField;
         } else if (data.fileUrl) {
-            // 구버전(단일 링크) 호환성 유지
             document.querySelector(".postFileUrl").value = data.fileUrl;
             document.querySelector(".postFileName").value = data.fileName || "";
         }
-    }).catch(err => {
-        console.error("데이터 로드 중 오류:", err);
-        alert("데이터를 가져오지 못했습니다. (권한 오류)");
     });
 }
 
@@ -227,7 +227,7 @@ async function submitPost() {
     if(!title || !content) return alert("제목과 내용을 모두 입력해주세요.");
 
     const submitBtn = document.querySelector(".btn-submit");
-    submitBtn.disabled = true; // 중복 클릭 방지
+    submitBtn.disabled = true;
     submitBtn.innerText = "처리 중...";
 
     try {
