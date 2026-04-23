@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="logo.png" type="image/png">
-    <title>DEEP SKY</title>
+    <title>DEEP SKY - 등급 관리</title>
     <style>
-        /* 1. 디자인 시스템 (index.html과 동일하게 유지) */
+        /* 1. 디자인 시스템 */
         * { box-sizing: border-box; }
         body { 
             margin: 0; font-family: "Pretendard", "Segoe UI", sans-serif; 
@@ -39,22 +39,39 @@
         nav a { display: inline-block; color: white; padding: 12px 18px; text-decoration: none; font-weight: bold; font-size: 15px; border-radius: 8px; transition: 0.2s; }
         nav a:hover { background: rgba(127, 199, 255, 0.1); color: #7fc7ff; }
 
-        /* 4. 컨텐츠 영역 및 테이블 */
+        /* 4. 컨텐츠 영역 */
         .container { max-width: 1000px; margin: 35px auto; padding: 0 20px 100px; }
         .card { background: #161b4a; padding: 25px; border-radius: 15px; border: 1px solid #2d367a; }
         
+        /* 회원 전용 공간 카드 스타일 */
+        .intro-card {
+            background: #161b4a; padding: 40px; border-radius: 15px;
+            border: 1px solid #2d367a; text-align: center;
+        }
+        .btn-main {
+            background: #3a5aff; color: white; border: none; padding: 12px 40px;
+            border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s;
+            margin-top: 20px; display: inline-block; text-decoration: none;
+        }
+        .btn-main:hover { background: #2846d1; }
+
+        /* 테이블 스타일 */
         .table-wrapper { overflow-x: auto; margin-top: 20px; }
         table { width: 100%; border-collapse: collapse; min-width: 600px; }
         th, td { padding: 15px; text-align: center; border-bottom: 1px solid #1b2f80; }
         th { color: #7fc7ff; background: rgba(58, 90, 255, 0.1); font-weight: bold; }
         
-        select { background: #0b0f2b; color: white; border: 1px solid #3a5aff; padding: 8px; border-radius: 5px; cursor: pointer; outline: none; }
-        .btn-update { background: #3a5aff; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-update:hover { background: #2846d1; }
+        select { background: #0b0f2b; color: white; border: 1px solid #3a5aff; padding: 8px; border-radius: 5px; outline: none; }
+        .btn-update { background: #3a5aff; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; }
 
         #authMsg { text-align: center; margin-top: 100px; font-size: 1.2rem; color: #7fc7ff; }
 
-        footer { background: #070a1d; text-align: center; padding: 35px 20px; color: #888; border-top: 1px solid #1b2f80; font-size: 13px; }
+        footer { 
+            background: #070a1d; text-align: center; padding: 35px 20px; 
+            color: #888; border-top: 1px solid #1b2f80; font-size: 13px; 
+        }
+        footer a { color: #888; text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -93,7 +110,6 @@
     <div class="card">
         <h3 style="color: #7fc7ff; margin-top: 0;">전체 가입 회원 목록</h3>
         <p style="font-size: 0.85rem; color: #aaa; margin-bottom: 20px;">* 회원의 등급을 변경한 후 '저장' 버튼을 눌러주세요.</p>
-        
         <div class="table-wrapper">
             <table>
                 <thead>
@@ -105,17 +121,24 @@
                         <th>동작</th>
                     </tr>
                 </thead>
-                <tbody id="userList">
-                    </tbody>
+                <tbody id="userList"></tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<div class="container">
+    <div id="lockMessage" class="intro-card hidden">
+        <h2 style="border:none; padding:0; text-align:center; color: #7fc7ff;">회원 전용 공간</h2>
+        <p>등급 관리 페이지는 DEEP SKY 관리자만 접근할 수 있습니다.</p>
+        <button class="btn-main" onclick="location.href='index.html'">홈으로 가기</button>
     </div>
 </div>
 
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
     <br>
-    Email : leader.deepsky@gmail.com &nbsp;	&nbsp; &nbsp; &nbsp;|	&nbsp; &nbsp; &nbsp; &nbsp;Designed by jw-astro09
+    Email : leader.deepsky@gmail.com &nbsp; &nbsp; &nbsp; &nbsp;| &nbsp; &nbsp; &nbsp; &nbsp;Designed by jw-astro09
     <br>
     <a href="https://forms.gle/5MZf7MEZwNxAefXw9">시스템 오류 또는 오타 수정 건의하기</a>
 </footer>
@@ -142,7 +165,6 @@
     const db = firebase.database();
     const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-    // App Check 활성화
     const appCheck = firebase.appCheck();
     appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
@@ -153,26 +175,26 @@
         const logoutBtn = document.getElementById("logoutBtn");
         const msg = document.getElementById("authMsg");
         const content = document.getElementById("adminContent");
+        const lockMessage = document.getElementById("lockMessage");
 
         if (user) {
-            // 상단바 실시간 이름 및 등급 로드
             db.ref('users/' + user.uid).on('value', snapshot => {
                 const userData = snapshot.val() || {};
                 const finalName = userData.name || user.email.split('@')[0];
-                
-                // 등급 판정 (이메일 우선 순위)
                 let userRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
                 
                 if(status) status.innerText = `${finalName}님 (${getRoleName(userRole)})`;
 
-                // 관리자 페이지 접근 권한 체크
                 if (userRole === "admin") {
-                    if(msg) msg.classList.add("hidden");
-                    if(content) content.classList.remove("hidden");
+                    msg?.classList.add("hidden");
+                    lockMessage?.classList.add("hidden");
+                    content?.classList.remove("hidden");
                     loadUserList(); 
                 } else {
-                    alert("관리자 권한이 없습니다.");
-                    location.href = "index.html";
+                    // 관리자가 아닐 때: 로딩 메시지 숨기고 거부 메시지 표시
+                    msg?.classList.add("hidden");
+                    content?.classList.add("hidden");
+                    lockMessage?.classList.remove("hidden");
                 }
             });
 
@@ -215,7 +237,6 @@
         });
     }
 
-    // 4. 등급 명칭 및 색상 변환 유틸리티
     function getRoleName(role) {
         switch(role) {
             case 'admin': return '관리자';
@@ -231,7 +252,6 @@
         return '#888';
     }
 
-    // 5. 등급 업데이트 함수
     async function updateLevel(targetUid) {
         const newRole = document.getElementById(`sel-${targetUid}`).value;
         const roleName = getRoleName(newRole);
@@ -239,9 +259,7 @@
         if (confirm(`해당 회원을 [${roleName}] 등급으로 변경하시겠습니까?`)) {
             try {
                 await appCheck.getToken(false);
-                await db.ref('users/' + targetUid).update({
-                    role: newRole
-                });
+                await db.ref('users/' + targetUid).update({ role: newRole });
                 alert("성공적으로 변경되었습니다.");
             } catch (err) {
                 alert("변경 실패: " + err.message);
@@ -249,7 +267,6 @@
         }
     }
 
-    // 6. 로그아웃 함수
     window.logout = () => {
         if(confirm("로그아웃 하시겠습니까?")) {
             auth.signOut().then(() => { location.href = "index.html"; });
