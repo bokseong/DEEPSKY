@@ -184,19 +184,6 @@
         -<a href="http://nysc.dothome.co.kr/"> 원본 사이트</a>
     </div>
 </div>
-
-<script>
-    // 페이지 로드 시 이미지를 강제로 새로고침하여 로드하는 스크립트
-    window.onload = function() {
-        const img = document.getElementById('transitImg');
-        const timestamp = new Date().getTime();
-        // 보안 서버를 경유하여 HTTP 이미지를 HTTPS로 변환 + 캐시 방지 타임스탬프 추가
-        const proxyUrl = "https://images.weserv.nl/?url=";
-        const targetImg = "nysc.dothome.co.kr/today_2.png";
-        
-        img.src = proxyUrl + targetImg + "&t=" + timestamp;
-    };
-</script>
 </div>
 </div>
 </div>
