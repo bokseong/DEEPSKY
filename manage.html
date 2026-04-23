@@ -126,7 +126,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
-    // 1. Firebase 설정 (질문자님의 설정 유지)
+    // 1. Firebase 설정
     const firebaseConfig = {
         apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
         authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -147,7 +147,7 @@
     appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
     // 2. 인증 및 권한 로직
-    auth.onAuthStateChanged(user => {
+    auth.onAuthStateChanged(async (user) => {
         const status = document.getElementById("userStatus");
         const loginBtn = document.getElementById("loginBtn");
         const logoutBtn = document.getElementById("logoutBtn");
@@ -155,59 +155,57 @@
         const content = document.getElementById("adminContent");
 
         if (user) {
-            // 상단바 실시간 이름 로드
-            db.ref('users/' + user.uid + '/name').on('value', snapshot => {
-                const finalName = snapshot.val() || user.email.split('@')[0];
-                if(status) status.innerText = `${finalName}님`;
-            });
+            // 상단바 실시간 이름 및 등급 로드
+            db.ref('users/' + user.uid).on('value', snapshot => {
+                const userData = snapshot.val() || {};
+                const finalName = userData.name || user.email.split('@')[0];
+                
+                // 등급 판정 (이메일 우선 순위)
+                let userRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+                
+                if(status) status.innerText = `${finalName}님 (${getRoleName(userRole)})`;
 
-            loginBtn?.classList.add("hidden");
-            logoutBtn?.classList.remove("hidden");
-
-            // 관리자 등급 확인 (이메일 기반 혹은 DB 필드 기반)
-            db.ref('users/' + user.uid + '/level').once('value', snapshot => {
-                const level = snapshot.val();
-                if (user.email === ADMIN_EMAIL || level === "관리자") {
-                    msg.classList.add("hidden");
-                    content.classList.remove("hidden");
-                    loadUserList(); // 회원 목록 불러오기
+                // 관리자 페이지 접근 권한 체크
+                if (userRole === "admin") {
+                    if(msg) msg.classList.add("hidden");
+                    if(content) content.classList.remove("hidden");
+                    loadUserList(); 
                 } else {
                     alert("관리자 권한이 없습니다.");
                     location.href = "index.html";
                 }
             });
+
+            loginBtn?.classList.add("hidden");
+            logoutBtn?.classList.remove("hidden");
         } else {
-            // 로그아웃 상태
-            if(status) status.innerText = "로그인 해주세요";
-            loginBtn?.classList.remove("hidden");
-            logoutBtn?.classList.add("hidden");
             alert("로그인이 필요한 페이지입니다.");
             location.href = "login.html";
         }
     });
 
-    // 3. 회원 목록 불러오기 함수
+    // 3. 회원 목록 불러오기
     function loadUserList() {
         const userListTbody = document.getElementById("userList");
+        if(!userListTbody) return;
         
-        // users 노드 전체를 실시간 감시
         db.ref('users').on('value', snapshot => {
             userListTbody.innerHTML = "";
             snapshot.forEach(child => {
                 const uid = child.key;
                 const userData = child.val();
-                const level = userData.level || "일반 회원";
+                const role = userData.role || "member"; 
 
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td>${userData.name || '미설정'}</td>
                     <td>${userData.email || '-'}</td>
-                    <td><span style="color: ${getLevelColor(level)}; font-weight: bold;">${level}</span></td>
+                    <td><span style="color: ${getRoleColor(role)}; font-weight: bold;">${getRoleName(role)}</span></td>
                     <td>
                         <select id="sel-${uid}">
-                            <option value="member" ${level === '일반 회원' ? 'selected' : ''}>일반 회원</option>
-                            <option value="student" ${level === '동아리 부원' ? 'selected' : ''}>동아리 부원</option>
-                            <option value="admin" ${level === '관리자' ? 'selected' : ''}>관리자</option>
+                            <option value="member" ${role === 'member' ? 'selected' : ''}>일반 회원</option>
+                            <option value="student" ${role === 'student' ? 'selected' : ''}>동아리 부원</option>
+                            <option value="admin" ${role === 'admin' ? 'selected' : ''}>관리자</option>
                         </select>
                     </td>
                     <td><button class="btn-update" onclick="updateLevel('${uid}')">저장</button></td>
@@ -217,33 +215,44 @@
         });
     }
 
-    // 등급별 글자 색상 지정
-    function getLevelColor(level) {
-        if (level === '관리자') return '#ff4d4d';
-        if (level === '동아리 부원') return '#7fc7ff';
-        return '#888';
-    }
-
-    // 4. 등급 업데이트 함수
-    function updateLevel(targetUid) {
-        const newLevel = document.getElementById(`sel-${targetUid}`).value;
-        if (confirm(`해당 회원을 [${newLevel}] 등급으로 변경하시겠습니까?`)) {
-            db.ref('users/' + targetUid).update({
-                level: newLevel
-            }).then(() => {
-                alert("성공적으로 변경되었습니다.");
-            }).catch(err => {
-                alert("변경 실패: " + err.message);
-            });
+    // 4. 등급 명칭 및 색상 변환 유틸리티
+    function getRoleName(role) {
+        switch(role) {
+            case 'admin': return '관리자';
+            case 'student': return '동아리 부원';
+            case 'member': return '일반 회원';
+            default: return '일반 회원';
         }
     }
 
-    // 5. 로그아웃 함수
+    function getRoleColor(role) {
+        if (role === 'admin') return '#ff4d4d';
+        if (role === 'student') return '#7fc7ff';
+        return '#888';
+    }
+
+    // 5. 등급 업데이트 함수
+    async function updateLevel(targetUid) {
+        const newRole = document.getElementById(`sel-${targetUid}`).value;
+        const roleName = getRoleName(newRole);
+
+        if (confirm(`해당 회원을 [${roleName}] 등급으로 변경하시겠습니까?`)) {
+            try {
+                await appCheck.getToken(false);
+                await db.ref('users/' + targetUid).update({
+                    role: newRole
+                });
+                alert("성공적으로 변경되었습니다.");
+            } catch (err) {
+                alert("변경 실패: " + err.message);
+            }
+        }
+    }
+
+    // 6. 로그아웃 함수
     window.logout = () => {
         if(confirm("로그아웃 하시겠습니까?")) {
-            auth.signOut().then(() => {
-                location.href = "index.html";
-            });
+            auth.signOut().then(() => { location.href = "index.html"; });
         }
     };
 </script>
