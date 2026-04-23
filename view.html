@@ -373,7 +373,7 @@ function addComment() {
     
     // [보안 추가] 스크립트 단에서 등급 확인
     if (currentUserRole !== 'admin' && currentUserRole !== 'student') {
-        return alert("댓글 작성 권한이 없습니다. (부원 이상 가능)");
+        return alert("댓글 작성 권한이 없습니다. (부원 등급 이상만 가능)");
     }
 
     if (!input.value.trim()) return alert("내용을 입력하세요.");
