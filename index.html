@@ -246,165 +246,185 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
-<script>
-    // 1. Firebase 설정
-    const firebaseConfig = {
-        apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
-        authDomain: "bokseong-deep-sky.firebaseapp.com",
-        databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "bokseong-deep-sky",
-        storageBucket: "bokseong-deep-sky.firebasestorage.app",
-        messagingSenderId: "800777151311",
-        appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
-    };
+// 1. Firebase 설정
+const firebaseConfig = {
+    apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
+    authDomain: "bokseong-deep-sky.firebaseapp.com",
+    databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "bokseong-deep-sky",
+    storageBucket: "bokseong-deep-sky.firebasestorage.app",
+    messagingSenderId: "800777151311",
+    appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
+};
 
-    // 2. 초기화
-    const app = firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.database();
-    
-    // App Check 활성화 (reCAPTCHA v3)
-    const appCheck = firebase.appCheck();
-    appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
+// 2. 초기화
+const app = firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
 
-    const ADMIN_EMAIL = "leader.deepsky@gmail.com";
+// App Check 활성화
+const appCheck = firebase.appCheck();
+appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
-    // 3. 인증 및 사용자 등급 로직
-    auth.onAuthStateChanged(async (user) => {
-        const status = document.getElementById("userStatus");
-        const loginBtn = document.getElementById("loginBtn");
-        const logoutBtn = document.getElementById("logoutBtn");
-        const adminBox = document.getElementById("adminBox");
-        const adminUpdateBox = document.getElementById("adminUpdateBox");
+const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-        if (user) {
-            // 사용자 정보 실시간 감시
-            db.ref('users/' + user.uid).on('value', snapshot => {
-                const userData = snapshot.val() || {};
-                const finalName = userData.name || user.displayName || user.email.split('@')[0];
-                
-                // [등급 판정 로직] 
-                // 이메일이 관리자라면 무조건 'admin', 아니면 DB 값 사용, 그것도 없으면 'member'
-                let userRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
-                
-                // 상단바 등급 표시 업데이트
-                if(status) status.innerText = `${finalName}님 (${getRoleName(userRole)})`;
+// 3. 인증 및 사용자 등급 로직
+auth.onAuthStateChanged(async (user) => {
+    const status = document.getElementById("userStatus");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const adminBox = document.getElementById("adminBox");
+    const adminUpdateBox = document.getElementById("adminUpdateBox");
 
-                // 관리자 등급일 때만 인덱스 페이지의 수정창 노출
-                if (userRole === 'admin') {
-                    adminBox?.classList.remove("hidden");
-                    adminUpdateBox?.classList.remove("hidden");
-                } else {
-                    adminBox?.classList.add("hidden");
-                    adminUpdateBox?.classList.add("hidden");
-                }
-            });
-
-            loginBtn?.classList.add("hidden");
-            logoutBtn?.classList.remove("hidden");
-        } else {
-            // 로그아웃 상태
-            if(status) status.innerText = "로그인 해주세요";
-            loginBtn?.classList.remove("hidden");
-            logoutBtn?.classList.add("hidden");
-            adminBox?.classList.add("hidden");
-            adminUpdateBox?.classList.add("hidden");
-        }
-        
-        loadProgram();
-        loadUpdateLogs();
-    });
-
-    // 4. 등급 명칭 변환
-    function getRoleName(role) {
-        if (role === 'admin') return '관리자';
-        if (role === 'student') return '동아리 부원';
-        return '일반 회원';
-    }
-
-    // 5. 공지사항 로드
-    function loadProgram() {
-        db.ref("weekProgram").on("value", snapshot => {
-            const data = snapshot.val();
-            const el = document.getElementById("weekProgramText");
-            if(el) el.innerText = data ? data.text : "공지가 없습니다.";
-        });
-    }
-
-    // 6. 업데이트 로그 로드
-    function loadUpdateLogs() {
-        db.ref("updateLogs").on("value", snapshot => {
-            const logList = document.getElementById("updateLogList");
-            if(!logList) return;
-            logList.innerHTML = "";
-            let logs = [];
-            snapshot.forEach(child => { logs.push(child.val()); });
+    if (user) {
+        db.ref('users/' + user.uid).on('value', snapshot => {
+            const userData = snapshot.val() || {};
+            const finalName = userData.name || user.displayName || user.email.split('@')[0];
             
-            logs.reverse().slice(0, 5).forEach(log => {
-                const item = document.createElement("div");
-                item.className = "log-item";
-                item.innerHTML = `
-                    <div class="log-header">
-                        <span class="log-version">${log.version}</span>
-                        <span class="log-date">${log.date || ''}</span>
-                    </div>
-                    <div class="log-text">${log.content}</div>`;
-                logList.appendChild(item);
-            });
+            let userRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+            
+            if(status) status.innerText = `${finalName}님 (${getRoleName(userRole)})`;
+
+            if (userRole === 'admin') {
+                adminBox?.classList.remove("hidden");
+                adminUpdateBox?.classList.remove("hidden");
+            } else {
+                adminBox?.classList.add("hidden");
+                adminUpdateBox?.classList.add("hidden");
+            }
         });
-    }
 
-    // 7. 관리자: 공지 수정
-    async function saveProgram() {
-        const text = document.getElementById("weekProgramInput").value;
-        if(!text) return alert("내용을 입력하세요.");
-        try {
-            await appCheck.getToken(false);
-            await db.ref("weekProgram").set({ 
-                text: text, 
-                updatedAt: firebase.database.ServerValue.TIMESTAMP 
-            });
-            alert("공지가 수정되었습니다.");
-            document.getElementById("weekProgramInput").value = "";
-        } catch(e) { alert("수정 권한이 없습니다."); }
+        loginBtn?.classList.add("hidden");
+        logoutBtn?.classList.remove("hidden");
+    } else {
+        if(status) status.innerText = "로그인 해주세요";
+        loginBtn?.classList.remove("hidden");
+        logoutBtn?.classList.add("hidden");
+        adminBox?.classList.add("hidden");
+        adminUpdateBox?.classList.add("hidden");
     }
+    
+    loadProgram();
+    loadUpdateLogs();
+});
 
-    // 8. 관리자: 업데이트 로그 추가
-    async function addUpdateLog() {
-        const version = document.getElementById("updateVersion").value;
-        const content = document.getElementById("updateContent").value;
-        if(!version || !content) return alert("내용을 채워주세요.");
+// 4. 등급 명칭 변환
+function getRoleName(role) {
+    if (role === 'admin') return '관리자';
+    if (role === 'student') return '동아리 부원';
+    return '일반 회원';
+}
+
+// 5. 공지사항 로드
+function loadProgram() {
+    db.ref("weekProgram").on("value", snapshot => {
+        const data = snapshot.val();
+        const el = document.getElementById("weekProgramText");
+        if(el) el.innerText = data ? data.text : "공지가 없습니다.";
+    });
+}
+
+// 6. 업데이트 로그 로드
+function loadUpdateLogs() {
+    db.ref("updateLogs").on("value", snapshot => {
+        const logList = document.getElementById("updateLogList");
+        if(!logList) return;
+        logList.innerHTML = "";
+        let logs = [];
+        snapshot.forEach(child => { logs.push(child.val()); });
         
-        try {
-            const today = new Date().toISOString().split('T')[0];
-            await appCheck.getToken(false);
-            await db.ref("updateLogs").push({
-                version: version,
-                content: content,
-                date: today
-            });
-            alert("로그가 등록되었습니다.");
-            document.getElementById("updateVersion").value = "";
-            document.getElementById("updateContent").value = "";
-        } catch(e) { alert("추가 권한이 없습니다."); }
-    }
+        logs.reverse().slice(0, 5).forEach(log => {
+            const item = document.createElement("div");
+            item.className = "log-item";
+            item.innerHTML = `
+                <div class="log-header">
+                    <span class="log-version">${log.version}</span>
+                    <span class="log-date">${log.date || ''}</span>
+                </div>
+                <div class="log-text">${log.content}</div>`;
+            logList.appendChild(item);
+        });
+    });
+}
 
-    // 9. 슬라이드 기능
-    let slideIndex = 0;
-    function setupSlides() {
-        const slides = document.querySelectorAll(".slide-item");
-        if(slides.length === 0) return;
-        window.changeSlide = (n) => {
-            slides.forEach(s => s.classList.remove("active"));
-            slideIndex = (slideIndex + n + slides.length) % slides.length;
-            slides[slideIndex].classList.add("active");
-        };
-        if(!window.slideInterval) window.slideInterval = setInterval(() => window.changeSlide(1), 4000);
-    }
-    setupSlides();
+// 7. 관리자: 공지 수정 실행함수
+async function saveProgram() {
+    const text = document.getElementById("weekProgramInput").value;
+    if(!text) return alert("내용을 입력하세요.");
+    try {
+        await appCheck.getToken(false);
+        await db.ref("weekProgram").set({ 
+            text: text, 
+            updatedAt: firebase.database.ServerValue.TIMESTAMP 
+        });
+        alert("공지가 수정되었습니다.");
+        document.getElementById("weekProgramInput").value = "";
+    } catch(e) { alert("수정 권한이 없습니다."); }
+}
 
-    // 10. 로그아웃
-    window.logout = () => { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); };
-</script>
+// 8. 관리자: 업데이트 로그 추가 실행함수
+async function addUpdateLog() {
+    const version = document.getElementById("updateVersion").value;
+    const content = document.getElementById("updateContent").value;
+    if(!version || !content) return alert("내용을 채워주세요.");
+    
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        await appCheck.getToken(false);
+        await db.ref("updateLogs").push({
+            version: version,
+            content: content,
+            date: today
+        });
+        alert("로그가 등록되었습니다.");
+        document.getElementById("updateVersion").value = "";
+        document.getElementById("updateContent").value = "";
+    } catch(e) { alert("추가 권한이 없습니다."); }
+}
+
+// ------------------------------------------------
+// [새로 추가된 엔터키 이벤트 핸들러]
+// ------------------------------------------------
+
+// 공지사항 입력창: Ctrl + Enter 시 저장
+document.getElementById("weekProgramInput")?.addEventListener("keydown", function(e) {
+    if (e.ctrlKey && e.key === 'Enter') {
+        saveProgram();
+    }
+});
+
+// 업데이트 버전 입력창: Enter 시 저장
+document.getElementById("updateVersion")?.addEventListener("keypress", function(e) {
+    if (e.key === 'Enter') {
+        addUpdateLog();
+    }
+});
+
+// 업데이트 내용 입력창: Ctrl + Enter 시 저장
+document.getElementById("updateContent")?.addEventListener("keydown", function(e) {
+    if (e.ctrlKey && e.key === 'Enter') {
+        addUpdateLog();
+    }
+});
+// ------------------------------------------------
+
+// 9. 슬라이드 기능
+let slideIndex = 0;
+function setupSlides() {
+    const slides = document.querySelectorAll(".slide-item");
+    if(slides.length === 0) return;
+    window.changeSlide = (n) => {
+        slides.forEach(s => s.classList.remove("active"));
+        slideIndex = (slideIndex + n + slides.length) % slides.length;
+        slides[slideIndex].classList.add("active");
+    };
+    if(!window.slideInterval) window.slideInterval = setInterval(() => window.changeSlide(1), 4000);
+}
+setupSlides();
+
+// 10. 로그아웃
+window.logout = () => { 
+    if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); 
+};
 </body>
 </html>
