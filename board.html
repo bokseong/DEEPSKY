@@ -50,9 +50,9 @@
         
         .post-info-area { cursor: pointer; flex-grow: 1; display: flex; align-items: center; justify-content: space-between; }
         .post-title { font-weight: bold; color: #7fc7ff; }
-        .post-meta { font-size: 13px; color: #888; }
+        .post-meta { font-size: 13px; color: #aaa; }
 
-        /* 삭제 버튼 스타일 (빨간색 박스) */
+        /* 삭제 버튼 스타일 */
         .del-btn { 
             background: #ff4d4d; color: white; border: none; 
             padding: 5px 12px; border-radius: 6px; cursor: pointer; 
@@ -63,23 +63,14 @@
 
         .btn-write { display: block; width: 100%; max-width: 150px; margin: 20px 0 0 auto; text-align: center; background: #3a5aff; color: white; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; }
         footer { background: #070a1d; text-align: center; padding: 30px; font-size: 12px; color: #888; border-top: 1px solid #1b2f80; margin-top: 50px; }
-        /* 방문 전(:link)과 방문 후(:visited)를 쉼표로 연결 */
-        a:link, a:visited {
-            color: #dedede;      
-            text-decoration: none; /* 밑줄을 없애고 싶을 때 */
-        }
-
-        /* 마우스를 올렸을 때의 변화 (선택 사항) */
-        a:hover {
-            color: #b2b2b2;
-            text-decoration: underline;
-        }
+        
+        a:link, a:visited { color: #dedede; text-decoration: none; }
+        a:hover { color: #b2b2b2; text-decoration: underline; }
 
         @media (max-width: 600px) {
             .logo-area span { font-size: 16px; }
             nav a { padding: 10px 12px; font-size: 13px; }
             header h1 { font-size: 22px; }
-            .header-logo { width: 100px; height: 100px; }
         }
     </style>
 </head>
@@ -133,7 +124,7 @@
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
     <br>
-    Email : leader.deepsky@gmail.com &nbsp;	&nbsp; &nbsp; &nbsp;|	&nbsp; &nbsp; &nbsp; &nbsp;Designed by jw-astro09
+    Email : leader.deepsky@gmail.com | Designed by jw-astro09
     <br>
     <a href="https://forms.gle/5MZf7MEZwNxAefXw9">시스템 오류 또는 오타 수정 건의하기</a>
 </footer>
@@ -142,7 +133,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
 <script>
 // 1. 초기 설정
@@ -162,14 +152,11 @@ const db = firebase.database();
 const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
-// EmailJS 초기화 (본인의 Public Key로 교체하세요)
-emailjs.init("p2O8bkjE2HkqQef3q"); 
-
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 let currentUser = null;
-let currentUserRole = "guest"; // 비로그인(게스트) 기본값
+let currentUserRole = "guest";
 
-// 2. 인증 상태 감시 및 UI 제어
+// 2. 인증 상태 감시
 auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     const status = document.getElementById("userStatus");
@@ -178,20 +165,13 @@ auth.onAuthStateChanged(async (user) => {
     const writeBtn = document.querySelector(".btn-write");
 
     if (user) {
-        // 실시간 유저 정보 로드
         db.ref('users/' + user.uid).on('value', (snapshot) => {
             const userData = snapshot.val() || {};
             const finalName = userData.name || user.email.split('@')[0];
-            
-            // 등급 판정 (영문 role 필드 기준)
             currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
-            
             if(status) status.innerText = `${finalName}님 (${getRoleName(currentUserRole)})`;
-            
-            // 일반 회원(member) 이상만 글쓰기 버튼 노출
             if (writeBtn) writeBtn.classList.remove("hidden");
         });
-        
         loginBtn?.classList.add("hidden");
         logoutBtn?.classList.remove("hidden");
     } else {
@@ -199,14 +179,11 @@ auth.onAuthStateChanged(async (user) => {
         if(status) status.innerText = "로그인 해주세요";
         loginBtn?.classList.remove("hidden");
         logoutBtn?.classList.add("hidden");
-        // 비로그인은 글쓰기 버튼 숨김
         if (writeBtn) writeBtn.classList.add("hidden");
     }
-    
-    loadPosts(); // 게시글 로드 실행
+    loadPosts();
 });
 
-// 등급 한글 변환 함수
 function getRoleName(role) {
     switch(role) {
         case 'admin': return '관리자';
@@ -215,38 +192,39 @@ function getRoleName(role) {
     }
 }
 
-// 3. 게시글 로드 및 검색 기능
+// 날짜 포맷 변환 함수 (YYYY-MM-DD HH:mm)
+function formatDate(timestamp) {
+    if (!timestamp) return "";
+    const date = new Date(timestamp);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const h = String(date.getHours()).padStart(2, '0');
+    const min = String(date.getMinutes()).padStart(2, '0');
+    return `${y}-${m}-${d} ${h}:${min}`;
+}
+
+// 3. 게시글 로드 및 검색
 async function loadPosts() {
     const list = document.getElementById("postList");
-    const searchInput = document.getElementById("searchInput");
-    const keyword = searchInput ? searchInput.value.toLowerCase().trim() : "";
+    const keyword = document.getElementById("searchInput")?.value.toLowerCase().trim() || "";
 
-    // 실시간 리스너 연결
     db.ref("freeboard").on("value", async (snapshot) => {
         list.innerHTML = "";
         const data = snapshot.val();
-        
         if(!data) {
             list.innerHTML = "<p style='text-align:center; padding:40px; color:#888;'>등록된 글이 없습니다.</p>";
             return;
         }
 
-        const keys = Object.keys(data).reverse();
+        const keys = Object.keys(data).sort((a, b) => data[b].timestamp - data[a].timestamp);
         let hasResult = false;
 
         for (const key of keys) {
             const p = data[key];
-            
-            // 작성자 실시간 이름 조회
             let authorName = p.author || "익명";
-            if (p.uid) {
-                try {
-                    const nameSnap = await db.ref('users/' + p.uid + '/name').once('value');
-                    if (nameSnap.exists()) authorName = nameSnap.val();
-                } catch (e) {}
-            }
-
-            // 검색 필터링 (제목 또는 작성자)
+            
+            // 검색 필터링
             if (keyword !== "") {
                 const titleMatch = (p.title || "").toLowerCase().includes(keyword);
                 const authorMatch = authorName.toLowerCase().includes(keyword);
@@ -254,23 +232,22 @@ async function loadPosts() {
             }
             
             hasResult = true;
-
             const item = document.createElement("div");
             item.className = "post-item";
 
-            // 정보 영역 (클릭 시 상세보기)
             const infoArea = document.createElement("div");
             infoArea.className = "post-info-area";
             infoArea.onclick = () => location.href = `view.html?id=${key}`;
+            
+            // 시간과 이름이 함께 표시되도록 수정
             infoArea.innerHTML = `
                 <div>
                     <div class="post-title">${p.title}</div>
-                    <div class="post-meta">${authorName} | ${new Date(p.timestamp).toLocaleDateString()}</div>
+                    <div class="post-meta">${authorName} | ${formatDate(p.timestamp)}</div>
                 </div>
             `;
             item.appendChild(infoArea);
 
-            // [삭제 권한] 관리자 전체 삭제 가능 / 일반&부원은 본인 글만 삭제 가능
             if(currentUser && (currentUser.uid === p.uid || currentUserRole === 'admin')) {
                 const delBtn = document.createElement("button");
                 delBtn.className = "del-btn";
@@ -281,10 +258,6 @@ async function loadPosts() {
                         try {
                             await appCheck.getToken(false);
                             await db.ref("freeboard/" + key).remove();
-                            
-                            // 삭제 알림 메일 발송 (선택 사항)
-                            sendAdminEmail("게시글 삭제 알림", `${authorName}님의 글이 삭제되었습니다.`);
-                            
                             alert("성공적으로 삭제되었습니다.");
                         } catch (err) {
                             alert("삭제 실패: 권한이 없거나 네트워크 오류입니다.");
@@ -302,28 +275,11 @@ async function loadPosts() {
     });
 }
 
-// 4. 메일 발송 함수 (EmailJS)
-function sendAdminEmail(subject, message) {
-    const templateParams = {
-        to_name: "관리자님",
-        from_name: "DEEP SKY 시스템",
-        subject: subject,
-        message: message
-    };
-
-    emailjs.send("deepsky", "template_qxgegja", templateParams)
-        .then(() => console.log("관리자 알림 메일 발송 성공"))
-        .catch((err) => console.error("메일 발송 실패", err));
-}
-
-// 5. 검색 엔터키 이벤트 추가
+// 4. 이벤트 리스너
 document.getElementById("searchInput")?.addEventListener("keyup", (e) => {
-    if (e.key === "Enter") {
-        loadPosts();
-    }
+    if (e.key === "Enter") loadPosts();
 });
 
-// 6. 로그아웃 함수
 function logout() { 
     if(confirm("로그아웃 하시겠습니까?")) {
         auth.signOut().then(() => { location.reload(); });
