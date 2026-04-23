@@ -162,8 +162,18 @@ const urlParams = new URLSearchParams(window.location.search);
 const postId = urlParams.get('id');
 
 let currentUserName = "";
+let currentUserRole = "";
 let currentPostAuthorUid = ""; 
 let currentPostTitle = "";
+
+// 등급 명칭 변환 함수
+function getRoleName(role) {
+    switch(role) {
+        case 'admin': return '관리자';
+        case 'student': return '동아리 부원';
+        default: return '일반 회원';
+    }
+}
 
 // 4. 로그인 상태 및 초기 실행
 auth.onAuthStateChanged(async (user) => {
@@ -174,9 +184,12 @@ auth.onAuthStateChanged(async (user) => {
     const commentLoginNotice = document.getElementById("commentLoginNotice");
 
     if (user) {
-        db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
-            currentUserName = snapshot.val() || user.displayName || user.email.split('@')[0];
-            status.innerText = `${currentUserName}님`;
+        // [업데이트] 유저 정보 로드 시 이름 옆에 등급 표시
+        db.ref('users/' + user.uid).on('value', (snapshot) => {
+            const userData = snapshot.val() || {};
+            currentUserName = userData.name || user.displayName || user.email.split('@')[0];
+            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+            status.innerText = `${currentUserName}님 (${getRoleName(currentUserRole)})`;
         });
         loginBtn.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
@@ -191,10 +204,8 @@ auth.onAuthStateChanged(async (user) => {
         commentLoginNotice.classList.remove("hidden");
     }
 
-    // [중요] App Check 토큰 획득 대기
     try {
         await appCheck.getToken();
-        console.log("App Check 인증 완료");
     } catch (e) {
         console.warn("App Check 토큰 대기 중...");
     }
@@ -208,11 +219,19 @@ auth.onAuthStateChanged(async (user) => {
     }
 });
 
+// [업데이트] 댓글 입력창 엔터키 이벤트 추가
+document.getElementById("commentInput")?.addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+        addComment();
+    }
+});
+
 // 5. 게시글 데이터 로드
 function loadPost(user) {
     db.ref("freeboard/" + postId).once("value").then(async (snapshot) => {
-        const postData = snapshot.val(); // 'post' 대신 'postData'로 명확히 정의
+        const postData = snapshot.val();
         const postArea = document.getElementById("postArea");
+        const viewContent = document.getElementById("viewContent");
 
         if (!postData) {
             postArea.innerHTML = "<div style='text-align:center; padding:100px;'><h3>삭제된 게시글입니다.</h3></div>";
@@ -225,21 +244,27 @@ function loadPost(user) {
 
         postArea.classList.remove("hidden");
         document.getElementById("viewTitle").innerText = postData.title;
-        document.getElementById("viewContent").innerText = postData.content;
-        document.getElementById("viewDate").innerText = postData.createdAt ? new Date(postData.createdAt).toLocaleString() : "";
+        
+        // [업데이트] 본문 줄바꿈 및 박스 탈출 방지 설정
+        viewContent.innerText = postData.content;
+        viewContent.style.wordBreak = "break-all"; // 긴 단어도 강제 줄바꿈
+        viewContent.style.overflowWrap = "break-word"; // 박스 안에서 줄바꿈
 
-        // 작성자 실시간 이름 조회
+        const displayTime = postData.createdAt || postData.updatedAt || Date.now();
+        document.getElementById("viewDate").innerText = new Date(displayTime).toLocaleString();
+
         let authorDisplayName = postData.author || "익명";
         if (postData.uid) {
-            const userSnap = await db.ref('users/' + postData.uid + '/name').once('value');
-            if (userSnap.exists()) authorDisplayName = userSnap.val();
+            const userSnap = await db.ref('users/' + postData.uid).once('value');
+            if (userSnap.exists()) {
+                const u = userSnap.val();
+                authorDisplayName = `${u.name || authorDisplayName}`;
+            }
         }
         document.getElementById("viewAuthor").innerText = "작성자: " + authorDisplayName;
 
-        // 링크 렌더링 함수 실행
         renderLinks(postData);
 
-        // 삭제/수정 버튼 권한 제어
         const deleteBtn = document.getElementById("deleteBtn");
         const editBtn = document.getElementById("editBtn");
         if (user && (user.uid === postData.uid || user.email === ADMIN_EMAIL)) {
@@ -254,12 +279,9 @@ function loadPost(user) {
     });
 }
 
-// 링크 렌더링 (여러 링크 지원)
 function renderLinks(post) {
     const linkArea = document.getElementById("linkArea");
     const viewFileLink = document.getElementById("viewFileLink");
-    
-    // 기존 동적 버튼 제거
     const oldLinks = linkArea.querySelectorAll(".dynamic-link");
     oldLinks.forEach(l => l.remove());
 
@@ -288,7 +310,7 @@ function renderLinks(post) {
     }
 }
 
-// 6. 댓글 로드 및 추가/삭제 로직 (동일)
+// 6. 댓글 로드 및 추가/삭제 로직
 function loadComments(user) {
     db.ref("freeboard/" + postId + "/comments").on("value", (snapshot) => {
         const listArea = document.getElementById("commentList");
@@ -348,9 +370,9 @@ function sendNotificationEmail(msg) {
     });
 }
 
-function deleteComment(id) { if(confirm("댓글 삭제?")) db.ref("freeboard/"+postId+"/comments/"+id).remove(); }
-function deletePost() { if(confirm("게시글 삭제?")) db.ref("freeboard/"+postId).remove().then(() => location.href='board.html'); }
-function logout() { if(confirm("로그아웃?")) auth.signOut().then(() => location.reload()); }
+function deleteComment(id) { if(confirm("댓글을 삭제하시겠습니까?")) db.ref("freeboard/"+postId+"/comments/"+id).remove(); }
+function deletePost() { if(confirm("게시글을 삭제하시겠습니까?")) db.ref("freeboard/"+postId).remove().then(() => location.href='board.html'); }
+function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
 function escapeHtml(t) { const d = document.createElement('div'); d.innerText = t; return d.innerHTML; }
 </script>
 </body>
