@@ -50,7 +50,7 @@
         
         .post-info-area { cursor: pointer; flex-grow: 1; display: flex; align-items: center; justify-content: space-between; }
         .post-title { font-weight: bold; color: #7fc7ff; }
-        .post-meta { font-size: 13px; color: #aaa; }
+        .post-meta { font-size: 13px; color: #aaa; margin-top: 4px; }
 
         /* 삭제 버튼 스타일 */
         .del-btn { 
@@ -194,7 +194,7 @@ function getRoleName(role) {
 
 // 날짜 포맷 변환 함수 (YYYY-MM-DD HH:mm)
 function formatDate(timestamp) {
-    if (!timestamp) return "";
+    if (!timestamp) return "시간 정보 없음";
     const date = new Date(timestamp);
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -217,7 +217,11 @@ async function loadPosts() {
             return;
         }
 
-        const keys = Object.keys(data).sort((a, b) => data[b].timestamp - data[a].timestamp);
+        // 최신순 정렬: timestamp 기준 내림차순
+        const keys = Object.keys(data).sort((a, b) => {
+            return (data[b].timestamp || 0) - (data[a].timestamp || 0);
+        });
+
         let hasResult = false;
 
         for (const key of keys) {
@@ -239,7 +243,7 @@ async function loadPosts() {
             infoArea.className = "post-info-area";
             infoArea.onclick = () => location.href = `view.html?id=${key}`;
             
-            // 시간과 이름이 함께 표시되도록 수정
+            // 이름 옆 | 그리고 날짜와 시간 표시
             infoArea.innerHTML = `
                 <div>
                     <div class="post-title">${p.title}</div>
@@ -248,6 +252,7 @@ async function loadPosts() {
             `;
             item.appendChild(infoArea);
 
+            // 삭제 권한 체크
             if(currentUser && (currentUser.uid === p.uid || currentUserRole === 'admin')) {
                 const delBtn = document.createElement("button");
                 delBtn.className = "del-btn";
