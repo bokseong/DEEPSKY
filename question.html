@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="logo.png" type="image/png">
-    <title>DEEP SKY</title>
+    <title>DEEP SKY - 질문 게시판</title>
     <style>
-        /* [스타일 부분은 기존과 동일하므로 생략 - 그대로 유지하세요] */
+        /* 기존 디자인 시스템 및 스타일 유지 */
         * { box-sizing: border-box; }
         body { margin: 0; font-family: "Segoe UI", sans-serif; background: #0b0f2b; color: white; line-height: 1.6; }
         .hidden { display: none !important; }
@@ -34,15 +34,12 @@
         .ans-box { background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 8px; border-left: 3px solid #28a745; position: relative; }
         .ans-content { font-size: 14px; color: #eee; line-height: 1.4; padding-right: 30px; word-break: break-all; overflow-wrap: break-word; }
         .ans-author { font-size: 11px; color: #7fc7ff; margin-top: 5px; display: block; font-weight: bold; }
-        .btn-ans-del { position: absolute; top: 10px; right: 10px; background: transparent; color: #ff4d4d; border: none; cursor: pointer; font-size: 12px; font-weight: bold; }
         .answer-controls { margin-top: 20px; padding-top: 15px; border-top: 1px dashed #2d367a; display: flex; gap: 5px; }
         .answer-controls input { flex: 1; padding: 10px; border-radius: 5px; border: 1px solid #1b2f80; background: #0b0f2b; color: white; outline: none; }
         .btn-ans { background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .btn-del { background: #ff4d4d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         footer { background: #070a1d; text-align: center; padding: 30px 20px; font-size: 12px; color: #888; border-top: 1px solid #1b2f80; width: 100%; margin-top: 50px; }
-        /* 방문 전(:link)과 방문 후(:visited)를 쉼표로 연결 */
-        a:link, a:visited { color: #dedede; text-decoration: none; /* 밑줄을 없애고 싶을 때 */}
-        /* 마우스를 올렸을 때의 변화 (선택 사항) */
+        a:link, a:visited { color: #dedede; text-decoration: none; }
         a:hover { color: #b2b2b2; text-decoration: underline; }
         @media (max-width: 600px) { .logo-area span { font-size: 16px; } nav a { padding: 10px 12px; font-size: 13px; } header h1 { font-size: 22px; } }
     </style>
@@ -88,7 +85,7 @@
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
     <br>
-    Email : leader.deepsky@gmail.com &nbsp;	&nbsp; &nbsp; &nbsp;|	&nbsp; &nbsp; &nbsp; &nbsp;Designed by jw-astro09
+    Email : leader.deepsky@gmail.com &nbsp; &nbsp; &nbsp; &nbsp;| &nbsp; &nbsp; &nbsp; &nbsp;Designed by jw-astro09
     <br>
     <a href="https://forms.gle/5MZf7MEZwNxAefXw9">시스템 오류 또는 오타 수정 건의하기</a>
 </footer>
@@ -99,13 +96,9 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
-// 1. EmailJS 초기화 및 차단 감지
+// 1. EmailJS 초기화
 (function() {
-    try {
-        emailjs.init({ publicKey: "p2O8bkjE2HkqQef3q" });
-    } catch (e) {
-        console.warn("EmailJS 로드 차단됨: 메일 알림 기능이 작동하지 않을 수 있습니다.");
-    }
+    try { emailjs.init({ publicKey: "p2O8bkjE2HkqQef3q" }); } catch (e) {}
 })();
 
 const firebaseConfig = {
@@ -128,6 +121,7 @@ const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
 let currentUser = null;
 let currentUserName = "익명";
+let currentUserRole = "member"; // 기본 역할
 let cachedData = null;
 
 // 관리자 알림 함수
@@ -139,14 +133,10 @@ async function sendAdminAlert(qText, author, msg) {
         reply_text: msg,
         admin_email: ADMIN_EMAIL
     };
-    try {
-        await emailjs.send("deepsky", "template_a17vklg", templateParams);
-    } catch (err) {
-        console.error('메일 발송 실패:', err);
-    }
+    try { await emailjs.send("deepsky", "template_a17vklg", templateParams); } catch (e) {}
 }
 
-// [로그인 로직 수정] 실시간 감시 및 상단바 업데이트 통합
+// 로그인 로직 감시
 auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     const status = document.getElementById("userStatus");
@@ -154,37 +144,31 @@ auth.onAuthStateChanged(async (user) => {
     const logoutBtn = document.getElementById("logoutBtn");
 
     if (user) {
-        // 실시간으로 사용자 이름 가져오기
         db.ref('users/' + user.uid).on('value', (snapshot) => {
             const userData = snapshot.val() || {};
             currentUserName = userData.name || user.displayName || user.email.split('@')[0];
+            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
             
-            // 등급 명칭 변환
             let roleName = "일반 회원";
-            if (user.email === ADMIN_EMAIL) roleName = "관리자";
-            else if (userData.role === 'student') roleName = "동아리 부원";
+            if (currentUserRole === 'admin') roleName = "관리자";
+            else if (currentUserRole === 'student') roleName = "동아리 부원";
 
             if (status) status.innerText = `${currentUserName}님 (${roleName})`;
+            renderList(cachedData); // 권한이 바뀌었을 때 리스트 다시 그리기
         });
         loginBtn?.classList.add("hidden");
         logoutBtn?.classList.remove("hidden");
     } else {
         currentUserName = "익명";
+        currentUserRole = "guest";
         if (status) status.innerText = "로그인 해주세요";
         loginBtn?.classList.remove("hidden");
         logoutBtn?.classList.add("hidden");
+        renderList(cachedData);
     }
     loadQuestions();
 });
 
-// [엔터 키 등록 추가] 질문 입력창 전용
-document.getElementById("qInput")?.addEventListener("keypress", function(e) {
-    if (e.key === "Enter") {
-        addQuestion();
-    }
-});
-
-// 질문 로드
 function loadQuestions() {
     db.ref("questions").on("value", snapshot => {
         cachedData = snapshot.val();
@@ -192,7 +176,7 @@ function loadQuestions() {
     });
 }
 
-// 질문 등록
+// 질문 등록 (누구나 가능)
 async function addQuestion() {
     const textInput = document.getElementById("qInput");
     const text = textInput.value.trim();
@@ -209,42 +193,35 @@ async function addQuestion() {
             email: currentUser ? currentUser.email : "anonymous",
             createdAt: firebase.database.ServerValue.TIMESTAMP
         };
-
         await db.ref("questions").push(newPost);
         sendAdminAlert(text, currentUserName, "새 질문 등록됨").catch(() => {});
-        
         textInput.value = "";
         alert("질문이 등록되었습니다.");
-    } catch (err) {
-        alert("등록 실패: 보안 인증 오류입니다.");
-    } finally {
-        btn.disabled = false;
-    }
+    } catch (err) { alert("등록 실패: 보안 인증 오류입니다."); }
+    finally { btn.disabled = false; }
 }
 
-// 답글 저장 (입력창 엔터 키 대응 포함)
+// 답글 저장 (관리자/부원만 가능)
 async function saveAnswer(qKey) {
+    if(currentUserRole !== 'admin' && currentUserRole !== 'student') {
+        return alert("답변 권한이 없습니다. (관리자 또는 부원 전용)");
+    }
     const ansInput = document.getElementById("ans_"+qKey);
     const ansText = ansInput.value.trim();
     if(!ansText) return alert("내용을 입력하세요.");
-    if(!currentUser) return alert("로그인이 필요합니다.");
 
     try {
         await appCheck.getToken(true);
         const originalQuestion = cachedData[qKey].text;
-        
         await db.ref(`questions/${qKey}/replies`).push({
             text: ansText,
             author: currentUserName,
             email: currentUser.email,
             createdAt: firebase.database.ServerValue.TIMESTAMP
         });
-
         sendAdminAlert(originalQuestion, currentUserName, `답글 등록: ${ansText}`).catch(() => {});
         ansInput.value = "";
-    } catch (err) {
-        alert("등록 실패: " + err.message);
-    }
+    } catch (err) { alert("등록 실패: " + err.message); }
 }
 
 // 리스트 렌더링
@@ -253,6 +230,9 @@ function renderList(data) {
     const searchTerm = document.getElementById("qSearch").value.toLowerCase();
     list.innerHTML = "";
     if(!data) return;
+    
+    // 권한 확인 (답변 작성 가능 여부)
+    const canReply = (currentUserRole === 'admin' || currentUserRole === 'student');
     
     Object.keys(data).reverse().forEach(qKey => {
         const q = data[qKey];
@@ -272,15 +252,28 @@ function renderList(data) {
         
         const card = document.createElement("div");
         card.className = "q-card";
-        card.innerHTML = `
-            <div class="q-meta">${q.author}</div>
-            <span class="q-text">Q. ${q.text}</span>
-            ${repliesHtml}
+        
+        // 답변 컨트롤 영역 (권한이 있을 때만 노출)
+        let controlsHtml = '';
+        if (canReply) {
+            controlsHtml = `
             <div class="answer-controls">
                 <input type="text" id="ans_${qKey}" placeholder="답글 입력..." onkeypress="if(event.key==='Enter') saveAnswer('${qKey}')">
                 <button class="btn-ans" onclick="saveAnswer('${qKey}')">등록</button>
                 ${(isAuthor || isAdmin) ? `<button class="btn-del" onclick="deleteQuestion('${qKey}')">삭제</button>` : ""}
             </div>`;
+        } else if (isAuthor || isAdmin) {
+            // 답변 권한은 없지만 자기 글이라서 삭제만 가능한 경우 (일반회원)
+            controlsHtml = `<div class="answer-controls" style="justify-content: flex-end;">
+                <button class="btn-del" onclick="deleteQuestion('${qKey}')">삭제</button>
+            </div>`;
+        }
+
+        card.innerHTML = `
+            <div class="q-meta">${q.author}</div>
+            <span class="q-text">Q. ${q.text}</span>
+            ${repliesHtml}
+            ${controlsHtml}`;
         list.appendChild(card);
     });
 }
