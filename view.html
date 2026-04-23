@@ -202,24 +202,34 @@ auth.onAuthStateChanged(async (user) => {
     const commentLoginNotice = document.getElementById("commentLoginNotice");
 
     if (user) {
-        // [업데이트] 유저 정보 로드 시 이름 옆에 등급 표시
         db.ref('users/' + user.uid).on('value', (snapshot) => {
             const userData = snapshot.val() || {};
             currentUserName = userData.name || user.displayName || user.email.split('@')[0];
             currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
             status.innerText = `${currentUserName}님 (${getRoleName(currentUserRole)})`;
+
+            // [권한 수정] 관리자 또는 부원(student)인 경우에만 댓글 입력창 노출
+            if (currentUserRole === 'admin' || currentUserRole === 'student') {
+                commentFormArea.classList.remove("hidden");
+                commentLoginNotice.classList.add("hidden");
+            } else {
+                // 일반 회원인 경우
+                commentFormArea.classList.add("hidden");
+                commentLoginNotice.classList.remove("hidden");
+                commentLoginNotice.innerText = "댓글은 동아리 부원 이상만 작성할 수 있습니다.";
+            }
         });
         loginBtn.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
-        commentFormArea.classList.remove("hidden");
-        commentLoginNotice.classList.add("hidden");
     } else {
         currentUserName = "익명";
+        currentUserRole = "guest"; // 역할 초기화
         status.innerText = "로그인 해주세요";
         loginBtn.classList.remove("hidden");
         logoutBtn.classList.add("hidden");
         commentFormArea.classList.add("hidden");
         commentLoginNotice.classList.remove("hidden");
+        commentLoginNotice.innerText = "댓글을 작성하려면 로그인이 필요합니다.";
     }
 
     try {
@@ -236,7 +246,6 @@ auth.onAuthStateChanged(async (user) => {
         location.href = "board.html";
     }
 });
-
 // [업데이트] 댓글 입력창 엔터키 이벤트 추가
 document.getElementById("commentInput")?.addEventListener("keypress", function(e) {
     if (e.key === "Enter") {
@@ -355,10 +364,18 @@ function loadComments(user) {
     });
 }
 
+// 6. 댓글 추가 로직 (권한 체크 강화)
 function addComment() {
     const user = auth.currentUser;
     const input = document.getElementById("commentInput");
+    
     if (!user) return alert("로그인이 필요합니다.");
+    
+    // [보안 추가] 스크립트 단에서 등급 확인
+    if (currentUserRole !== 'admin' && currentUserRole !== 'student') {
+        return alert("댓글 작성 권한이 없습니다. (부원 이상 가능)");
+    }
+
     if (!input.value.trim()) return alert("내용을 입력하세요.");
 
     db.ref("freeboard/" + postId + "/comments").push({
@@ -369,6 +386,8 @@ function addComment() {
     }).then(() => {
         if (currentPostAuthorUid && currentPostAuthorUid !== user.uid) sendNotificationEmail(input.value);
         input.value = "";
+    }).catch(err => {
+        alert("댓글 등록에 실패했습니다: " + err.message);
     });
 }
 
