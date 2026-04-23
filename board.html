@@ -50,7 +50,7 @@
         
         .post-info-area { cursor: pointer; flex-grow: 1; display: flex; align-items: center; justify-content: space-between; }
         .post-title { font-weight: bold; color: #7fc7ff; }
-        .post-meta { font-size: 13px; color: #aaa; margin-top: 4px; }
+        .post-meta { font-size: 13px; color: #aaa; }
 
         /* 삭제 버튼 스타일 */
         .del-btn { 
@@ -135,7 +135,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
-// 1. 초기 설정
+// 1. 초기 설정 (Firebase)
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -156,7 +156,7 @@ const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 let currentUser = null;
 let currentUserRole = "guest";
 
-// 2. 인증 상태 감시
+// 2. 인증 상태 감시 및 사용자 정보 로드
 auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     const status = document.getElementById("userStatus");
@@ -181,9 +181,10 @@ auth.onAuthStateChanged(async (user) => {
         logoutBtn?.classList.add("hidden");
         if (writeBtn) writeBtn.classList.add("hidden");
     }
-    loadPosts();
+    loadPosts(); // 사용자 정보 확인 후 게시글 로드
 });
 
+// 등급 명칭 변환
 function getRoleName(role) {
     switch(role) {
         case 'admin': return '관리자';
@@ -192,7 +193,7 @@ function getRoleName(role) {
     }
 }
 
-// 날짜 포맷 변환 함수 (YYYY-MM-DD HH:mm)
+// 날짜/시간 포맷 변환 (YYYY-MM-DD HH:mm)
 function formatDate(timestamp) {
     if (!timestamp) return "시간 정보 없음";
     const date = new Date(timestamp);
@@ -204,7 +205,7 @@ function formatDate(timestamp) {
     return `${y}-${m}-${d} ${h}:${min}`;
 }
 
-// 3. 게시글 로드 및 검색
+// 3. 게시글 로드 및 검색 기능
 async function loadPosts() {
     const list = document.getElementById("postList");
     const keyword = document.getElementById("searchInput")?.value.toLowerCase().trim() || "";
@@ -217,9 +218,11 @@ async function loadPosts() {
             return;
         }
 
-        // 최신순 정렬: timestamp 기준 내림차순
+        // [정렬] 내림차순 정렬 (최신글이 맨 위로)
         const keys = Object.keys(data).sort((a, b) => {
-            return (data[b].timestamp || 0) - (data[a].timestamp || 0);
+            const timeA = data[a].timestamp || 0;
+            const timeB = data[b].timestamp || 0;
+            return timeB - timeA; 
         });
 
         let hasResult = false;
@@ -228,7 +231,7 @@ async function loadPosts() {
             const p = data[key];
             let authorName = p.author || "익명";
             
-            // 검색 필터링
+            // 검색 필터링 (제목 또는 작성자)
             if (keyword !== "") {
                 const titleMatch = (p.title || "").toLowerCase().includes(keyword);
                 const authorMatch = authorName.toLowerCase().includes(keyword);
@@ -243,7 +246,7 @@ async function loadPosts() {
             infoArea.className = "post-info-area";
             infoArea.onclick = () => location.href = `view.html?id=${key}`;
             
-            // 이름 옆 | 그리고 날짜와 시간 표시
+            // [업데이트] 작성자 이름 옆에 구분선(|)과 상세 시간 표시
             infoArea.innerHTML = `
                 <div>
                     <div class="post-title">${p.title}</div>
@@ -252,7 +255,7 @@ async function loadPosts() {
             `;
             item.appendChild(infoArea);
 
-            // 삭제 권한 체크
+            // 삭제 권한: 본인 또는 관리자
             if(currentUser && (currentUser.uid === p.uid || currentUserRole === 'admin')) {
                 const delBtn = document.createElement("button");
                 delBtn.className = "del-btn";
@@ -280,7 +283,7 @@ async function loadPosts() {
     });
 }
 
-// 4. 이벤트 리스너
+// 4. 기타 이벤트 핸들러
 document.getElementById("searchInput")?.addEventListener("keyup", (e) => {
     if (e.key === "Enter") loadPosts();
 });
