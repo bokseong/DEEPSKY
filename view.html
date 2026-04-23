@@ -216,7 +216,7 @@ auth.onAuthStateChanged(async (user) => {
                 // 일반 회원인 경우
                 commentFormArea.classList.add("hidden");
                 commentLoginNotice.classList.remove("hidden");
-                commentLoginNotice.innerText = "댓글은 동아리 부원 이상만 작성할 수 있습니다.";
+                commentLoginNotice.innerText = "댓글은 동아리 부원 이상의 등급 소유자만 작성할 수 있습니다.";
             }
         });
         loginBtn.classList.add("hidden");
