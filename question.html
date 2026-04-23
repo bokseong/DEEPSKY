@@ -121,12 +121,14 @@ let currentUserName = "익명";
 let currentUserRole = "guest";
 let cachedData = null;
 
+// 관리자 알림
 async function sendAdminAlert(qText, author, msg) {
     if (typeof emailjs === 'undefined') return;
     const templateParams = { question_text: qText, reply_author: author, reply_text: msg, admin_email: ADMIN_EMAIL };
     try { await emailjs.send("deepsky", "template_a17vklg", templateParams); } catch (e) {}
 }
 
+// 상태 감시 및 권한 설정
 auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     const status = document.getElementById("userStatus");
@@ -162,14 +164,19 @@ function loadQuestions() {
     });
 }
 
+// 질문 등록 (비로그인 대응)
 async function addQuestion() {
     const textInput = document.getElementById("qInput");
     const text = textInput.value.trim();
     if(!text) return alert("질문을 입력해주세요.");
+    
     const btn = document.querySelector(".btn-main");
     btn.disabled = true;
+
     try {
-        await appCheck.getToken(true);
+        // 비로그인 시 App Check 토큰 오류 방지를 위해 유연하게 처리
+        try { await appCheck.getToken(false); } catch(e) {}
+        
         const newPost = {
             text: text,
             author: currentUserName,
@@ -180,24 +187,29 @@ async function addQuestion() {
         sendAdminAlert(text, currentUserName, "새 질문 등록됨").catch(() => {});
         textInput.value = "";
         alert("질문이 등록되었습니다.");
-    } catch (err) { alert("등록 실패."); }
-    finally { btn.disabled = false; }
+    } catch (err) { 
+        alert("등록 실패: " + err.message); 
+    } finally { btn.disabled = false; }
 }
 
+// 답변 저장 (부원 이상만 가능)
 async function saveAnswer(qKey) {
     if(currentUserRole !== 'admin' && currentUserRole !== 'student') return alert("답변 권한이 없습니다.");
     const ansInput = document.getElementById("ans_"+qKey);
     const ansText = ansInput.value.trim();
     if(!ansText) return alert("내용을 입력하세요.");
     try {
-        await appCheck.getToken(true);
         await db.ref(`questions/${qKey}/replies`).push({
-            text: ansText, author: currentUserName, email: currentUser.email, createdAt: firebase.database.ServerValue.TIMESTAMP
+            text: ansText, 
+            author: currentUserName, 
+            email: currentUser.email, 
+            createdAt: firebase.database.ServerValue.TIMESTAMP
         });
         ansInput.value = "";
     } catch (err) { alert("등록 실패."); }
 }
 
+// 리스트 렌더링 및 권한별 삭제 버튼 제어
 function renderList(data) {
     const list = document.getElementById("questionList");
     const searchTerm = document.getElementById("qSearch").value.toLowerCase();
@@ -209,7 +221,9 @@ function renderList(data) {
 
     Object.keys(data).reverse().forEach(qKey => {
         const q = data[qKey];
-        const isQAuthor = currentUser && currentUser.email === q.email;
+        // 질문 작성자 확인 (익명 제외)
+        const isQAuthor = currentUser && q.email !== "anonymous" && currentUser.email === q.email;
+        
         if (searchTerm && !q.text.toLowerCase().includes(searchTerm)) return;
         
         let repliesHtml = '<div class="replies-container">';
@@ -217,7 +231,8 @@ function renderList(data) {
             Object.keys(q.replies).forEach(rKey => {
                 const r = q.replies[rKey];
                 const isRAuthor = currentUser && currentUser.email === r.email;
-                // 삭제 권한: 관리자 OR 댓글 작성자 OR 질문 작성자
+                
+                // 답변 삭제 조건: 관리자 OR 답변 작성자 OR 질문 작성자
                 const canDeleteReply = isAdmin || isRAuthor || isQAuthor;
                 
                 repliesHtml += `
@@ -232,15 +247,18 @@ function renderList(data) {
         const card = document.createElement("div");
         card.className = "q-card";
         
+        // 질문 삭제 조건: 관리자 OR 본인 질문
+        const canDeleteQuestion = isAdmin || isQAuthor;
+
         let controlsHtml = '';
         if (canReply) {
             controlsHtml = `
             <div class="answer-controls">
                 <input type="text" id="ans_${qKey}" placeholder="답글 입력..." onkeypress="if(event.key==='Enter') saveAnswer('${qKey}')">
                 <button class="btn-ans" onclick="saveAnswer('${qKey}')">등록</button>
-                ${(isQAuthor || isAdmin) ? `<button class="btn-del" onclick="deleteQuestion('${qKey}')">삭제</button>` : ""}
+                ${canDeleteQuestion ? `<button class="btn-del" onclick="deleteQuestion('${qKey}')">삭제</button>` : ""}
             </div>`;
-        } else if (isQAuthor || isAdmin) {
+        } else if (canDeleteQuestion) {
             controlsHtml = `<div class="answer-controls" style="justify-content: flex-end;">
                 <button class="btn-del" onclick="deleteQuestion('${qKey}')">삭제</button>
             </div>`;
@@ -254,24 +272,20 @@ function renderList(data) {
 function filterQuestions() { renderList(cachedData); }
 
 async function deleteQuestion(qKey) {
-    if(confirm("질문을 삭제하시겠습니까? (관련 답변도 모두 삭제됩니다.)")) {
-        try {
-            await appCheck.getToken(true);
-            await db.ref("questions/"+qKey).remove();
-        } catch(e) { alert("삭제 권한이 없습니다."); }
+    if(confirm("질문을 삭제하시겠습니까? 관련 답변도 모두 삭제됩니다.")) {
+        try { await db.ref("questions/"+qKey).remove(); } 
+        catch(e) { alert("삭제 권한이 없습니다."); }
     }
 }
 
 async function deleteAnswer(qKey, rKey) {
     if(confirm("답변을 삭제하시겠습니까?")) {
-        try {
-            await appCheck.getToken(true);
-            await db.ref(`questions/${qKey}/replies/${rKey}`).remove();
-        } catch(e) { alert("삭제 권한이 없습니다."); }
+        try { await db.ref(`questions/${qKey}/replies/${rKey}`).remove(); } 
+        catch(e) { alert("삭제 권한이 없습니다."); }
     }
 }
 
-function logout() { if(confirm("로그아웃?")) auth.signOut().then(() => location.reload()); }
+function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
 </script>
 </body>
 </html>
