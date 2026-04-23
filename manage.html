@@ -205,9 +205,9 @@
                     <td><span style="color: ${getLevelColor(level)}; font-weight: bold;">${level}</span></td>
                     <td>
                         <select id="sel-${uid}">
-                            <option value="일반 회원" ${level === '일반 회원' ? 'selected' : ''}>일반 회원</option>
-                            <option value="동아리 부원" ${level === '동아리 부원' ? 'selected' : ''}>동아리 부원</option>
-                            <option value="관리자" ${level === '관리자' ? 'selected' : ''}>관리자</option>
+                            <option value="member" ${level === 'member' ? 'selected' : ''}>일반 회원</option>
+                            <option value="student" ${level === 'student' ? 'selected' : ''}>동아리 부원</option>
+                            <option value="admin" ${level === 'admin' ? 'selected' : ''}>관리자</option>
                         </select>
                     </td>
                     <td><button class="btn-update" onclick="updateLevel('${uid}')">저장</button></td>
