@@ -149,129 +149,174 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
-    // 1. Firebase 설정
-    const firebaseConfig = {
-        apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
-        authDomain: "bokseong-deep-sky.firebaseapp.com",
-        databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "bokseong-deep-sky",
-        storageBucket: "bokseong-deep-sky.firebasestorage.app",
-        messagingSenderId: "800777151311",
-        appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
-    };
+   // 1. Firebase 설정
+const firebaseConfig = {
+    apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
+    authDomain: "bokseong-deep-sky.firebaseapp.com",
+    databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "bokseong-deep-sky",
+    storageBucket: "bokseong-deep-sky.firebasestorage.app",
+    messagingSenderId: "800777151311",
+    appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
+};
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.database();
-    const ADMIN_EMAIL = "leader.deepsky@gmail.com";
+// Firebase 초기화
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-    const appCheck = firebase.appCheck();
-    appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
+// App Check 활성화
+const appCheck = firebase.appCheck();
+appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
-    // 2. 인증 및 권한 로직
-    auth.onAuthStateChanged(async (user) => {
-        const status = document.getElementById("userStatus");
-        const loginBtn = document.getElementById("loginBtn");
-        const logoutBtn = document.getElementById("logoutBtn");
-        const msg = document.getElementById("authMsg");
-        const content = document.getElementById("adminContent");
-        const lockMessage = document.getElementById("lockMessage");
+// 2. 인증 및 권한 로직 (핵심 수정 부분)
+auth.onAuthStateChanged(async (user) => {
+    const status = document.getElementById("userStatus");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const msg = document.getElementById("authMsg");
+    const content = document.getElementById("adminContent");
+    const lockMessage = document.getElementById("lockMessage");
 
-        if (user) {
-            db.ref('users/' + user.uid).on('value', snapshot => {
-                const userData = snapshot.val() || {};
-                const finalName = userData.name || user.email.split('@')[0];
-                let userRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+    // 메시지 내부 텍스트 제어를 위한 요소 선택
+    const lockTitle = lockMessage?.querySelector("h2");
+    const lockText = lockMessage?.querySelector("p");
+    const lockBtn = lockMessage?.querySelector(".btn-main");
+
+    if (user) {
+        // [로그인 상태]
+        loginBtn?.classList.add("hidden");
+        logoutBtn?.classList.remove("hidden");
+
+        // 유저 데이터 실시간 감시
+        db.ref('users/' + user.uid).on('value', snapshot => {
+            const userData = snapshot.val() || {};
+            const finalName = userData.name || user.email.split('@')[0];
+            
+            // 등급 판정 (마스터 이메일 우선)
+            let userRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+            
+            if(status) status.innerText = `${finalName}님 (${getRoleName(userRole)})`;
+
+            if (userRole === "admin") {
+                // 관리자인 경우: 관리 화면 표시
+                msg?.classList.add("hidden");
+                lockMessage?.classList.add("hidden");
+                content?.classList.remove("hidden");
+                loadUserList(); 
+            } else {
+                // 일반 회원인 경우: "회원 전용 공간" 메시지 표시
+                msg?.classList.add("hidden");
+                content?.classList.add("hidden");
                 
-                if(status) status.innerText = `${finalName}님 (${getRoleName(userRole)})`;
-
-                if (userRole === "admin") {
-                    msg?.classList.add("hidden");
-                    lockMessage?.classList.add("hidden");
-                    content?.classList.remove("hidden");
-                    loadUserList(); 
-                } else {
-                    // 관리자가 아닐 때: 로딩 메시지 숨기고 거부 메시지 표시
-                    msg?.classList.add("hidden");
-                    content?.classList.add("hidden");
-                    lockMessage?.classList.remove("hidden");
+                if(lockTitle) lockTitle.innerText = "접근 권한 제한";
+                if(lockText) lockText.innerText = "이 페이지는 관리자 전용 공간입니다. 일반 회원은 접근할 수 없습니다.";
+                if(lockBtn) {
+                    lockBtn.innerText = "홈으로 돌아가기";
+                    lockBtn.onclick = () => { location.href = 'index.html'; };
                 }
-            });
-
-            loginBtn?.classList.add("hidden");
-            logoutBtn?.classList.remove("hidden");
-        } else {
-            alert("로그인이 필요한 페이지입니다.");
-            location.href = "login.html";
-        }
-    });
-
-    // 3. 회원 목록 불러오기
-    function loadUserList() {
-        const userListTbody = document.getElementById("userList");
-        if(!userListTbody) return;
+                lockMessage?.classList.remove("hidden");
+            }
+        });
+    } else {
+        // [비로그인 상태] 바로 튕기지 않고 메시지 표시
+        if(status) status.innerText = "로그인 필요";
+        loginBtn?.classList.remove("hidden");
+        logoutBtn?.classList.add("hidden");
         
-        db.ref('users').on('value', snapshot => {
-            userListTbody.innerHTML = "";
-            snapshot.forEach(child => {
-                const uid = child.key;
-                const userData = child.val();
-                const role = userData.role || "member"; 
+        msg?.classList.add("hidden");
+        content?.classList.add("hidden");
+        
+        if(lockTitle) lockTitle.innerText = "로그인 후 이용 가능";
+        if(lockText) lockText.innerText = "회원 등급 관리 기능을 이용하시려면 관리자 계정으로 로그인해주세요.";
+        if(lockBtn) {
+            lockBtn.innerText = "로그인하러 가기";
+            lockBtn.onclick = () => { location.href = 'login.html'; };
+        }
+        lockMessage?.classList.remove("hidden");
+    }
+});
 
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${userData.name || '미설정'}</td>
-                    <td>${userData.email || '-'}</td>
-                    <td><span style="color: ${getRoleColor(role)}; font-weight: bold;">${getRoleName(role)}</span></td>
-                    <td>
-                        <select id="sel-${uid}">
-                            <option value="member" ${role === 'member' ? 'selected' : ''}>일반 회원</option>
-                            <option value="student" ${role === 'student' ? 'selected' : ''}>동아리 부원</option>
-                            <option value="admin" ${role === 'admin' ? 'selected' : ''}>관리자</option>
-                        </select>
-                    </td>
-                    <td><button class="btn-update" onclick="updateLevel('${uid}')">저장</button></td>
-                `;
-                userListTbody.appendChild(tr);
+// 3. 회원 목록 불러오기 (테이블 렌더링)
+function loadUserList() {
+    const userListTbody = document.getElementById("userList");
+    if(!userListTbody) return;
+    
+    // 유저 노드 실시간 리스너
+    db.ref('users').on('value', snapshot => {
+        userListTbody.innerHTML = "";
+        snapshot.forEach(child => {
+            const uid = child.key;
+            const userData = child.val();
+            const role = userData.role || "member"; 
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${userData.name || '미설정'}</td>
+                <td>${userData.email || '-'}</td>
+                <td><span style="color: ${getRoleColor(role)}; font-weight: bold;">${getRoleName(role)}</span></td>
+                <td>
+                    <select id="sel-${uid}">
+                        <option value="member" ${role === 'member' ? 'selected' : ''}>일반 회원</option>
+                        <option value="student" ${role === 'student' ? 'selected' : ''}>동아리 부원</option>
+                        <option value="admin" ${role === 'admin' ? 'selected' : ''}>관리자</option>
+                    </select>
+                </td>
+                <td><button class="btn-update" onclick="updateLevel('${uid}')">저장</button></td>
+            `;
+            userListTbody.appendChild(tr);
+        });
+    });
+}
+
+// 4. 유틸리티 함수: 등급 명칭 변환
+function getRoleName(role) {
+    switch(role) {
+        case 'admin': return '관리자';
+        case 'student': return '동아리 부원';
+        case 'member': return '일반 회원';
+        default: return '일반 회원';
+    }
+}
+
+// 5. 유틸리티 함수: 등급 색상 변환
+function getRoleColor(role) {
+    if (role === 'admin') return '#ff4d4d';
+    if (role === 'student') return '#7fc7ff';
+    return '#888';
+}
+
+// 6. 등급 업데이트 함수
+async function updateLevel(targetUid) {
+    const newRole = document.getElementById(`sel-${targetUid}`).value;
+    const roleName = getRoleName(newRole);
+
+    if (confirm(`해당 회원을 [${roleName}] 등급으로 변경하시겠습니까?`)) {
+        try {
+            // 보안을 위한 App Check 토큰 획득
+            await appCheck.getToken(false);
+            await db.ref('users/' + targetUid).update({
+                role: newRole
             });
+            alert("성공적으로 변경되었습니다.");
+        } catch (err) {
+            console.error(err);
+            alert("변경 실패: " + err.message);
+        }
+    }
+}
+
+// 7. 로그아웃 함수
+window.logout = () => {
+    if(confirm("로그아웃 하시겠습니까?")) {
+        auth.signOut().then(() => { 
+            location.href = "index.html"; 
+        }).catch(err => {
+            alert("로그아웃 중 오류가 발생했습니다.");
         });
     }
-
-    function getRoleName(role) {
-        switch(role) {
-            case 'admin': return '관리자';
-            case 'student': return '동아리 부원';
-            case 'member': return '일반 회원';
-            default: return '일반 회원';
-        }
-    }
-
-    function getRoleColor(role) {
-        if (role === 'admin') return '#ff4d4d';
-        if (role === 'student') return '#7fc7ff';
-        return '#888';
-    }
-
-    async function updateLevel(targetUid) {
-        const newRole = document.getElementById(`sel-${targetUid}`).value;
-        const roleName = getRoleName(newRole);
-
-        if (confirm(`해당 회원을 [${roleName}] 등급으로 변경하시겠습니까?`)) {
-            try {
-                await appCheck.getToken(false);
-                await db.ref('users/' + targetUid).update({ role: newRole });
-                alert("성공적으로 변경되었습니다.");
-            } catch (err) {
-                alert("변경 실패: " + err.message);
-            }
-        }
-    }
-
-    window.logout = () => {
-        if(confirm("로그아웃 하시겠습니까?")) {
-            auth.signOut().then(() => { location.href = "index.html"; });
-        }
-    };
+};
 </script>
 </body>
 </html>
