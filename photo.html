@@ -177,17 +177,15 @@ const auth = firebase.auth();
 const db = firebase.database();
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-// [보안강화 1] 세션 유지 설정: 브라우저가 열려있는 동안 로그인 강제 유지
-auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
-
-// [보안강화 2] App Check (reCAPTCHA v3) 활성화
+// App Check 활성화
 const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
 let currentUserName = "익명";
+let currentUserData = null;
 
-// 2. 로그인 상태 감지 및 UI 즉시 처리
-auth.onAuthStateChanged((user) => {
+// 2. 로그인 상태 감지 및 UI 처리
+auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtn = document.getElementById("logoutBtn");
@@ -195,30 +193,33 @@ auth.onAuthStateChanged((user) => {
     const mainContent = document.getElementById("mainContent");
 
     if (user) {
-        // [수정] 사용자가 확인되면 보안 토큰 검증 기다리지 않고 즉시 UI 오픈
-        loginBtn.classList.add("hidden");
-        logoutBtn.classList.remove("hidden");
-        lockMsg.classList.add("hidden");
-        mainContent.classList.remove("hidden");
-        
-        // 데이터베이스에서 사용자 이름 가져오기 (보안 토큰은 백그라운드에서 처리)
-        db.ref('users/' + user.uid + '/name').on('value', (snapshot) => {
-            currentUserName = snapshot.val() || user.displayName || user.email.split('@')[0];
-            status.innerText = `${currentUserName}님`;
+        // [로그인 로직 수정] 실시간 데이터 로드 및 등급 확인
+        db.ref('users/' + user.uid).on('value', (snapshot) => {
+            currentUserData = snapshot.val() || {};
+            currentUserName = currentUserData.name || user.displayName || user.email.split('@')[0];
+            
+            // 등급 명칭 설정
+            let roleName = "일반 회원";
+            if (user.email === ADMIN_EMAIL) roleName = "관리자";
+            else if (currentUserData.role === 'student') roleName = "동아리 부원";
+
+            if (status) status.innerText = `${currentUserName}님 (${roleName})`;
+            
+            // UI 표시 전환
+            loginBtn.classList.add("hidden");
+            logoutBtn.classList.remove("hidden");
+            lockMsg.classList.add("hidden");
+            mainContent.classList.remove("hidden");
+            
+            loadPhotos(); // 로그인 확인 후 사진 로드
         });
 
-        loadPhotos(); // 사진 목록 로드
-
-        // 백그라운드에서 보안 토큰 확인
-        appCheck.getToken(false).then(() => {
-            console.log("✅ [App Check] Photo Page 인증 성공");
-        }).catch(err => {
-            console.warn("⚠️ App Check 지연됨:", err.message);
-        });
+        // App Check 토큰 강제 갱신 (보안 강화)
+        try { await appCheck.getToken(true); } catch (e) {}
 
     } else {
-        // 실제 로그아웃 상태일 때만 잠금 화면 표시
-        status.innerText = "로그인 해주세요";
+        // 비로그인 상태
+        if (status) status.innerText = "로그인 해주세요";
         loginBtn.classList.remove("hidden");
         logoutBtn.classList.add("hidden");
         lockMsg.classList.remove("hidden");
@@ -226,8 +227,9 @@ auth.onAuthStateChanged((user) => {
     }
 });
 
-// --- 이하 기존 로직 유지 (기능 동일) ---
+// --- 유틸리티 함수 ---
 
+// 구글 드라이브 링크를 직접 보기 링크로 변환
 function convertDriveLink(url) {
     if (url.includes('drive.google.com')) {
         let fileId = "";
@@ -238,11 +240,15 @@ function convertDriveLink(url) {
     return url;
 }
 
+// 시간 포맷팅
 function formatTime(timestamp) {
     const date = new Date(timestamp);
     return `${date.getFullYear()}.${(date.getMonth()+1).toString().padStart(2,'0')}.${date.getDate().toString().padStart(2,'0')} ${date.getHours()}:${date.getMinutes().toString().padStart(2,'0')}`;
 }
 
+// --- 핵심 기능 ---
+
+// 사진 일괄 업로드
 async function uploadBulkPhotos() {
     const user = auth.currentUser;
     const urlsText = document.getElementById("imageUrls").value.trim();
@@ -253,9 +259,11 @@ async function uploadBulkPhotos() {
 
     const urlList = urlsText.split('\n').map(u => u.trim()).filter(u => u !== "");
     if(urlList.length === 0) return alert("유효한 링크가 없습니다.");
+    
     if(!confirm(`${urlList.length}개의 사진을 업로드하시겠습니까?`)) return;
 
     try {
+        await appCheck.getToken(true); // 쓰기 작업 전 보안 확인
         const promises = urlList.map((url, index) => {
             const finalTitle = urlList.length > 1 ? `${titleText} (${index + 1})` : titleText;
             return db.ref('photos_link').push({
@@ -271,21 +279,27 @@ async function uploadBulkPhotos() {
         alert("업로드 완료!");
         document.getElementById("imageUrls").value = "";
         document.getElementById("commonTitle").value = "";
-    } catch (err) { alert("오류: " + err.message); }
+    } catch (err) { 
+        alert("업로드 실패: 권한이 없거나 네트워크 오류입니다."); 
+    }
 }
 
+// 사진 로드 및 렌더링
 function loadPhotos() {
     const grid = document.getElementById("photoGrid");
     db.ref('photos_link').orderByChild('createdAt').on('value', snapshot => {
         grid.innerHTML = "";
         const data = snapshot.val();
         if(!data) {
-            grid.innerHTML = "<p style='grid-column:1/-1; text-align:center;'>등록된 사진이 없습니다.</p>";
+            grid.innerHTML = "<p style='grid-column:1/-1; text-align:center; padding: 50px 0;'>등록된 사진이 없습니다.</p>";
             return;
         }
+        
+        // 최신순 정렬
         Object.keys(data).reverse().forEach(key => {
             const item = data[key];
             const isAdmin = auth.currentUser && (auth.currentUser.email === ADMIN_EMAIL || auth.currentUser.uid === item.ownerUid);
+            
             const card = document.createElement("div");
             card.className = "photo-card";
             card.innerHTML = `
@@ -303,6 +317,7 @@ function loadPhotos() {
     });
 }
 
+// 검색 필터
 function filterPhotos() {
     const term = document.getElementById("photoSearch").value.toLowerCase();
     const cards = document.getElementsByClassName("photo-card");
@@ -313,12 +328,26 @@ function filterPhotos() {
     });
 }
 
-function deletePhoto(key) { 
-    if(confirm("삭제하시겠습니까?")) db.ref('photos_link/' + key).remove().then(() => alert("삭제되었습니다."));
+// 삭제
+async function deletePhoto(key) { 
+    if(!confirm("정말 삭제하시겠습니까?")) return;
+    
+    try {
+        await appCheck.getToken(true);
+        await db.ref('photos_link/' + key).remove();
+        alert("삭제되었습니다.");
+    } catch (e) {
+        alert("삭제 실패: 권한이 없습니다.");
+    }
 }
 
+// 로그아웃
 function logout() { 
-    if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.href='index.html');
+    if(confirm("로그아웃 하시겠습니까?")) {
+        auth.signOut().then(() => {
+            location.href='index.html';
+        });
+    }
 }
 </script>
 </body>
