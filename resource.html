@@ -215,7 +215,6 @@ const firebaseConfig = {
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
-const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
 // 세션 유지 및 App Check 활성화
 auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
@@ -225,7 +224,7 @@ appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 let allResources = []; 
 let currentUserData = null;
 
-// 2. 로그인 상태 감지 및 UI 제어
+// 2. 로그인 상태 감지 및 UI 제어 (DB 권한 기준)
 auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
@@ -240,30 +239,37 @@ auth.onAuthStateChanged(async (user) => {
     adminUpload.classList.add("hidden");
 
     if (user) {
+        // DB에서 실시간으로 유저 등급(role) 확인
         db.ref('users/' + user.uid).on('value', (snapshot) => {
             currentUserData = snapshot.val() || {};
             const name = currentUserData.name || user.displayName || user.email.split('@')[0];
-            const isAdmin = (user.email === ADMIN_EMAIL);
+            
+            // 권한 정의: DB의 role 필드값이 'admin'인가?
+            const isAdmin = (currentUserData.role === 'admin');
             const isStudent = (currentUserData.role === 'student');
 
-            // 등급 명칭 설정
+            // 상단 바 등급 표시
             let roleName = isAdmin ? "관리자" : (isStudent ? "동아리 부원" : "일반 회원");
             if (status) status.innerText = `${name}님 (${roleName})`;
 
             loginBtn.classList.add("hidden");
             logoutBtn.classList.remove("hidden");
 
-            // [권한 핵심] 관리자 혹은 부원인 경우만 콘텐츠 노출
+            // [권한 로직] 관리자 혹은 부원인 경우만 콘텐츠 노출
             if (isAdmin || isStudent) {
                 lockMsg.classList.add("hidden");
                 mainContent.classList.remove("hidden");
                 
-                // 업로드 박스는 관리자 전용
-                if (isAdmin) adminUpload.classList.remove("hidden");
+                // [업로드 권한] 관리자 등급일 때만 업로드 박스 노출
+                if (isAdmin) {
+                    adminUpload.classList.remove("hidden");
+                } else {
+                    adminUpload.classList.add("hidden");
+                }
                 
-                loadResources(user);
+                loadResources(isAdmin); 
             } else {
-                // 일반 회원인 경우 잠금 메시지 표시
+                // 일반 회원(혹은 등급 미배정) 접근 차단
                 mainContent.classList.add("hidden");
                 lockMsg.classList.remove("hidden");
                 lockMsg.querySelector('h2').innerText = "접근 제한";
@@ -281,7 +287,6 @@ auth.onAuthStateChanged(async (user) => {
         if (status) status.innerText = "로그인 해주세요";
         loginBtn.classList.remove("hidden");
         logoutBtn.classList.add("hidden");
-        
         mainContent.classList.add("hidden");
         lockMsg.classList.remove("hidden");
         lockMsg.querySelector('h2').innerText = "회원 전용 공간";
@@ -294,8 +299,7 @@ auth.onAuthStateChanged(async (user) => {
 
 // --- 자료실 기능 로직 ---
 
-// 자료 로드
-function loadResources(user) {
+function loadResources(isAdmin) {
     db.ref("resources").orderByChild('createdAt').on("value", snapshot => {
         const data = snapshot.val();
         allResources = []; 
@@ -303,14 +307,13 @@ function loadResources(user) {
             Object.keys(data).forEach(key => {
                 allResources.push({ id: key, ...data[key] });
             });
-            allResources.reverse(); // 최신순
+            allResources.reverse(); 
         }
-        renderResources(allResources, user);
+        renderResources(allResources, isAdmin);
     });
 }
 
-// 자료 렌더링
-function renderResources(items, user) {
+function renderResources(items, isAdmin) {
     const list = document.getElementById("resourceList");
     list.innerHTML = "";
     
@@ -322,8 +325,9 @@ function renderResources(items, user) {
     items.forEach(item => {
         const div = document.createElement("div");
         div.className = "resource-item";
-        const isManager = (user && user.email === ADMIN_EMAIL);
-        const delBtn = isManager ? `<button class="btn-delete" onclick="deleteRes('${item.id}')">삭제하기</button>` : "";
+        
+        // 관리자 권한이 있을 때만 삭제 버튼 생성
+        const delBtn = isAdmin ? `<button class="btn-delete" onclick="deleteRes('${item.id}')">삭제하기</button>` : "";
 
         div.innerHTML = `
             <div>
@@ -339,23 +343,10 @@ function renderResources(items, user) {
     });
 }
 
-// 검색 필터
-function filterResources() {
-    const searchInput = document.getElementById("searchInput");
-    if (!searchInput) return;
-    const keyword = searchInput.value.toLowerCase();
-    const filtered = allResources.filter(item => {
-        const title = (item.title || "").toLowerCase();
-        const desc = (item.desc || "").toLowerCase();
-        return title.includes(keyword) || desc.includes(keyword);
-    });
-    renderResources(filtered, auth.currentUser);
-}
-
-// 자료 업로드 (관리자 전용)
 async function uploadResource() {
-    if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) {
-        alert("관리자만 자료를 등록할 수 있습니다.");
+    // 실행 시 한 번 더 관리자 권한 확인
+    if (!currentUserData || currentUserData.role !== 'admin') {
+        alert("관리자 권한이 필요합니다.");
         return;
     }
 
@@ -363,7 +354,7 @@ async function uploadResource() {
     const desc = document.getElementById("fileDesc").value.trim();
     let link = document.getElementById("fileLink").value.trim();
     
-    if(!title || !link) return alert("제목과 링크는 필수 입력 항목입니다.");
+    if(!title || !link) return alert("제목과 링크를 입력해주세요.");
     if(!link.startsWith('http')) link = 'https://' + link;
     
     try {
@@ -374,29 +365,41 @@ async function uploadResource() {
             link, 
             createdAt: firebase.database.ServerValue.TIMESTAMP 
         });
-        alert("자료가 등록되었습니다.");
+        alert("자료가 성공적으로 등록되었습니다.");
         document.getElementById("fileTitle").value = "";
         document.getElementById("fileDesc").value = "";
         document.getElementById("fileLink").value = "";
     } catch (err) {
-        alert("업로드 실패: 관리자 권한이 필요합니다.");
+        alert("업로드 실패: 권한이 없거나 오류가 발생했습니다.");
     }
 }
 
-// 자료 삭제 (관리자 전용)
 async function deleteRes(key) {
     if(!confirm("정말 이 자료를 삭제하시겠습니까?")) return;
+    if (!currentUserData || currentUserData.role !== 'admin') return alert("권한이 없습니다.");
     
     try {
         await appCheck.getToken(true);
         await db.ref("resources/" + key).remove();
         alert("삭제되었습니다.");
     } catch (e) {
-        alert("삭제 실패: 권한이 없습니다.");
+        alert("삭제 실패");
     }
 }
 
-// 로그아웃
+function filterResources() {
+    const searchInput = document.getElementById("searchInput");
+    if (!searchInput) return;
+    const keyword = searchInput.value.toLowerCase();
+    const isAdmin = currentUserData && currentUserData.role === 'admin';
+    const filtered = allResources.filter(item => {
+        const title = (item.title || "").toLowerCase();
+        const desc = (item.desc || "").toLowerCase();
+        return title.includes(keyword) || desc.includes(keyword);
+    });
+    renderResources(filtered, isAdmin);
+}
+
 function logout() { 
     if(confirm("로그아웃 하시겠습니까?")) {
         auth.signOut().then(() => {
