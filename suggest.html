@@ -146,8 +146,7 @@
             <img src="logo.png" onerror="this.src='https://via.placeholder.com/110'">
         </div>
         <div class="header-text">
-            <h1>건의 게시판</h1>
-            <p>더 나은 DEEP SKY를 위한 소중한 의견</p>
+            <h1>건의함</h1>
         </div>
     </div>
 </header>
@@ -157,7 +156,7 @@
         <a href="index.html">홈</a>
         <a href="introduce.html">동아리 소개</a>
         <a href="question.html">질문 게시판</a>
-        <a href="suggest.html" style="color: #7fc7ff;">건의 게시판</a>
+        <a href="suggest.html">건의 게시판</a>
         <a href="board.html">자유 게시판</a>
         <a href="photo.html">활동 사진</a>
         <a href="resource.html">자료실</a>
@@ -190,7 +189,8 @@
         <div class="card">
             <h3 style="color: #7fc7ff; margin-top: 0;">의견 남기기</h3>
             <div class="desc-box">
-                동아리 운영이나 홈페이지 개선에 대한 의견을 자유롭게 남겨주세요!<br>
+                <p>더 나은 DEEP SKY를 위한 소중한 의견<br>
+                동아리 운영이나 홈페이지 개선에 대한 의견을 자유롭게 남겨주세요!(익명 기능도 있습니다)<br>
                 <b>반영 완료된 항목은 7일 후 자동으로 리스트에서 삭제됩니다.</b>
             </div>
             <textarea id="sInput" placeholder="건의 내용을 상세히 입력해주세요..."></textarea>
@@ -203,7 +203,7 @@
         </div>
 
         <div id="suggestList">
-            <p style="text-align:center; color:#888;">로딩 중...</p>
+            <p style="text-align:center; color:#888;">아직 등록된 글이 없습니다.</p>
         </div>
     </div>
 </div>
@@ -240,7 +240,7 @@ const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
-const GAS_URL = "여기에_새로운_GAS_URL_입력"; 
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzdgX0gHpjHUCv3L2t3LLOnt4t6x31-t4Nd_D6ubqrqIT-mU8Nmlxgue6j3zl-tTJOa/exec"; 
 
 let currentUser = null;
 let currentRole = 'guest';
@@ -305,7 +305,7 @@ async function addSuggestion() {
         });
 
         // GAS 알림 (선택 사항)
-        if(GAS_URL !== "여기에_새로운_GAS_URL_입력") {
+        if(GAS_URL !== "https://script.google.com/macros/s/AKfycbzdgX0gHpjHUCv3L2t3LLOnt4t6x31-t4Nd_D6ubqrqIT-mU8Nmlxgue6j3zl-tTJOa/exec") {
             fetch(GAS_URL, {
                 method: 'POST',
                 mode: 'no-cors',
