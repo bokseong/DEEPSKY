@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="logo.png" type="image/png">
+    <title>DEEP SKY - 건의 게시판</title>
+    <style>
+        /* 1. 공통 스타일 (제공된 인덱스 코드와 100% 일치) */
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; 
+            font-family: "Pretendard", "Segoe UI", sans-serif; 
+            background: #0b0f2b; 
+            color: white; 
+            overflow-x: hidden;
+        }
+
+        .hidden { display: none !important; }
+
+        /* 2. 상단 바 */
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 30px; background: #070a1d; 
+            border-bottom: 1px solid #1b2f80;
+            height: 65px; position: sticky; top: 0; z-index: 1000;
+        }
+        .logo-area { display: flex; align-items: center; text-decoration: none; color: white; }
+        .logo-area img { width: 40px; height: 40px; margin-right: 12px; border-radius: 50%; }
+        .logo-area span { font-size: 20px; font-weight: bold; letter-spacing: 1px; }
+
+        .auth-bar { font-size: 14px; display: flex; align-items: center; gap: 10px; }
+        .auth-bar button {
+            padding: 7px 16px; border-radius: 5px; border: none;
+            background: #3a5aff; color: white; 
+            cursor: pointer; font-weight: bold;
+        }
+
+        /* 3. 헤더 */
+        header { 
+            padding: 70px 20px; text-align: center;
+            background: linear-gradient(to bottom, #0d1b52, #1b2f80);
+        }
+        .header-content {
+            display: flex; align-items: center; justify-content: center;
+            gap: 30px; max-width: 1000px; margin: 0 auto;
+        }
+        .header-logo {
+            width: 150px; height: 150px; background: white;
+            border-radius: 50%; padding: 5px; box-shadow: 0 0 15px rgba(58, 90, 255, 0.5);
+            flex-shrink: 0;
+        }
+        .header-logo img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+        .header-text { text-align: left; }
+        .header-text h1 { margin: 0; font-size: 2.8rem; font-weight: bold; color: white; letter-spacing: 2px; }
+        .header-text p { margin: 5px 0 0; font-size: 1.1rem; color: #7fc7ff; font-weight: bold; }
+
+        /* 4. 내비게이션 */
+        nav { 
+            background: #11153a; 
+            border-bottom: 1px solid #2d367a; 
+            padding: 10px 0;
+        }
+        nav .nav-inner { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            gap: 5px; 
+        }
+        nav a { 
+            display: inline-block; 
+            color: white; 
+            padding: 12px 18px; 
+            text-decoration: none; 
+            font-weight: bold; 
+            font-size: 15px; 
+            transition: 0.2s;
+            border-radius: 8px;
+        }
+        nav a:hover { 
+            background: rgba(127, 199, 255, 0.1);
+            color: #7fc7ff; 
+        }
+
+        /* 5. 메인 컨텐츠 & 건의 게시판 전용 카드 */
+        .container { max-width: 1000px; margin: 35px auto; padding: 0 20px 100px; }
+        .card { 
+            background: #161b4a; padding: 25px; border-radius: 15px; 
+            border: 1px solid #2d367a; margin-bottom: 25px;
+        }
+        
+        .desc-box { background: rgba(58, 90, 255, 0.05); border-left: 4px solid #3a5aff; padding: 15px; margin-bottom: 20px; font-size: 0.95rem; color: #ccc; }
+        textarea { 
+            width: 100%; height: 120px; background: #0b0f2b; color: white; 
+            border: 1px solid #1b2f80; border-radius: 8px; padding: 12px; margin-top: 15px; resize: none; outline: none;
+        }
+        .form-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; }
+        .btn-main { padding: 10px 25px; background: #3a5aff; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+
+        /* 건의 리스트 아이템 */
+        .suggest-item { background: #1c225a; padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #2d367a; }
+        .suggest-meta { font-size: 12px; color: #7fc7ff; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .suggest-text { font-size: 1rem; line-height: 1.5; white-space: pre-wrap; color: #eee; }
+
+        /* 상태 배지 */
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+        .status-waiting { background: #555; color: #eee; }
+        .status-ing { background: #f39c12; color: white; }
+        .status-done { background: #27ae60; color: white; }
+
+        .admin-controls { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #2d367a; display: flex; gap: 8px; }
+        .btn-status { font-size: 11px; padding: 6px 12px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
+
+        /* 6. Footer (인덱스와 100% 동일) */
+        footer { 
+            background: #070a1d; text-align: center; padding: 35px 20px;
+            color: #888; border-top: 1px solid #1b2f80; font-size: 13px;
+        }
+
+        @media (max-width: 600px) {
+            .logo-area span { font-size: 16px; }
+            nav a { padding: 10px 12px; font-size: 13px; }
+            header h1 { font-size: 22px; }
+            .header-logo { width: 100px; height: 100px; }
+        }
+    </style>
+</head>
+<body>
+<div class="top-bar">
+    <a href="index.html" class="logo-area">
+        <img src="logo.png" onerror="this.src='https://via.placeholder.com/40'">
+        <span>DEEP SKY</span>
+    </a>
+    <div class="auth-bar">
+        <span id="userStatus">권한 확인 중...</span>
+        <button id="loginBtn" class="hidden" onclick="location.href='login.html'">로그인</button>
+        <button id="logoutBtn" class="hidden" onclick="logout()">로그아웃</button>
+    </div>
+</div>
+
+<header>
+    <div class="header-content">
+        <div class="header-logo">
+            <img src="logo.png" onerror="this.src='https://via.placeholder.com/110'">
+        </div>
+        <div class="header-text">
+            <h1>건의 게시판</h1>
+            <p>더 나은 DEEP SKY를 위한 소중한 의견</p>
+        </div>
+    </div>
+</header>
+
+<nav>
+    <div class="nav-inner">
+        <a href="index.html">홈</a>
+        <a href="introduce.html">동아리 소개</a>
+        <a href="question.html">질문 게시판</a>
+        <a href="suggest.html" style="color: #7fc7ff;">건의 게시판</a>
+        <a href="board.html">자유 게시판</a>
+        <a href="photo.html">활동 사진</a>
+        <a href="resource.html">자료실</a>
+        <a href="weather.html">기상 정보</a>
+        <a href="mypage.html">정보 수정</a>
+        <a href="manage.html">등급 관리</a>
+    </div>
+</nav>
+
+<div class="container">
+    <div id="lockMessage" class="card hidden" style="border: 1px solid #3a5aff;">
+        <h2 style="text-align:center; color: #7fc7ff; margin-top:0;">접근 제한</h2>
+        <p style="text-align:center; color:#ccc;">건의 게시판은 <b>동아리 부원 이상</b>만 접근할 수 있습니다.</p>
+        
+        <div style="margin: 25px 0; text-align: left; background: rgba(58, 90, 255, 0.05); padding: 20px; border-radius: 10px; border: 1px dashed #3a5aff;">
+            <label style="display:block; margin-bottom:8px; color:#7fc7ff; font-size:14px; font-weight:bold;">원하는 등급</label>
+            <select id="requestedRole" style="width:100%; background:#0b0f2b; color:white; border:1px solid #3a5aff; padding:10px; border-radius:5px; margin-bottom:15px; outline:none;">
+                <option value="student">동아리 부원</option>
+                <option value="admin">관리자</option>
+                <option value="member">일반 회원</option>
+            </select>
+
+            <label style="display:block; margin-bottom:8px; color:#7fc7ff; font-size:14px; font-weight:bold;">조정 사유</label>
+            <textarea id="requestReason" placeholder="작성 예시:&#10;1. 신입 부원 누구입니다.&#10;2. 권한 승인 부탁드립니다."></textarea>
+            <button onclick="submitRoleRequest()" style="width:100%; padding:12px; margin-top:10px; background:#3a5aff; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">등급 조정 요청하기</button>
+        </div>
+    </div>
+
+    <div id="mainContent" class="hidden">
+        <div class="card">
+            <h3 style="color: #7fc7ff; margin-top: 0;">의견 남기기</h3>
+            <div class="desc-box">
+                동아리 운영이나 홈페이지 개선에 대한 의견을 자유롭게 남겨주세요!<br>
+                <b>반영 완료된 항목은 7일 후 자동으로 리스트에서 삭제됩니다.</b>
+            </div>
+            <textarea id="sInput" placeholder="건의 내용을 상세히 입력해주세요..."></textarea>
+            <div class="form-footer">
+                <label style="font-size: 14px; cursor: pointer; color: #ccc; display: flex; align-items: center; gap: 5px;">
+                    <input type="checkbox" id="sAnon"> 익명으로 제출하기
+                </label>
+                <button class="btn-main" onclick="addSuggestion()">제출하기</button>
+            </div>
+        </div>
+
+        <div id="suggestList">
+            <p style="text-align:center; color:#888;">로딩 중...</p>
+        </div>
+    </div>
+</div>
+
+<footer>
+    © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
+    <br>
+    Email : leader.deepsky@gmail.com &nbsp;	&nbsp; &nbsp; &nbsp;|	&nbsp; &nbsp; &nbsp; &nbsp;Designed by jw-astro09
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
+
+<script>
+// 1. Firebase 초기화
+const firebaseConfig = {
+    apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
+    authDomain: "bokseong-deep-sky.firebaseapp.com",
+    databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "bokseong-deep-sky",
+    storageBucket: "bokseong-deep-sky.firebasestorage.app",
+    messagingSenderId: "800777151311",
+    appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+
+// 2. App Check 활성화
+const appCheck = firebase.appCheck();
+appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
+
+const ADMIN_EMAIL = "leader.deepsky@gmail.com";
+const GAS_URL = "여기에_새로운_GAS_URL_입력"; 
+
+let currentUser = null;
+let currentRole = 'guest';
+let currentUserName = '';
+
+// 3. 인증 감시
+auth.onAuthStateChanged(async (user) => {
+    const lockMsg = document.getElementById("lockMessage");
+    const mainCont = document.getElementById("mainContent");
+    const status = document.getElementById("userStatus");
+
+    if (user) {
+        currentUser = user;
+        db.ref('users/' + user.uid).on('value', snapshot => {
+            const data = snapshot.val() || {};
+            currentUserName = data.name || user.displayName || user.email.split('@')[0];
+            currentRole = (user.email === ADMIN_EMAIL) ? 'admin' : (data.role || 'member');
+            
+            status.innerText = `${currentUserName}님 (${getRoleName(currentRole)})`;
+            document.getElementById("loginBtn").classList.add("hidden");
+            document.getElementById("logoutBtn").classList.remove("hidden");
+
+            if (currentRole === 'admin' || currentRole === 'student') {
+                lockMsg.classList.add("hidden");
+                mainCont.classList.remove("hidden");
+                loadSuggestions();
+            } else {
+                lockMsg.classList.remove("hidden");
+                mainCont.classList.add("hidden");
+            }
+        });
+    } else {
+        status.innerText = "로그인 해주세요";
+        document.getElementById("loginBtn").classList.remove("hidden");
+        document.getElementById("logoutBtn").classList.add("hidden");
+        lockMsg.classList.remove("hidden");
+    }
+});
+
+function getRoleName(role) {
+    if (role === 'admin') return '관리자';
+    if (role === 'student') return '동아리 부원';
+    return '일반 회원';
+}
+
+// 4. 건의사항 등록
+async function addSuggestion() {
+    const text = document.getElementById("sInput").value.trim();
+    const isAnon = document.getElementById("sAnon").checked;
+    if(!text) return alert("내용을 입력하세요.");
+
+    try {
+        await appCheck.getToken(false); // App Check 토큰 획득
+        const dateStr = new Date().toLocaleDateString();
+        
+        await db.ref("suggestions").push({
+            text: text,
+            author: isAnon ? "익명" : currentUserName,
+            date: dateStr,
+            status: "waiting",
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        // GAS 알림 (선택 사항)
+        if(GAS_URL !== "여기에_새로운_GAS_URL_입력") {
+            fetch(GAS_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: new URLSearchParams({
+                    type: 'new_suggestion',
+                    senderName: currentUserName,
+                    isAnonymous: isAnon,
+                    content: text,
+                    date: dateStr
+                })
+            });
+        }
+
+        document.getElementById("sInput").value = "";
+        alert("건의사항이 소중하게 접수되었습니다.");
+    } catch(e) { alert("제출 중 권한 오류가 발생했습니다."); }
+}
+
+// 5. 건의 리스트 로드 (7일 후 삭제 로직 포함)
+function loadSuggestions() {
+    db.ref("suggestions").on("value", snapshot => {
+        const list = document.getElementById("suggestList");
+        list.innerHTML = "";
+        const data = snapshot.val();
+        if(!data) {
+            list.innerHTML = "<p style='text-align:center; color:#888;'>등록된 건의사항이 없습니다.</p>";
+            return;
+        }
+
+        const now = Date.now();
+        const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+
+        Object.keys(data).reverse().forEach(key => {
+            const s = data[key];
+            if (s.status === "done" && s.doneAt && (now - s.doneAt > SEVEN_DAYS)) return;
+
+            const statusInfo = {
+                waiting: { text: "검토 대기", class: "status-waiting" },
+                ing: { text: "검토 중", class: "status-ing" },
+                done: { text: "반영 완료", class: "status-done" }
+            };
+
+            const item = document.createElement("div");
+            item.className = "suggest-item";
+            item.innerHTML = `
+                <div class="suggest-meta">
+                    <span>${s.author} | ${s.date}</span>
+                    <span class="status-badge ${statusInfo[s.status].class}">${statusInfo[s.status].text}</span>
+                </div>
+                <div class="suggest-text">${s.text}</div>
+                ${currentRole === 'admin' ? `
+                    <div class="admin-controls">
+                        <button class="btn-status" style="background:#555" onclick="updateStatus('${key}', 'waiting')">대기</button>
+                        <button class="btn-status" style="background:#f39c12" onclick="updateStatus('${key}', 'ing')">진행</button>
+                        <button class="btn-status" style="background:#27ae60" onclick="updateStatus('${key}', 'done')">완료</button>
+                    </div>
+                ` : ""}
+            `;
+            list.appendChild(item);
+        });
+    });
+}
+
+// 6. 상태 업데이트 (관리자 전용)
+async function updateStatus(key, newStatus) {
+    try {
+        await appCheck.getToken(false);
+        const updates = { status: newStatus };
+        if (newStatus === "done") updates.doneAt = Date.now();
+        await db.ref(`suggestions/${key}`).update(updates);
+    } catch(e) { alert("권한이 없습니다."); }
+}
+
+// 7. 등급 조정 요청
+async function submitRoleRequest() {
+    const role = document.getElementById("requestedRole").value;
+    const reason = document.getElementById("requestReason").value.trim();
+    if(!currentUser) return alert("로그인 후 이용 가능합니다.");
+    if(!reason) return alert("사유를 입력해주세요.");
+    
+    try {
+        await appCheck.getToken(false);
+        await db.ref("roleRequests/" + currentUser.uid).set({
+            email: currentUser.email,
+            name: currentUserName,
+            requestedRole: role,
+            reason: reason,
+            status: "pending",
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+        alert("등급 조정 요청이 전송되었습니다.");
+    } catch(e) { alert("전송 실패"); }
+}
+
+function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
+</script>
+</body>
+</html>
