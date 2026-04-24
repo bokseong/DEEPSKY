@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="logo.png" type="image/png">
-    <title>DEEP SKY - 정보 수정</title>
+    <title>DEEP SKY</title>
     <style>
         /* 1. 공통 스타일 */
         * { box-sizing: border-box; }
@@ -309,7 +309,7 @@ async function sendRequestEmail() {
         btn.disabled = true;
         btn.innerText = "전송 중...";
 
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbyXVcBrewoDYR_djyLMUmXz0ErNjdOzWs2YpTdb4Pc3xxMatpas3LUdD5lXZLZGW1XVhw/exec";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzT5zTtKk0tleprYklvV4jwbUq5pGTwHKz4JyF-GKGfj2BjulwJR5WJQqB0eoIZ8cxu/exec";
 
         const snapshot = await db.ref('users/' + user.uid).once('value');
         const userData = snapshot.val() || {};
