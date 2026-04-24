@@ -173,6 +173,28 @@
             <div id="displayRole" class="role-name">확인 중...</div>
         </div>
 
+         <div id="lockMessage" class="intro-card hidden">
+        <h2 style="border:none; padding:0; text-align:center; color: #7fc7ff;">접근 제한</h2>
+        <p>등급 관리 페이지는 DEEP SKY 관리자만 접근할 수 있습니다.</p>
+        
+        <div style="margin: 25px auto; max-width: 400px; text-align: left; background: rgba(58, 90, 255, 0.05); padding: 20px; border-radius: 12px; border: 1px solid #2d367a;">
+            <label style="display:block; margin-bottom:8px; color:#7fc7ff; font-size:14px; font-weight:bold;">희망 등급</label>
+            <select id="requestedRole" style="width:100%; background:#0b0f2b; color:white; border:1px solid #3a5aff; padding:10px; border-radius:6px; margin-bottom:15px; outline:none; font-family: inherit;">
+                <option value="student">동아리 부원</option>
+                <option value="admin">관리자</option>
+                <option value="member">일반 회원</option>
+            </select>
+
+            <label style="display:block; margin-bottom:8px; color:#7fc7ff; font-size:14px; font-weight:bold;">조정 사유</label>
+            <textarea id="requestReason" 
+                style="width:100%; height:80px; background:#0b0f2b; color:white; border:1px solid #3a5aff; border-radius:8px; padding:10px; font-family:inherit; resize:none; font-size:14px; outline:none;"
+                placeholder="그냥 등의 성의 없는 내용 작성 금지  작성 예시: 1.~, 2.~...."></textarea>
+        </div>
+
+        <button class="btn-main" onclick="location.href='index.html'">홈으로 가기</button>
+        <button class="btn-update" style="background:#28a745; padding: 12px 20px;" onclick="sendRequestEmail()">등급 조정 요청 보내기</button>
+    </div>
+
         <h3 style="color: #7fc7ff; font-size: 16px; margin-bottom: 10px;">등급별 권한 안내</h3>
         <table class="permission-table">
             <thead>
@@ -328,6 +350,75 @@ function deleteAccount() {
 function logout() {
     if(confirm("로그아웃 하시겠습니까?")) {
         auth.signOut().then(() => { location.href = "index.html"; });
+    }
+}
+
+async function sendRequestEmail() {
+    const user = firebase.auth().currentUser;
+    const roleElement = document.getElementById("requestedRole");
+    const reasonElement = document.getElementById("requestReason");
+    
+    // 1. 로그인 여부 확인
+    if (!user) {
+        alert("로그인 후 요청이 가능합니다.");
+        location.href = 'login.html';
+        return;
+    }
+
+    // 2. 입력값 확인
+    const requestedRoleName = roleElement.options[roleElement.selectedIndex].text;
+    const reasonValue = reasonElement.value.trim();
+
+    if (!reasonValue) {
+        alert("조정 사유를 상세히 입력해주세요.");
+        reasonElement.focus();
+        return;
+    }
+
+    // 3. 전송 실행 확인
+    if (confirm(`[${requestedRoleName}] 등급으로 조정을 요청하시겠습니까?`)) {
+        // 버튼 상태 변경 (중복 클릭 방지)
+        const btn = event.currentTarget;
+        const originalText = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = "전송 중...";
+
+        // 구글 앱스 스크립트 배포 URL
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyXVcBrewoDYR_djyLMUmXz0ErNjdOzWs2YpTdb4Pc3xxMatpas3LUdD5lXZLZGW1XVhw/exec";
+
+        // 메일 본문 구성 (GAS의 message 파라미터로 전달됨)
+        const combinedMessage = `[희망 등급]: ${requestedRoleName}\n[조정 사유]: ${reasonValue}`;
+
+        const formData = new URLSearchParams();
+        formData.append("email", user.email);
+        formData.append("name", user.displayName || "이름미설정");
+        formData.append("message", combinedMessage);
+
+        try {
+            const response = await fetch(GAS_URL, {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                }
+            });
+
+            const result = await response.text();
+            
+            if (result === "success") {
+                alert("성공적으로 요청을 보냈습니다. 관리자 확인 후 반영됩니다.");
+                reasonElement.value = ""; // 입력창 초기화
+            } else {
+                throw new Error(result);
+            }
+        } catch (error) {
+            console.error("Mail Send Error:", error);
+            alert("메일 전송 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        } finally {
+            // 버튼 상태 복구
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }
     }
 }
 </script>
