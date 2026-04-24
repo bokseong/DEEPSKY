@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="logo.png" type="image/png">
-    <title>DEEP SKY</title>
+    <title>DEEP SKY - 정보 수정</title>
     <style>
         /* 1. 공통 스타일 */
         * { box-sizing: border-box; }
@@ -46,26 +46,17 @@
         /* 등급 표시 칸 */
         .role-badge-box {
             background: rgba(58, 90, 255, 0.15); border: 1px solid #3a5aff;
-            padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 30px;
+            padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 10px;
         }
         .role-title { font-size: 14px; color: #7fc7ff; margin-bottom: 5px; }
         .role-name { font-size: 24px; font-weight: bold; color: white; letter-spacing: 1px; }
 
-        /* 권한 안내 표 */
-        .permission-table {
-            width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px;
-        }
-        .permission-table th, .permission-table td {
-            padding: 10px; border: 1px solid #2d367a; text-align: center;
-        }
-        .permission-table th { background: rgba(58, 90, 255, 0.2); color: #7fc7ff; }
-        .check { color: #3a5aff; font-weight: bold; }
-
+        /* 입력 폼 스타일 */
         .info-group { margin-bottom: 20px; }
         .info-group label { display: block; font-size: 13px; color: #7fc7ff; margin-bottom: 8px; font-weight: bold; }
-        .info-group input { 
+        .info-group input, .info-group select, .info-group textarea { 
             width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #1b2f80; 
-            background: #0b0f2b; color: white; font-size: 15px; outline: none;
+            background: #0b0f2b; color: white; font-size: 15px; outline: none; font-family: inherit;
         }
         .info-group input:disabled { background: #070a1d; color: #666; cursor: not-allowed; }
 
@@ -83,6 +74,16 @@
         }
         .btn-pw-reset:hover { background: rgba(58, 90, 255, 0.1); }
 
+        /* 권한 안내 표 */
+        .permission-table {
+            width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px;
+        }
+        .permission-table th, .permission-table td {
+            padding: 10px; border: 1px solid #2d367a; text-align: center;
+        }
+        .permission-table th { background: rgba(58, 90, 255, 0.2); color: #7fc7ff; }
+        .check { color: #3a5aff; font-weight: bold; }
+
         .danger-zone { 
             margin-top: 40px; border-top: 1px solid #2d367a; padding-top: 25px; 
             text-align: center;
@@ -97,15 +98,6 @@
             background: #070a1d; text-align: center; padding: 30px 20px;
             font-size: 12px; color: #888; border-top: 1px solid #1b2f80; 
             width: 100%; margin-top: 50px;
-        }
-        a:link, a:visited { color: #dedede; text-decoration: none; }
-        a:hover { color: #b2b2b2; text-decoration: underline; }
-
-        @media (max-width: 600px) {
-            .logo-area span { font-size: 16px; }
-            nav a { padding: 10px 8px; font-size: 12px; }
-            header h1 { font-size: 22px; }
-            .permission-table { font-size: 11px; }
         }
     </style>
 </head>
@@ -167,35 +159,36 @@
         </div>
     </div>
 
-     <div class="card">
+    <div class="card">
+        <h3 style="color: #7fc7ff; font-size: 18px; margin-top: 0; text-align: center;">등급 관리 및 신청</h3>
+        
         <div class="role-badge-box">
             <div class="role-title">나의 회원 등급</div>
             <div id="displayRole" class="role-name">확인 중...</div>
         </div>
 
-         <div id="lockMessage" class="intro-card hidden">
-        <h2 style="border:none; padding:0; text-align:center; color: #7fc7ff;">접근 제한</h2>
-        <p>등급 관리 페이지는 DEEP SKY 관리자만 접근할 수 있습니다.</p>
-        
-        <div style="margin: 25px auto; max-width: 400px; text-align: left; background: rgba(58, 90, 255, 0.05); padding: 20px; border-radius: 12px; border: 1px solid #2d367a;">
-            <label style="display:block; margin-bottom:8px; color:#7fc7ff; font-size:14px; font-weight:bold;">희망 등급</label>
-            <select id="requestedRole" style="width:100%; background:#0b0f2b; color:white; border:1px solid #3a5aff; padding:10px; border-radius:6px; margin-bottom:15px; outline:none; font-family: inherit;">
-                <option value="student">동아리 부원</option>
-                <option value="admin">관리자</option>
-                <option value="member">일반 회원</option>
-            </select>
+        <div id="requestSection" style="margin-top: 30px; background: rgba(58, 90, 255, 0.05); padding: 20px; border-radius: 12px; border: 1px solid #2d367a;">
+            <p style="font-size: 14px; color: #7fc7ff; text-align: center; margin-bottom: 15px; font-weight: bold;">[ 등급 조정 요청 양식 ]</p>
+            
+            <div class="info-group">
+                <label>희망 등급</label>
+                <select id="requestedRole">
+                    <option value="student">동아리 부원</option>
+                    <option value="admin">관리자</option>
+                    <option value="member">일반 회원</option>
+                </select>
+            </div>
 
-            <label style="display:block; margin-bottom:8px; color:#7fc7ff; font-size:14px; font-weight:bold;">조정 사유</label>
-            <textarea id="requestReason" 
-                style="width:100%; height:80px; background:#0b0f2b; color:white; border:1px solid #3a5aff; border-radius:8px; padding:10px; font-family:inherit; resize:none; font-size:14px; outline:none;"
-                placeholder="그냥 등의 성의 없는 내용 작성 금지  작성 예시: 1.~, 2.~...."></textarea>
+            <div class="info-group">
+                <label>조정 사유</label>
+                <textarea id="requestReason" style="height: 100px; resize: none;" 
+                    placeholder="작성 예시:&#10;1. 21기 신입 부원 합격&#10;2. 운영진 임명 등 상세 사유 작성"></textarea>
+            </div>
+
+            <button class="btn-save" style="background:#28a745; margin-bottom: 0;" onclick="sendRequestEmail()">관리자에게 조정 요청 보내기</button>
         </div>
 
-        <button class="btn-main" onclick="location.href='index.html'">홈으로 가기</button>
-        <button class="btn-update" style="background:#28a745; padding: 12px 20px;" onclick="sendRequestEmail()">등급 조정 요청 보내기</button>
-    </div>
-
-        <h3 style="color: #7fc7ff; font-size: 16px; margin-bottom: 10px;">등급별 권한 안내</h3>
+        <h3 style="color: #7fc7ff; font-size: 16px; margin: 30px 0 10px;">등급별 권한 안내</h3>
         <table class="permission-table">
             <thead>
                 <tr>
@@ -206,47 +199,12 @@
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>질문 작성</td>
-                    <td class="check">V</td>
-                    <td class="check">V</td>
-                    <td class="check">V</td>
-                </tr>
-                <tr>
-                    <td>질문 답변</td>
-                    <td class="check">-</td>
-                    <td class="check">V</td>
-                    <td class="check">V</td>
-                </tr>
-                <tr>
-                    <td>자유 게시판 보기</td>
-                    <td class="check">V</td>
-                    <td class="check">V</td>
-                    <td class="check">V</td>
-                </tr>
-                <tr>
-                    <td>자유 게시판 글쓰기</td>
-                    <td class="check">-</td>
-                    <td class="check">V</td>
-                    <td class="check">V</td>
-                </tr>
-                <tr>
-                    <td>자유 게시판에 댓글</td>
-                    <td class="check">-</td>
-                    <td class="check">V</td>
-                    <td class="check">V</td>
-                <tr>
-                    <td>자료실 접근</td>
-                    <td class="check">-</td>
-                    <td class="check">V</td>
-                    <td class="check">V</td>
-                </tr>
-                <tr>
-                    <td>관리자 메뉴</td>
-                    <td class="check">-</td>
-                    <td class="check">-</td>
-                    <td class="check">V</td>
-                </tr>
+                <tr><td>질문 작성</td><td class="check">V</td><td class="check">V</td><td class="check">V</td></tr>
+                <tr><td>질문 답변</td><td class="check">-</td><td class="check">V</td><td class="check">V</td></tr>
+                <tr><td>자유 게시판 보기</td><td class="check">V</td><td class="check">V</td><td class="check">V</td></tr>
+                <tr><td>자유 게시판 글쓰기</td><td class="check">-</td><td class="check">V</td><td class="check">V</td></tr>
+                <tr><td>자료실 접근</td><td class="check">-</td><td class="check">V</td><td class="check">V</td></tr>
+                <tr><td>관리자 메뉴</td><td class="check">-</td><td class="check">-</td><td class="check">V</td></tr>
             </tbody>
         </table>
     </div>
@@ -311,14 +269,13 @@ auth.onAuthStateChanged(async (user) => {
             if(displayRole) displayRole.innerText = roleName;
             if(nameInput) nameInput.value = currentName;
         });
-
-        try { await appCheck.getToken(false); } catch (e) {}
     } else {
         alert("로그인이 필요합니다.");
         location.href = "login.html";
     }
 });
 
+// 프로필 업데이트
 function updateProfile() {
     const user = auth.currentUser;
     const newName = document.getElementById("userName").value.trim();
@@ -329,6 +286,66 @@ function updateProfile() {
       .catch(err => alert("오류: " + err.message));
 }
 
+// 메일 전송 함수 (GAS 연동)
+async function sendRequestEmail() {
+    const user = auth.currentUser;
+    const roleElement = document.getElementById("requestedRole");
+    const reasonElement = document.getElementById("requestReason");
+    
+    if (!user) return alert("로그인 후 이용 가능합니다.");
+
+    const requestedRoleName = roleElement.options[roleElement.selectedIndex].text;
+    const reasonValue = reasonElement.value.trim();
+
+    if (reasonValue.length < 5) {
+        alert("조정 사유를 구체적으로 작성해주세요 (최소 5자).");
+        reasonElement.focus();
+        return;
+    }
+
+    if (confirm(`[${requestedRoleName}] 등급으로 조정을 요청하시겠습니까?`)) {
+        const btn = event.currentTarget;
+        const originalText = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = "전송 중...";
+
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyXVcBrewoDYR_djyLMUmXz0ErNjdOzWs2YpTdb4Pc3xxMatpas3LUdD5lXZLZGW1XVhw/exec";
+
+        const snapshot = await db.ref('users/' + user.uid).once('value');
+        const userData = snapshot.val() || {};
+        const senderName = userData.name || user.email.split('@')[0];
+
+        const combinedMessage = `[희망 등급]: ${requestedRoleName}\n[조정 사유]: ${reasonValue}`;
+
+        const formData = new URLSearchParams();
+        formData.append("email", user.email);
+        formData.append("name", senderName);
+        formData.append("message", combinedMessage);
+
+        try {
+            const response = await fetch(GAS_URL, {
+                method: "POST",
+                body: formData,
+                headers: { "Content-Type": "application/x-www-form-urlencoded" }
+            });
+
+            const result = await response.text();
+            if (result === "success") {
+                alert("성공적으로 요청을 보냈습니다. 관리자 확인 후 반영됩니다.");
+                reasonElement.value = ""; 
+            } else {
+                throw new Error();
+            }
+        } catch (error) {
+            alert("메일 전송 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }
+    }
+}
+
+// 비밀번호 재설정
 function resetPassword() {
     const email = auth.currentUser.email;
     if(confirm("재설정 메일을 발송할까요?")) {
@@ -338,6 +355,7 @@ function resetPassword() {
     }
 }
 
+// 회원 탈퇴
 function deleteAccount() {
     if (confirm("정말 탈퇴하시겠습니까? 데이터는 복구할 수 없습니다.")) {
         const user = auth.currentUser;
@@ -347,78 +365,10 @@ function deleteAccount() {
     }
 }
 
+// 로그아웃
 function logout() {
     if(confirm("로그아웃 하시겠습니까?")) {
         auth.signOut().then(() => { location.href = "index.html"; });
-    }
-}
-
-async function sendRequestEmail() {
-    const user = firebase.auth().currentUser;
-    const roleElement = document.getElementById("requestedRole");
-    const reasonElement = document.getElementById("requestReason");
-    
-    // 1. 로그인 여부 확인
-    if (!user) {
-        alert("로그인 후 요청이 가능합니다.");
-        location.href = 'login.html';
-        return;
-    }
-
-    // 2. 입력값 확인
-    const requestedRoleName = roleElement.options[roleElement.selectedIndex].text;
-    const reasonValue = reasonElement.value.trim();
-
-    if (!reasonValue) {
-        alert("조정 사유를 상세히 입력해주세요.");
-        reasonElement.focus();
-        return;
-    }
-
-    // 3. 전송 실행 확인
-    if (confirm(`[${requestedRoleName}] 등급으로 조정을 요청하시겠습니까?`)) {
-        // 버튼 상태 변경 (중복 클릭 방지)
-        const btn = event.currentTarget;
-        const originalText = btn.innerText;
-        btn.disabled = true;
-        btn.innerText = "전송 중...";
-
-        // 구글 앱스 스크립트 배포 URL
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbyXVcBrewoDYR_djyLMUmXz0ErNjdOzWs2YpTdb4Pc3xxMatpas3LUdD5lXZLZGW1XVhw/exec";
-
-        // 메일 본문 구성 (GAS의 message 파라미터로 전달됨)
-        const combinedMessage = `[희망 등급]: ${requestedRoleName}\n[조정 사유]: ${reasonValue}`;
-
-        const formData = new URLSearchParams();
-        formData.append("email", user.email);
-        formData.append("name", user.displayName || "이름미설정");
-        formData.append("message", combinedMessage);
-
-        try {
-            const response = await fetch(GAS_URL, {
-                method: "POST",
-                body: formData,
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
-                }
-            });
-
-            const result = await response.text();
-            
-            if (result === "success") {
-                alert("성공적으로 요청을 보냈습니다. 관리자 확인 후 반영됩니다.");
-                reasonElement.value = ""; // 입력창 초기화
-            } else {
-                throw new Error(result);
-            }
-        } catch (error) {
-            console.error("Mail Send Error:", error);
-            alert("메일 전송 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-        } finally {
-            // 버튼 상태 복구
-            btn.disabled = false;
-            btn.innerText = originalText;
-        }
     }
 }
 </script>
