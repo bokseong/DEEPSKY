@@ -234,36 +234,46 @@ auth.onAuthStateChanged(async (user) => {
     const mainContent = document.getElementById("mainContent");
     const adminUpload = document.getElementById("adminUpload");
 
+    // 초기 상태: 모두 숨김
+    lockMsg.classList.add("hidden");
+    mainContent.classList.add("hidden");
+    adminUpload.classList.add("hidden");
+
     if (user) {
-        // [로그인 로직] 실시간 데이터 로드 및 등급 확인
         db.ref('users/' + user.uid).on('value', (snapshot) => {
             currentUserData = snapshot.val() || {};
             const name = currentUserData.name || user.displayName || user.email.split('@')[0];
-            
-            // 등급 명칭 설정
-            let roleName = "일반 회원";
-            if (user.email === ADMIN_EMAIL) {
-                roleName = "관리자";
-                adminUpload.classList.remove("hidden");
-            } else if (currentUserData.role === 'student') {
-                roleName = "동아리 부원";
-                adminUpload.classList.add("hidden");
-            } else {
-                adminUpload.classList.add("hidden");
-            }
+            const isAdmin = (user.email === ADMIN_EMAIL);
+            const isStudent = (currentUserData.role === 'student');
 
+            // 등급 명칭 설정
+            let roleName = isAdmin ? "관리자" : (isStudent ? "동아리 부원" : "일반 회원");
             if (status) status.innerText = `${name}님 (${roleName})`;
-            
-            // UI 표시 전환
+
             loginBtn.classList.add("hidden");
             logoutBtn.classList.remove("hidden");
-            lockMsg.classList.add("hidden");
-            mainContent.classList.remove("hidden");
-            
-            loadResources(user);
+
+            // [권한 핵심] 관리자 혹은 부원인 경우만 콘텐츠 노출
+            if (isAdmin || isStudent) {
+                lockMsg.classList.add("hidden");
+                mainContent.classList.remove("hidden");
+                
+                // 업로드 박스는 관리자 전용
+                if (isAdmin) adminUpload.classList.remove("hidden");
+                
+                loadResources(user);
+            } else {
+                // 일반 회원인 경우 잠금 메시지 표시
+                mainContent.classList.add("hidden");
+                lockMsg.classList.remove("hidden");
+                lockMsg.querySelector('h2').innerText = "접근 제한";
+                lockMsg.querySelector('p').innerText = "자료실은 동아리 부원 이상만 이용할 수 있는 공간입니다.";
+                const targetBtn = lockMsg.querySelector('button');
+                targetBtn.innerText = "홈으로 돌아가기";
+                targetBtn.onclick = () => { location.href='index.html' };
+            }
         });
 
-        // 보안 토큰 확인
         try { await appCheck.getToken(false); } catch (e) {}
         
     } else {
@@ -271,9 +281,14 @@ auth.onAuthStateChanged(async (user) => {
         if (status) status.innerText = "로그인 해주세요";
         loginBtn.classList.remove("hidden");
         logoutBtn.classList.add("hidden");
-        lockMsg.classList.remove("hidden");
+        
         mainContent.classList.add("hidden");
-        adminUpload.classList.add("hidden");
+        lockMsg.classList.remove("hidden");
+        lockMsg.querySelector('h2').innerText = "회원 전용 공간";
+        lockMsg.querySelector('p').innerText = "자료실은 DEEP SKY 회원만 접근할 수 있습니다.";
+        const targetBtn = lockMsg.querySelector('button');
+        targetBtn.innerText = "로그인하러 가기";
+        targetBtn.onclick = () => { location.href='login.html' };
     }
 });
 
@@ -339,6 +354,11 @@ function filterResources() {
 
 // 자료 업로드 (관리자 전용)
 async function uploadResource() {
+    if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) {
+        alert("관리자만 자료를 등록할 수 있습니다.");
+        return;
+    }
+
     const title = document.getElementById("fileTitle").value.trim();
     const desc = document.getElementById("fileDesc").value.trim();
     let link = document.getElementById("fileLink").value.trim();
@@ -347,7 +367,7 @@ async function uploadResource() {
     if(!link.startsWith('http')) link = 'https://' + link;
     
     try {
-        await appCheck.getToken(true); // 쓰기 전 보안 확인
+        await appCheck.getToken(true);
         await db.ref("resources").push({ 
             title, 
             desc, 
