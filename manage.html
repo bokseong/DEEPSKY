@@ -133,15 +133,7 @@
         <p>등급 관리 페이지는 DEEP SKY 관리자만 접근할 수 있습니다.</p>
         <button class="btn-main" onclick="location.href='index.html'">홈으로 가기</button>
         <br>
-        <p> 
-            <a href="mailto:2jw5464@gmail.com?subject=등급 조정 요청&body= 안녕하세요. 
-                등급 조정을 요청합니다 저의 등급을 ~에서 ~로 전환에 주시면 감사하겠습니다. 이유는 다음과 같습니다.
-                1.
-                2.">
-                Gmail로 등급 조정 요청 메일 보내기
-            </a>
-        </p>
-    </div>
+        <button class="btn-update" onclick="sendRequestEmail()">관리자에게 등급 조정 요청 보내기</button>
 </div>
 
 <footer>
@@ -326,6 +318,52 @@ window.logout = () => {
         });
     }
 };
+    async function sendRequestEmail() {
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        alert("로그인 후 요청이 가능합니다.");
+        return;
+    }
+
+    // 1단계에서 복사한 웹 앱 URL을 여기에 넣으세요
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyXVcBrewoDYR_djyLMUmXz0ErNjdOzWs2YpTdb4Pc3xxMatpas3LUdD5lXZLZGW1XVhw/exec";
+
+    if (confirm("관리자에게 등급 조정을 요청하시겠습니까?")) {
+        // 버튼 비활성화 (중복 클릭 방지)
+        const btn = event.target;
+        btn.disabled = true;
+        btn.innerText = "전송 중...";
+
+        // 보낼 데이터 준비
+        const formData = new URLSearchParams();
+        formData.append("email", user.email);
+        formData.append("name", user.displayName || "이름미설정");
+        formData.append("message", "사용자가 등급 관리 페이지 접속 권한(등급 조정)을 요청했습니다.");
+
+        try {
+            const response = await fetch(GAS_URL, {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                }
+            });
+
+            const result = await response.text();
+            if (result === "success") {
+                alert("성공적으로 요청을 보냈습니다. 관리자 확인 후 반영됩니다.");
+            } else {
+                throw new Error(result);
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            alert("메일 전송 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "관리자에게 등급 조정 요청 보내기";
+        }
+    }
+}
 </script>
 </body>
 </html>
