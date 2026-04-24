@@ -1,15 +1,14 @@
-<!DOCTYPE html>
+<!DOCTYPE.html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="logo.png" type="image/png">
-    <title>DEEP SKY</title>
+    <title>DEEP SKY - 활동 사진</title>
     <style>
         /* 1. 원본 디자인 스타일 및 초기화 */
         * { box-sizing: border-box; }
         body { margin: 0; font-family: "Segoe UI", AppleSDGothicNeo-Regular, sans-serif; background: #0b0f2b; color: white; line-height: 1.6; }
-
         .hidden { display: none !important; }
 
         /* 2. 상단 바 */
@@ -62,28 +61,42 @@
         }
         .btn-upload { width: 100%; padding: 12px; background: #3a5aff; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
-        /* 6. 사진 그리드 */
+        /* 6. 사진 그리드 및 카드 */
         .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
-        .photo-card { background: #161b4a; border-radius: 15px; overflow: hidden; border: 1px solid #2d367a; transition: 0.3s; text-align: center; }
+        .photo-card { background: #161b4a; border-radius: 15px; overflow: hidden; border: 1px solid #2d367a; transition: 0.3s; display: flex; flex-direction: column; }
         .photo-card:hover { transform: translateY(-5px); border-color: #3a5aff; }
         .photo-card img { width: 100%; height: 200px; object-fit: cover; cursor: pointer; background: #070a1d; }
         
-        .photo-info { padding: 15px; }
+        .photo-info { padding: 15px; border-bottom: 1px solid #2d367a; text-align: center; }
         .owner-tag { font-size: 11px; color: #7fc7ff; display: block; margin-bottom: 5px; }
-        .photo-title { margin: 5px 0 15px; font-size: 16px; font-weight: bold; min-height: 40px; display: flex; align-items: center; justify-content: center;}
+        .photo-title { margin: 5px 0; font-size: 16px; font-weight: bold; min-height: 40px; display: flex; align-items: center; justify-content: center;}
         
-        .btn-group { display: flex; gap: 5px; }
+        /* 댓글 영역 스타일 */
+        .comment-section { padding: 15px; background: rgba(0,0,0,0.15); flex-grow: 1; }
+        .comment-list { max-height: 120px; overflow-y: auto; margin-bottom: 10px; font-size: 13px; text-align: left; }
+        .comment-item { margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px dashed #2d367a; position: relative; line-height: 1.4; }
+        .comment-user { font-weight: bold; color: #7fc7ff; margin-right: 5px; }
+        .btn-comment-del { color: #ff4d4d; background: none; border: none; font-size: 10px; cursor: pointer; padding: 0 5px; }
+        
+        .comment-input-group { display: flex; gap: 5px; margin-top: 10px; }
+        .comment-input-group input { flex: 1; padding: 8px; border-radius: 5px; border: 1px solid #2d367a; background: #0b0f2b; color: white; font-size: 12px; }
+        .btn-comment-add { padding: 0 10px; background: #3a5aff; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 12px; white-space: nowrap; }
+
+        .btn-group { display: flex; gap: 5px; padding: 10px; background: #11153a; }
         .btn-group a, .btn-group button { 
             flex: 1; padding: 8px; border-radius: 5px; font-size: 13px; font-weight: bold; 
-            text-decoration: none; cursor: pointer; border: none;
+            text-decoration: none; cursor: pointer; border: none; text-align: center;
         }
         .btn-view { background: #28a745; color: white; }
         .btn-del { background: #ff4d4d; color: white; }
 
-        footer { background: #070a1d; text-align: center; padding: 30px 20px; font-size: 12px; color: #888; border-top: 1px solid #1b2f80; width: 100%; margin-top: 50px; }
-
-        a:link, a:visited { color: #dedede; text-decoration: none; }
-        a:hover { color: #b2b2b2; text-decoration: underline; }
+        /* 원본 푸터 스타일 */
+        footer { 
+            background: #070a1d; text-align: center; padding: 30px 20px; font-size: 12px; color: #888; 
+            border-top: 1px solid #1b2f80; width: 100%; margin-top: 50px; 
+        }
+        footer a:link, footer a:visited { color: #dedede; text-decoration: none; }
+        footer a:hover { color: #b2b2b2; text-decoration: underline; }
 
         @media (max-width: 600px) {
             .logo-area span { font-size: 16px; }
@@ -130,10 +143,10 @@
     </div>
 
     <div id="mainContent" class="hidden">
-        <div id="uploadSection" class="upload-card">
+        <div id="uploadSection" class="upload-card hidden">
             <h3 style="margin-top:0; color:#7fc7ff;">사진 일괄 등록</h3>
             <p style="font-size:14px; color:#ccc; margin-bottom:15px;">구글 드라이브 링크를 넣어주세요.</p>
-            <textarea id="imageUrls" placeholder="구글 드라이브 공유 링크 입력..."></textarea>
+            <textarea id="imageUrls" placeholder="구글 드라이브 공유 링크 입력... (여러 줄 입력 가능)"></textarea>
             <input type="text" id="commonTitle" placeholder="사진 제목">
             <button class="btn-upload" onclick="uploadBulkPhotos()">갤러리에 모두 올리기</button>
         </div>
@@ -152,7 +165,7 @@
     <br>
     Email : leader.deepsky@gmail.com &nbsp; &nbsp; &nbsp; &nbsp; | &nbsp; &nbsp; &nbsp; &nbsp; Designed by jw-astro09
     <br>
-    <a href="https://forms.gle/5MZf7MEZwNxAefXw9">시스템 오류 또는 오타 수정 건의하기</a>
+    <a href="https://forms.gle/5MZf7MEZwNxAefXw9" target="_blank">시스템 오류 또는 오타 수정 건의하기</a>
 </footer>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -177,48 +190,43 @@ const auth = firebase.auth();
 const db = firebase.database();
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-// App Check 활성화
 const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
-let currentUserName = "익명";
 let currentUserData = null;
 
-// 2. 로그인 상태 감지 및 UI 처리
+// 2. 로그인 상태 감지 및 권한 제어
 auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtn = document.getElementById("logoutBtn");
     const lockMsg = document.getElementById("lockMessage");
     const mainContent = document.getElementById("mainContent");
+    const uploadSection = document.getElementById("uploadSection");
 
     if (user) {
-        // [로그인 로직 수정] 실시간 데이터 로드 및 등급 확인
         db.ref('users/' + user.uid).on('value', (snapshot) => {
             currentUserData = snapshot.val() || {};
-            currentUserName = currentUserData.name || user.displayName || user.email.split('@')[0];
-            
-            // 등급 명칭 설정
-            let roleName = "일반 회원";
-            if (user.email === ADMIN_EMAIL) roleName = "관리자";
-            else if (currentUserData.role === 'student') roleName = "동아리 부원";
+            const name = currentUserData.name || user.displayName || user.email.split('@')[0];
+            const isAdmin = (user.email === ADMIN_EMAIL || currentUserData.role === 'admin');
+            const isStudent = (currentUserData.role === 'student');
 
-            if (status) status.innerText = `${currentUserName}님 (${roleName})`;
-            
-            // UI 표시 전환
+            // 상단 바 등급 표시
+            let roleName = isAdmin ? "관리자" : (isStudent ? "동아리 부원" : "일반 회원");
+            if (status) status.innerText = `${name}님 (${roleName})`;
+
             loginBtn.classList.add("hidden");
             logoutBtn.classList.remove("hidden");
             lockMsg.classList.add("hidden");
             mainContent.classList.remove("hidden");
-            
-            loadPhotos(); // 로그인 확인 후 사진 로드
+
+            // 업로드 권한: 관리자 또는 부원인 경우만 섹션 노출
+            if (isAdmin || isStudent) uploadSection.classList.remove("hidden");
+            else uploadSection.classList.add("hidden");
+
+            loadPhotos(user, isAdmin, isStudent);
         });
-
-        // App Check 토큰 강제 갱신 (보안 강화)
-        try { await appCheck.getToken(true); } catch (e) {}
-
     } else {
-        // 비로그인 상태
         if (status) status.innerText = "로그인 해주세요";
         loginBtn.classList.remove("hidden");
         logoutBtn.classList.add("hidden");
@@ -227,9 +235,7 @@ auth.onAuthStateChanged(async (user) => {
     }
 });
 
-// --- 유틸리티 함수 ---
-
-// 구글 드라이브 링크를 직접 보기 링크로 변환
+// 3. 사진 기능
 function convertDriveLink(url) {
     if (url.includes('drive.google.com')) {
         let fileId = "";
@@ -240,84 +246,117 @@ function convertDriveLink(url) {
     return url;
 }
 
-// 시간 포맷팅
-function formatTime(timestamp) {
-    const date = new Date(timestamp);
-    return `${date.getFullYear()}.${(date.getMonth()+1).toString().padStart(2,'0')}.${date.getDate().toString().padStart(2,'0')} ${date.getHours()}:${date.getMinutes().toString().padStart(2,'0')}`;
-}
-
-// --- 핵심 기능 ---
-
-// 사진 일괄 업로드
 async function uploadBulkPhotos() {
     const user = auth.currentUser;
     const urlsText = document.getElementById("imageUrls").value.trim();
     const titleText = document.getElementById("commonTitle").value.trim();
-
-    if(!user) return alert("로그인이 필요합니다.");
-    if(!urlsText || !titleText) return alert("내용을 입력해 주세요.");
+    if(!urlsText || !titleText) return alert("내용을 입력하세요.");
 
     const urlList = urlsText.split('\n').map(u => u.trim()).filter(u => u !== "");
-    if(urlList.length === 0) return alert("유효한 링크가 없습니다.");
-    
-    if(!confirm(`${urlList.length}개의 사진을 업로드하시겠습니까?`)) return;
-
     try {
-        await appCheck.getToken(true); // 쓰기 작업 전 보안 확인
+        await appCheck.getToken(true);
         const promises = urlList.map((url, index) => {
-            const finalTitle = urlList.length > 1 ? `${titleText} (${index + 1})` : titleText;
             return db.ref('photos_link').push({
                 url: convertDriveLink(url),
-                title: finalTitle,
-                ownerName: currentUserName,
-                ownerEmail: user.email,
+                title: urlList.length > 1 ? `${titleText} (${index + 1})` : titleText,
+                ownerName: currentUserData.name || user.email.split('@')[0],
                 ownerUid: user.uid,
                 createdAt: firebase.database.ServerValue.TIMESTAMP
             });
         });
         await Promise.all(promises);
-        alert("업로드 완료!");
+        alert("성공적으로 업로드되었습니다.");
         document.getElementById("imageUrls").value = "";
         document.getElementById("commonTitle").value = "";
-    } catch (err) { 
-        alert("업로드 실패: 권한이 없거나 네트워크 오류입니다."); 
-    }
+    } catch (e) { alert("업로드 실패: 권한을 확인하세요."); }
 }
 
-// 사진 로드 및 렌더링
-function loadPhotos() {
+function loadPhotos(user, isAdmin, isStudent) {
     const grid = document.getElementById("photoGrid");
     db.ref('photos_link').orderByChild('createdAt').on('value', snapshot => {
         grid.innerHTML = "";
         const data = snapshot.val();
-        if(!data) {
-            grid.innerHTML = "<p style='grid-column:1/-1; text-align:center; padding: 50px 0;'>등록된 사진이 없습니다.</p>";
-            return;
-        }
-        
-        // 최신순 정렬
+        if(!data) return;
+
         Object.keys(data).reverse().forEach(key => {
             const item = data[key];
-            const isAdmin = auth.currentUser && (auth.currentUser.email === ADMIN_EMAIL || auth.currentUser.uid === item.ownerUid);
-            
+            const isOwner = (user.uid === item.ownerUid);
+            const canDeletePhoto = isAdmin || isOwner;
+
             const card = document.createElement("div");
             card.className = "photo-card";
             card.innerHTML = `
-                <img src="${item.url}" onerror="this.src='https://via.placeholder.com/300x200?text=Image+Load+Error'" onclick="window.open('${item.url}', '_blank')">
+                <img src="${item.url}" onclick="window.open('${item.url}')" onerror="this.src='https://via.placeholder.com/300x200?text=Image+Load+Error'">
                 <div class="photo-info">
-                    <span class="owner-tag">By ${item.ownerName || '익명'} | ${formatTime(item.createdAt)}</span>
+                    <span class="owner-tag">By ${item.ownerName}</span>
                     <div class="photo-title">${item.title}</div>
-                    <div class="btn-group">
-                        <a href="${item.url}" target="_blank" class="btn-view">원본보기</a>
-                        ${isAdmin ? `<button class="btn-del" onclick="deletePhoto('${key}')">삭제</button>` : ''}
+                </div>
+                <div class="comment-section">
+                    <div class="comment-list" id="list-${key}">댓글 로드 중...</div>
+                    <div class="comment-input-group ${(isAdmin || isStudent) ? '' : 'hidden'}">
+                        <input type="text" id="input-${key}" placeholder="댓글 입력...">
+                        <button class="btn-comment-add" onclick="addComment('${key}')">등록</button>
                     </div>
-                </div>`;
+                </div>
+                <div class="btn-group">
+                    <a href="${item.url}" target="_blank" class="btn-view">원본보기</a>
+                    ${canDeletePhoto ? `<button class="btn-del" onclick="deletePhoto('${key}')">삭제</button>` : ''}
+                </div>
+            `;
             grid.appendChild(card);
+            loadComments(key, item.ownerUid, isAdmin);
         });
     });
 }
 
-// 검색 필터
+function loadComments(photoKey, photoOwnerUid, isAdmin) {
+    const listDiv = document.getElementById(`list-${photoKey}`);
+    db.ref(`photos_link/${photoKey}/comments`).on('value', snapshot => {
+        listDiv.innerHTML = "";
+        const comments = snapshot.val();
+        if(!comments) { listDiv.innerHTML = "<span style='color:#666'>댓글이 없습니다.</span>"; return; }
+        
+        Object.keys(comments).forEach(cKey => {
+            const c = comments[cKey];
+            const isCommentOwner = (auth.currentUser.uid === c.uid);
+            const isPhotoOwner = (auth.currentUser.uid === photoOwnerUid);
+            const canDeleteComment = isAdmin || isCommentOwner || isPhotoOwner;
+
+            const div = document.createElement("div");
+            div.className = "comment-item";
+            div.innerHTML = `
+                <span class="comment-user">${c.userName}:</span>
+                <span class="comment-text">${c.text}</span>
+                ${canDeleteComment ? `<button class="btn-comment-del" onclick="deleteComment('${photoKey}','${cKey}')">삭제</button>` : ''}
+            `;
+            listDiv.appendChild(div);
+        });
+    });
+}
+
+async function addComment(photoKey) {
+    const input = document.getElementById(`input-${photoKey}`);
+    const text = input.value.trim();
+    if(!text) return;
+    try {
+        await db.ref(`photos_link/${photoKey}/comments`).push({
+            uid: auth.currentUser.uid,
+            userName: currentUserData.name || "회원",
+            text: text,
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+        input.value = "";
+    } catch (e) { alert("권한이 없습니다."); }
+}
+
+async function deleteComment(photoKey, commentKey) {
+    if(confirm("댓글을 삭제하시겠습니까?")) await db.ref(`photos_link/${photoKey}/comments/${commentKey}`).remove();
+}
+
+async function deletePhoto(key) {
+    if(confirm("이 사진을 삭제하시겠습니까?")) await db.ref('photos_link/' + key).remove();
+}
+
 function filterPhotos() {
     const term = document.getElementById("photoSearch").value.toLowerCase();
     const cards = document.getElementsByClassName("photo-card");
@@ -328,27 +367,7 @@ function filterPhotos() {
     });
 }
 
-// 삭제
-async function deletePhoto(key) { 
-    if(!confirm("정말 삭제하시겠습니까?")) return;
-    
-    try {
-        await appCheck.getToken(true);
-        await db.ref('photos_link/' + key).remove();
-        alert("삭제되었습니다.");
-    } catch (e) {
-        alert("삭제 실패: 권한이 없습니다.");
-    }
-}
-
-// 로그아웃
-function logout() { 
-    if(confirm("로그아웃 하시겠습니까?")) {
-        auth.signOut().then(() => {
-            location.href='index.html';
-        });
-    }
-}
+function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.href='index.html'); }
 </script>
 </body>
 </html>
