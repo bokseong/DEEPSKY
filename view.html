@@ -166,8 +166,6 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-
-// 2. App Check 활성화
 const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
@@ -175,7 +173,9 @@ const auth = firebase.auth();
 const db = firebase.database();
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-// 3. 전역 변수
+// 중요: 새로 배포한 댓글 전용 GAS URL을 입력하세요
+const GAS_URL = "여기에_새로_배포한_GAS_URL을_넣으세요";
+
 const urlParams = new URLSearchParams(window.location.search);
 const postId = urlParams.get('id');
 
@@ -184,7 +184,6 @@ let currentUserRole = "";
 let currentPostAuthorUid = ""; 
 let currentPostTitle = "";
 
-// 등급 명칭 변환 함수
 function getRoleName(role) {
     switch(role) {
         case 'admin': return '관리자';
@@ -193,7 +192,7 @@ function getRoleName(role) {
     }
 }
 
-// 4. 로그인 상태 및 초기 실행
+// 2. 로그인 상태 관리
 auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
@@ -208,12 +207,10 @@ auth.onAuthStateChanged(async (user) => {
             currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
             status.innerText = `${currentUserName}님 (${getRoleName(currentUserRole)})`;
 
-            // [권한 수정] 관리자 또는 부원(student)인 경우에만 댓글 입력창 노출
             if (currentUserRole === 'admin' || currentUserRole === 'student') {
                 commentFormArea.classList.remove("hidden");
                 commentLoginNotice.classList.add("hidden");
             } else {
-                // 일반 회원인 경우
                 commentFormArea.classList.add("hidden");
                 commentLoginNotice.classList.remove("hidden");
                 commentLoginNotice.innerText = "댓글은 동아리 부원 이상의 등급 소유자만 작성할 수 있습니다.";
@@ -223,19 +220,12 @@ auth.onAuthStateChanged(async (user) => {
         logoutBtn.classList.remove("hidden");
     } else {
         currentUserName = "익명";
-        currentUserRole = "guest"; // 역할 초기화
+        currentUserRole = "guest";
         status.innerText = "로그인 해주세요";
         loginBtn.classList.remove("hidden");
         logoutBtn.classList.add("hidden");
         commentFormArea.classList.add("hidden");
         commentLoginNotice.classList.remove("hidden");
-        commentLoginNotice.innerText = "댓글을 작성하려면 로그인이 필요합니다.";
-    }
-
-    try {
-        await appCheck.getToken();
-    } catch (e) {
-        console.warn("App Check 토큰 대기 중...");
     }
 
     if (postId) {
@@ -246,20 +236,16 @@ auth.onAuthStateChanged(async (user) => {
         location.href = "board.html";
     }
 });
-// [업데이트] 댓글 입력창 엔터키 이벤트 추가
+
 document.getElementById("commentInput")?.addEventListener("keypress", function(e) {
-    if (e.key === "Enter") {
-        addComment();
-    }
+    if (e.key === "Enter") addComment();
 });
 
-// 5. 게시글 데이터 로드
+// 3. 게시글 로드
 function loadPost(user) {
     db.ref("freeboard/" + postId).once("value").then(async (snapshot) => {
         const postData = snapshot.val();
         const postArea = document.getElementById("postArea");
-        const viewContent = document.getElementById("viewContent");
-
         if (!postData) {
             postArea.innerHTML = "<div style='text-align:center; padding:100px;'><h3>삭제된 게시글입니다.</h3></div>";
             postArea.classList.remove("hidden");
@@ -271,22 +257,13 @@ function loadPost(user) {
 
         postArea.classList.remove("hidden");
         document.getElementById("viewTitle").innerText = postData.title;
-        
-        // [업데이트] 본문 줄바꿈 및 박스 탈출 방지 설정
-        viewContent.innerText = postData.content;
-        viewContent.style.wordBreak = "break-all"; // 긴 단어도 강제 줄바꿈
-        viewContent.style.overflowWrap = "break-word"; // 박스 안에서 줄바꿈
-
-        const displayTime = postData.createdAt || postData.updatedAt || Date.now();
-        document.getElementById("viewDate").innerText = new Date(displayTime).toLocaleString();
+        document.getElementById("viewContent").innerText = postData.content;
+        document.getElementById("viewDate").innerText = new Date(postData.createdAt || Date.now()).toLocaleString();
 
         let authorDisplayName = postData.author || "익명";
         if (postData.uid) {
             const userSnap = await db.ref('users/' + postData.uid).once('value');
-            if (userSnap.exists()) {
-                const u = userSnap.val();
-                authorDisplayName = `${u.name || authorDisplayName}`;
-            }
+            if (userSnap.exists()) authorDisplayName = userSnap.val().name || authorDisplayName;
         }
         document.getElementById("viewAuthor").innerText = "작성자: " + authorDisplayName;
 
@@ -301,8 +278,6 @@ function loadPost(user) {
                 editBtn.onclick = () => { location.href = `write.html?id=${postId}`; };
             }
         }
-    }).catch(err => {
-        console.error("데이터 로드 에러:", err);
     });
 }
 
@@ -337,7 +312,7 @@ function renderLinks(post) {
     }
 }
 
-// 6. 댓글 로드 및 추가/삭제 로직
+// 4. 댓글 관리
 function loadComments(user) {
     db.ref("freeboard/" + postId + "/comments").on("value", (snapshot) => {
         const listArea = document.getElementById("commentList");
@@ -364,47 +339,59 @@ function loadComments(user) {
     });
 }
 
-// 6. 댓글 추가 로직 (권한 체크 강화)
 function addComment() {
     const user = auth.currentUser;
     const input = document.getElementById("commentInput");
     
     if (!user) return alert("로그인이 필요합니다.");
-    
-    // [보안 추가] 스크립트 단에서 등급 확인
-    if (currentUserRole !== 'admin' && currentUserRole !== 'student') {
-        return alert("댓글 작성 권한이 없습니다. (부원 등급 이상만 가능)");
-    }
-
+    if (currentUserRole !== 'admin' && currentUserRole !== 'student') return alert("댓글 작성 권한이 없습니다.");
     if (!input.value.trim()) return alert("내용을 입력하세요.");
+
+    const commentMsg = input.value.trim();
 
     db.ref("freeboard/" + postId + "/comments").push({
         uid: user.uid,
         author: currentUserName,
-        content: input.value.trim(),
+        content: commentMsg,
         createdAt: Date.now()
     }).then(() => {
-        if (currentPostAuthorUid && currentPostAuthorUid !== user.uid) sendNotificationEmail(input.value);
+        // 본인 글이 아닐 때만 메일 알림 발송
+        if (currentPostAuthorUid && currentPostAuthorUid !== user.uid) {
+            sendNotificationEmail(commentMsg);
+        }
         input.value = "";
-    }).catch(err => {
-        alert("댓글 등록에 실패했습니다: " + err.message);
-    });
+    }).catch(err => alert("댓글 등록 실패: " + err.message));
 }
 
-function sendNotificationEmail(msg) {
-    db.ref("users/" + currentPostAuthorUid).once("value").then(snap => {
-        const data = snap.val();
-        if (data && data.email) {
-            emailjs.send("deepsky", "template_qxgegja", {
-                target_email: data.email,
-                name: data.name || "회원",
-                post_title: currentPostTitle,
-                comment_author: currentUserName,
-                comment_content: msg,
-                link: window.location.href
-            });
-        }
-    });
+// 5. 알림 메일 전송 (GAS 연동)
+async function sendNotificationEmail(msg) {
+    try {
+        const snap = await db.ref("users/" + currentPostAuthorUid).once("value");
+        const authorData = snap.val();
+        
+        // 작성자 이메일 주소가 없으면 종료
+        if (!authorData || !authorData.email) return;
+
+        const formData = new URLSearchParams();
+        formData.append("email", authorData.email);           // 받는 사람 (게시글 작성자)
+        formData.append("name", authorData.name || "회원");    // 받는 사람 이름
+        formData.append("postTitle", currentPostTitle);        // 게시글 제목
+        formData.append("commentAuthor", currentUserName);     // 댓글 작성자 이름
+        formData.append("commentContent", msg);                // 댓글 내용
+        formData.append("postUrl", window.location.href);      // 게시글 링크
+
+        fetch(GAS_URL, {
+            method: "POST",
+            body: formData,
+            headers: { "Content-Type": "application/x-www-form-urlencoded" }
+        })
+        .then(res => res.text())
+        .then(result => console.log("알림 발송 상태:", result))
+        .catch(err => console.error("GAS 발송 오류:", err));
+
+    } catch (e) {
+        console.error("알림 프로세스 중 오류:", e);
+    }
 }
 
 function deleteComment(id) { if(confirm("댓글을 삭제하시겠습니까?")) db.ref("freeboard/"+postId+"/comments/"+id).remove(); }
