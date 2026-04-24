@@ -129,11 +129,21 @@
 
 <div class="container">
     <div id="lockMessage" class="intro-card hidden">
-        <h2 style="border:none; padding:0; text-align:center; color: #7fc7ff;">접근 제한</h2>
-        <p>등급 관리 페이지는 DEEP SKY 관리자만 접근할 수 있습니다.</p>
-        <button class="btn-main" onclick="location.href='index.html'">홈으로 가기</button>
-        <br>
-        <button class="btn-update" onclick="sendRequestEmail()">관리자에게 등급 조정 요청 보내기</button>
+    <h2 style="border:none; padding:0; text-align:center; color: #7fc7ff;">접근 제한</h2>
+    <p>등급 관리 페이지는 관리자만 접근할 수 있습니다.</p>
+    
+    <div style="margin: 25px 0; text-align: left;">
+        <label for="requestReason" style="display:block; margin-bottom:10px; color:#7fc7ff; font-size:14px; font-weight:bold;">
+            희망 등급 및 사유를 입력해주세요
+        </label>
+        <textarea id="requestReason" 
+            style="width:100%; height:100px; background:#0b0f2b; color:white; border:1px solid #3a5aff; border-radius:8px; padding:12px; font-family:inherit; resize:none; font-size:14px;"
+            placeholder="예: '동아리 부원' 등급으로 조정을 요청합니다. 사유는 1.~ , 2.~"></textarea>
+    </div>
+
+    <button class="btn-main" onclick="location.href='index.html'">홈으로 가기</button>
+    <button class="btn-update" style="background:#28a745;" onclick="sendRequestEmail()">관리자에게 요청 보내기</button>
+</div>
 </div>
 
 <footer>
@@ -320,25 +330,35 @@ window.logout = () => {
 };
     async function sendRequestEmail() {
     const user = firebase.auth().currentUser;
+    const reasonElement = document.getElementById("requestReason");
+    
+    // 1. 로그인 체크
     if (!user) {
         alert("로그인 후 요청이 가능합니다.");
         return;
     }
 
-    // 1단계에서 복사한 웹 앱 URL을 여기에 넣으세요
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbyXVcBrewoDYR_djyLMUmXz0ErNjdOzWs2YpTdb4Pc3xxMatpas3LUdD5lXZLZGW1XVhw/exec";
+    // 2. 입력 내용 체크
+    const reasonValue = reasonElement.value.trim();
+    if (!reasonValue) {
+        alert("희망 등급과 사유를 입력해주세요.");
+        reasonElement.focus();
+        return;
+    }
 
-    if (confirm("관리자에게 등급 조정을 요청하시겠습니까?")) {
-        // 버튼 비활성화 (중복 클릭 방지)
-        const btn = event.target;
+    // 3. 전송 확인
+    if (confirm("입력하신 내용으로 등급 조정을 요청하시겠습니까?")) {
+        const btn = event.currentTarget; // 현재 클릭된 버튼
         btn.disabled = true;
         btn.innerText = "전송 중...";
 
-        // 보낼 데이터 준비
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyXVcBrewoDYR_djyLMUmXz0ErNjdOzWs2YpTdb4Pc3xxMatpas3LUdD5lXZLZGW1XVhw/exec";
+
         const formData = new URLSearchParams();
         formData.append("email", user.email);
         formData.append("name", user.displayName || "이름미설정");
-        formData.append("message", "사용자가 등급 관리 페이지 접속 권한(등급 조정)을 요청했습니다.");
+        // 사용자가 입력한 텍스트를 message에 담습니다.
+        formData.append("message", reasonValue);
 
         try {
             const response = await fetch(GAS_URL, {
@@ -352,6 +372,7 @@ window.logout = () => {
             const result = await response.text();
             if (result === "success") {
                 alert("성공적으로 요청을 보냈습니다. 관리자 확인 후 반영됩니다.");
+                reasonElement.value = ""; // 성공 시 입력창 초기화
             } else {
                 throw new Error(result);
             }
@@ -360,7 +381,7 @@ window.logout = () => {
             alert("메일 전송 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
         } finally {
             btn.disabled = false;
-            btn.innerText = "관리자에게 등급 조정 요청 보내기";
+            btn.innerText = "관리자에게 요청 보내기";
         }
     }
 }
