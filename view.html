@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -6,12 +6,25 @@
     <link rel="icon" href="logo.png" type="image/png">
     <title>DEEP SKY</title>
     <style>
+        /* [수정] 바닥 고정을 위한 레이아웃 설정 */
+        html, body { height: 100%; margin: 0; }
+        body { 
+            display: flex; 
+            flex-direction: column; 
+            font-family: "Pretendard", sans-serif; 
+            background: #0b0f2b; 
+            color: white; 
+        }
+
         * { box-sizing: border-box; }
-        body { margin: 0; font-family: "Pretendard", sans-serif; background: #0b0f2b; color: white; }
         .hidden { display: none !important; }
         
         /* 상단 바 */
-        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 0 30px; background: #070a1d; border-bottom: 1px solid #1b2f80; height: 65px; }
+        .top-bar { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 0 30px; background: #070a1d; border-bottom: 1px solid #1b2f80; 
+            height: 65px; flex-shrink: 0; /* 상단바 고정 크기 유지 */
+        }
         .logo-area { display: flex; align-items: center; text-decoration: none; color: white; font-weight: bold; }
         .logo-area img { width: 40px; border-radius: 50%; margin-right: 12px; }
 
@@ -22,21 +35,27 @@
             cursor: pointer; font-weight: bold;
             transition: 0.2s;
         }
-        .btn-logout { background: #5a7aff !important; } /* 로그아웃 버튼 색상 차별화 */
+        .btn-logout { background: #5a7aff !important; }
 
-        .container { max-width: 800px; margin: 40px auto; padding: 0 20px 100px; }
+        /* [수정] 컨테이너가 남는 공간을 다 차지하도록 설정 */
+        .container { 
+            max-width: 800px; 
+            margin: 40px auto; 
+            padding: 0 20px 60px; /* 아래쪽 패딩 조정 */
+            flex: 1; /* 이 부분이 푸터를 바닥으로 밀어냅니다 */
+            width: 100%;
+        }
+
         .view-card { background: #161b4a; padding: 40px; border-radius: 15px; border: 1px solid #2d367a; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         .post-header { border-bottom: 1px solid #2d367a; margin-bottom: 25px; padding-bottom: 20px; }
         .post-title { font-size: 28px; color: #7fc7ff; margin: 0 0 15px 0; }
         .post-info { font-size: 14px; color: #aaa; display: flex; justify-content: space-between; }
         .post-content { line-height: 1.8; min-height: 200px; white-space: pre-wrap; font-size: 17px; color: #eee; margin-bottom: 30px; }
         
-        /* 첨부 링크 버튼 스타일 */
         .link-section { background: rgba(58, 90, 255, 0.1); padding: 15px; border-radius: 10px; border: 1px dashed #3a5aff; margin-bottom: 30px; }
         .btn-link { display: inline-block; background: #3a5aff; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; transition: 0.2s; }
         .btn-link:hover { background: #5a7aff; transform: translateY(-2px); }
 
-        /* 댓글 섹션 스타일 */
         .comment-section { margin-top: 40px; border-top: 1px solid #2d367a; padding-top: 30px; }
         .comment-title { font-size: 18px; color: #7fc7ff; margin-bottom: 20px; font-weight: bold; }
         .comment-item { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 10px; margin-bottom: 12px; border: 1px solid rgba(45, 54, 122, 0.5);word-wrap: break-word; overflow-wrap: break-word; }
@@ -56,10 +75,11 @@
         .btn-delete { background: #ff4d4d; color: white; }
         .btn-delete:hover { background: #e60000; }
 
+        /* [수정] 푸터 스타일 */
         footer { 
             background: #070a1d; text-align: center; padding: 35px 20px;
             color: #888; border-top: 1px solid #1b2f80; font-size: 13px;
-            flex-shrink: 0;
+            flex-shrink: 0; /* 푸터 높이 유지 */
         }
 
         @media (max-width: 600px) {
@@ -121,12 +141,12 @@
                 <button id="deleteBtn" class="btn btn-delete hidden" onclick="deletePost()">이 글 삭제하기</button>
             </div>
         </div>
-</div>
+    </div> </div>
 
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
     <br>
-    Email : leader.deepsky@gmail.com &nbsp;	&nbsp; &nbsp; &nbsp;|	&nbsp; &nbsp; &nbsp; &nbsp;Designed by jw-astro09
+    Email : leader.deepsky@gmail.com &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;Designed by jw-astro09
 </footer>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -154,7 +174,6 @@ const auth = firebase.auth();
 const db = firebase.database();
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-// 중요: 새로 배포한 댓글 전용 GAS URL을 입력하세요
 const GAS_URL = "https://script.google.com/macros/s/AKfycbzYfQsVrnGOHpFECSp4s3JLZPtA30S6UIkHgWdr0lDTcMHlNeCOUxlKAuBnR_Z69Sw0aA/exec";
 
 const urlParams = new URLSearchParams(window.location.search);
@@ -173,7 +192,6 @@ function getRoleName(role) {
     }
 }
 
-// 2. 로그인 상태 관리
 auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
@@ -222,7 +240,6 @@ document.getElementById("commentInput")?.addEventListener("keypress", function(e
     if (e.key === "Enter") addComment();
 });
 
-// 3. 게시글 로드
 function loadPost(user) {
     db.ref("freeboard/" + postId).once("value").then(async (snapshot) => {
         const postData = snapshot.val();
@@ -293,7 +310,6 @@ function renderLinks(post) {
     }
 }
 
-// 4. 댓글 관리
 function loadComments(user) {
     db.ref("freeboard/" + postId + "/comments").on("value", (snapshot) => {
         const listArea = document.getElementById("commentList");
@@ -336,7 +352,6 @@ function addComment() {
         content: commentMsg,
         createdAt: Date.now()
     }).then(() => {
-        // 본인 글이 아닐 때만 메일 알림 발송
         if (currentPostAuthorUid && currentPostAuthorUid !== user.uid) {
             sendNotificationEmail(commentMsg);
         }
@@ -344,22 +359,19 @@ function addComment() {
     }).catch(err => alert("댓글 등록 실패: " + err.message));
 }
 
-// 5. 알림 메일 전송 (GAS 연동)
 async function sendNotificationEmail(msg) {
     try {
         const snap = await db.ref("users/" + currentPostAuthorUid).once("value");
         const authorData = snap.val();
-        
-        // 작성자 이메일 주소가 없으면 종료
         if (!authorData || !authorData.email) return;
 
         const formData = new URLSearchParams();
-        formData.append("email", authorData.email);           // 받는 사람 (게시글 작성자)
-        formData.append("name", authorData.name || "회원");    // 받는 사람 이름
-        formData.append("postTitle", currentPostTitle);        // 게시글 제목
-        formData.append("commentAuthor", currentUserName);     // 댓글 작성자 이름
-        formData.append("commentContent", msg);                // 댓글 내용
-        formData.append("postUrl", window.location.href);      // 게시글 링크
+        formData.append("email", authorData.email);
+        formData.append("name", authorData.name || "회원");
+        formData.append("postTitle", currentPostTitle);
+        formData.append("commentAuthor", currentUserName);
+        formData.append("commentContent", msg);
+        formData.append("postUrl", window.location.href);
 
         fetch(GAS_URL, {
             method: "POST",
