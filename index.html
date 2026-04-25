@@ -321,24 +321,24 @@ function loadProgram() {
     });
 }
 
-// 6. 업데이트 로그 로드 (최신순 5개 유지 및 화면 표시)
+// 6. 업데이트 로그 로드 (최신순 5개 정렬 및 화면 표시)
 function loadUpdateLogs() {
-    // timestamp를 기준으로 정렬하여 실시간 수신
-    db.ref("updateLogs").orderByChild("timestamp").on("value", snapshot => {
+    db.ref("updateLogs").on("value", snapshot => {
         const logList = document.getElementById("updateLogList");
         if(!logList) return;
         
         logList.innerHTML = "";
         let logs = [];
+        
         snapshot.forEach(child => { 
-            logs.push(child.val()); 
+            logs.push({ key: child.key, ...child.val() }); 
         });
         
-        // 최신 항목이 위로 오도록 역순 정렬
-        logs.reverse();
+        // [중요] timestamp를 기준으로 내림차순 정렬 (최신이 위로)
+        logs.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
         if (logs.length === 0) {
-            logList.innerHTML = "<p>등록된 기록이 없습니다.</p>";
+            logList.innerHTML = "<p style='text-align:center; padding:20px; color:#666;'>등록된 기록이 없습니다.</p>";
             return;
         }
 
