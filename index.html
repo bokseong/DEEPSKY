@@ -262,7 +262,7 @@ const app = firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
-// App Check 활성화
+// App Check 활성화 (reCAPTCHA v3 Enterprise 사용 시)
 const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
@@ -275,37 +275,48 @@ auth.onAuthStateChanged(async (user) => {
     const logoutBtn = document.getElementById("logoutBtn");
     const adminBox = document.getElementById("adminBox");
     const adminUpdateBox = document.getElementById("adminUpdateBox");
+    
+    // 업데이트 로그 목록이 담긴 카드 전체 (제목 포함)
+    const logCard = document.getElementById("updateLogList")?.closest('.card');
 
     if (user) {
         db.ref('users/' + user.uid).on('value', snapshot => {
             const userData = snapshot.val() || {};
             const finalName = userData.name || user.displayName || user.email.split('@')[0];
             
-            let userRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+            // 관리자 여부 판단 (이메일 일치 또는 DB 상의 role이 admin인 경우)
+            const isAdmin = (user.email === ADMIN_EMAIL) || (userData.role === 'admin');
+            let userRole = isAdmin ? 'admin' : (userData.role || 'member');
             
             if(status) status.innerText = `${finalName}님 (${getRoleName(userRole)})`;
 
-            if (userRole === 'admin') {
+            if (isAdmin) {
+                // 관리자만 보이는 영역 노출
                 adminBox?.classList.remove("hidden");
                 adminUpdateBox?.classList.remove("hidden");
+                logCard?.classList.remove("hidden"); 
+                loadUpdateLogs(); // 관리자일 때만 데이터 로드 시작
             } else {
+                // 관리자가 아니면 모두 숨김
                 adminBox?.classList.add("hidden");
                 adminUpdateBox?.classList.add("hidden");
+                logCard?.classList.add("hidden");
             }
         });
 
         loginBtn?.classList.add("hidden");
         logoutBtn?.classList.remove("hidden");
     } else {
+        // 비로그인 상태일 때 모두 숨김
         if(status) status.innerText = "로그인 해주세요";
         loginBtn?.classList.remove("hidden");
         logoutBtn?.classList.add("hidden");
         adminBox?.classList.add("hidden");
         adminUpdateBox?.classList.add("hidden");
+        logCard?.classList.add("hidden");
     }
     
-    loadProgram();
-    loadUpdateLogs();
+    loadProgram(); // 공지는 모든 사용자에게 노출
 });
 
 // 4. 등급 명칭 변환
@@ -324,16 +335,29 @@ function loadProgram() {
     });
 }
 
-// 6. 업데이트 로그 로드
+// 6. 업데이트 로그 로드 (최신순 5개 유지 및 화면 표시)
 function loadUpdateLogs() {
-    db.ref("updateLogs").on("value", snapshot => {
+    // timestamp를 기준으로 정렬하여 실시간 수신
+    db.ref("updateLogs").orderByChild("timestamp").on("value", snapshot => {
         const logList = document.getElementById("updateLogList");
         if(!logList) return;
+        
         logList.innerHTML = "";
         let logs = [];
-        snapshot.forEach(child => { logs.push(child.val()); });
+        snapshot.forEach(child => { 
+            logs.push(child.val()); 
+        });
         
-        logs.reverse().slice(0, 5).forEach(log => {
+        // 최신 항목이 위로 오도록 역순 정렬
+        logs.reverse();
+
+        if (logs.length === 0) {
+            logList.innerHTML = "<p>등록된 기록이 없습니다.</p>";
+            return;
+        }
+
+        // 최대 5개만 화면에 렌더링
+        logs.slice(0, 5).forEach(log => {
             const item = document.createElement("div");
             item.className = "log-item";
             item.innerHTML = `
@@ -347,7 +371,7 @@ function loadUpdateLogs() {
     });
 }
 
-// 7. 관리자: 공지 수정 실행함수
+// 7. 관리자: 공지 수정
 async function saveProgram() {
     const text = document.getElementById("weekProgramInput").value;
     if(!text) return alert("내용을 입력하세요.");
@@ -362,7 +386,7 @@ async function saveProgram() {
     } catch(e) { alert("수정 권한이 없습니다."); }
 }
 
-// 8. 관리자: 업데이트 로그 추가 실행함수
+// 8. 관리자: 업데이트 로그 추가 (5개 초과 시 자동 삭제)
 async function addUpdateLog() {
     const version = document.getElementById("updateVersion").value;
     const content = document.getElementById("updateContent").value;
@@ -371,44 +395,55 @@ async function addUpdateLog() {
     try {
         const today = new Date().toISOString().split('T')[0];
         await appCheck.getToken(false);
+        
+        // 1. 새로운 로그 등록
         await db.ref("updateLogs").push({
             version: version,
             content: content,
-            date: today
+            date: today,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
         });
-        alert("로그가 등록되었습니다.");
+
+        // 2. 전체 개수 확인 후 5개 넘으면 가장 오래된 데이터 삭제
+        const snapshot = await db.ref("updateLogs").once("value");
+        let logsInDb = [];
+        snapshot.forEach(child => {
+            logsInDb.push({ key: child.key, ...child.val() });
+        });
+
+        // 시간 순(낮은 값)으로 정렬
+        logsInDb.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+        if (logsInDb.length > 5) {
+            const deleteCount = logsInDb.length - 5;
+            for (let i = 0; i < deleteCount; i++) {
+                await db.ref("updateLogs").child(logsInDb[i].key).remove();
+            }
+        }
+
+        alert("로그가 등록되었습니다. (최신 5개 데이터 유지)");
         document.getElementById("updateVersion").value = "";
         document.getElementById("updateContent").value = "";
-    } catch(e) { alert("추가 권한이 없습니다."); }
+    } catch(e) { 
+        console.error(e);
+        alert("권한이 없거나 오류가 발생했습니다."); 
+    }
 }
 
-// ------------------------------------------------
-// [새로 추가된 엔터키 이벤트 핸들러]
-// ------------------------------------------------
-
-// 공지사항 입력창: Ctrl + Enter 시 저장
+// 입력창 엔터키 이벤트 (Ctrl + Enter)
 document.getElementById("weekProgramInput")?.addEventListener("keydown", function(e) {
-    if (e.ctrlKey && e.key === 'Enter') {
-        saveProgram();
-    }
+    if (e.ctrlKey && e.key === 'Enter') saveProgram();
 });
 
-// 업데이트 버전 입력창: Enter 시 저장
 document.getElementById("updateVersion")?.addEventListener("keypress", function(e) {
-    if (e.key === 'Enter') {
-        addUpdateLog();
-    }
+    if (e.key === 'Enter') addUpdateLog();
 });
 
-// 업데이트 내용 입력창: Ctrl + Enter 시 저장
 document.getElementById("updateContent")?.addEventListener("keydown", function(e) {
-    if (e.ctrlKey && e.key === 'Enter') {
-        addUpdateLog();
-    }
+    if (e.ctrlKey && e.key === 'Enter') addUpdateLog();
 });
-// ------------------------------------------------
 
-// 9. 슬라이드 기능
+// 9. 사진 슬라이드 기능
 let slideIndex = 0;
 function setupSlides() {
     const slides = document.querySelectorAll(".slide-item");
@@ -424,7 +459,9 @@ setupSlides();
 
 // 10. 로그아웃
 window.logout = () => { 
-    if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); 
+    if(confirm("로그아웃 하시겠습니까?")) {
+        auth.signOut().then(() => location.reload()); 
+    }
 };
 </script>
 </body>
