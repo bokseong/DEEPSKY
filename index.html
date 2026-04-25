@@ -264,47 +264,45 @@ auth.onAuthStateChanged(async (user) => {
     const adminBox = document.getElementById("adminBox");
     const adminUpdateBox = document.getElementById("adminUpdateBox");
     
-    // 업데이트 로그 목록이 담긴 카드 전체 (제목 포함)
+    // 업데이트 로그 카드는 이제 모든 사람에게 보여야 하므로 따로 숨기지 않습니다.
     const logCard = document.getElementById("updateLogList")?.closest('.card');
+    logCard?.classList.remove("hidden"); // 항상 노출
 
     if (user) {
         db.ref('users/' + user.uid).on('value', snapshot => {
             const userData = snapshot.val() || {};
             const finalName = userData.name || user.displayName || user.email.split('@')[0];
             
-            // 관리자 여부 판단 (이메일 일치 또는 DB 상의 role이 admin인 경우)
             const isAdmin = (user.email === ADMIN_EMAIL) || (userData.role === 'admin');
             let userRole = isAdmin ? 'admin' : (userData.role || 'member');
             
             if(status) status.innerText = `${finalName}님 (${getRoleName(userRole)})`;
 
             if (isAdmin) {
-                // 관리자만 보이는 영역 노출
+                // 관리자 전용 입력창만 노출
                 adminBox?.classList.remove("hidden");
                 adminUpdateBox?.classList.remove("hidden");
-                logCard?.classList.remove("hidden"); 
-                loadUpdateLogs(); // 관리자일 때만 데이터 로드 시작
             } else {
-                // 관리자가 아니면 모두 숨김
                 adminBox?.classList.add("hidden");
                 adminUpdateBox?.classList.add("hidden");
-                logCard?.classList.add("hidden");
             }
         });
 
         loginBtn?.classList.add("hidden");
         logoutBtn?.classList.remove("hidden");
     } else {
-        // 비로그인 상태일 때 모두 숨김
+        // 비로그인 상태
         if(status) status.innerText = "로그인 해주세요";
         loginBtn?.classList.remove("hidden");
         logoutBtn?.classList.add("hidden");
+        
+        // 관리자 박스 숨기기
         adminBox?.classList.add("hidden");
         adminUpdateBox?.classList.add("hidden");
-        logCard?.classList.add("hidden");
     }
     
-    loadProgram(); // 공지는 모든 사용자에게 노출
+    loadProgram(); 
+    loadUpdateLogs(); 
 });
 
 // 4. 등급 명칭 변환
