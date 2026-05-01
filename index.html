@@ -257,53 +257,52 @@ appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
 // 3. 인증 및 사용자 등급 로직
-// 3. 인증 및 사용자 등급 로직
 auth.onAuthStateChanged(async (user) => {
-    const status = document.getElementById("userStatus");
-    const loginBtn = document.getElementById("loginBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const adminBox = document.getElementById("adminBox");
-    const adminUpdateBox = document.getElementById("adminUpdateBox");
-    
-    // 업데이트 로그 카드 전체 (권한 체크를 위해 선택)
-    const logCard = document.getElementById("updateLogList")?.closest('.card');
+    const status = document.getElementById("userStatus");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const adminBox = document.getElementById("adminBox");
+    const adminUpdateBox = document.getElementById("adminUpdateBox");
+    
+    // 업데이트 로그 카드는 이제 모든 사람에게 보여야 하므로 따로 숨기지 않습니다.
+    const logCard = document.getElementById("updateLogList")?.closest('.card');
+    logCard?.classList.remove("hidden"); // 항상 노출
 
-    if (user) {
-        db.ref('users/' + user.uid).on('value', snapshot => {
-            const userData = snapshot.val() || {};
-            const finalName = userData.name || user.displayName || user.email.split('@')[0];
-            
-            // 관리자 여부 확인
-            const isAdmin = (user.email === ADMIN_EMAIL) || (userData.role === 'admin');
-            let userRole = isAdmin ? 'admin' : (userData.role || 'member');
-            
-            if(status) status.innerText = `${finalName}님 (${getRoleName(userRole)})`;
+    if (user) {
+        db.ref('users/' + user.uid).on('value', snapshot => {
+            const userData = snapshot.val() || {};
+            const finalName = userData.name || user.displayName || user.email.split('@')[0];
+            
+            const isAdmin = (user.email === ADMIN_EMAIL) || (userData.role === 'admin');
+            let userRole = isAdmin ? 'admin' : (userData.role || 'member');
+            
+            if(status) status.innerText = `${finalName}님 (${getRoleName(userRole)})`;
 
-            if (isAdmin) {
-                // 관리자일 때만 입력창과 로그 목록을 보여줌
-                adminBox?.classList.remove("hidden");
-                adminUpdateBox?.classList.remove("hidden");
-                logCard?.classList.remove("hidden"); 
-                loadUpdateLogs(); // 데이터 로드
-            } else {
-                // 관리자가 아니면 모두 숨김
-                adminBox?.classList.add("hidden");
-                adminUpdateBox?.classList.add("hidden");
-                logCard?.classList.add("hidden"); 
-            }
-        });
-        loginBtn?.classList.add("hidden");
-        logoutBtn?.classList.remove("hidden");
-    } else {
-        // 비로그인 시 모두 숨김
-        if(status) status.innerText = "로그인 해주세요";
-        loginBtn?.classList.remove("hidden");
-        logoutBtn?.classList.add("hidden");
-        adminBox?.classList.add("hidden");
-        adminUpdateBox?.classList.add("hidden");
-        logCard?.classList.add("hidden"); 
-    }
-    loadProgram();
+            if (isAdmin) {
+                // 관리자 전용 입력창만 노출
+                adminBox?.classList.remove("hidden");
+                adminUpdateBox?.classList.remove("hidden");
+            } else {
+                adminBox?.classList.add("hidden");
+                adminUpdateBox?.classList.add("hidden");
+            }
+        });
+
+        loginBtn?.classList.add("hidden");
+        logoutBtn?.classList.remove("hidden");
+    } else {
+        // 비로그인 상태
+        if(status) status.innerText = "로그인 해주세요";
+        loginBtn?.classList.remove("hidden");
+        logoutBtn?.classList.add("hidden");
+        
+        // 관리자 박스 숨기기
+        adminBox?.classList.add("hidden");
+        adminUpdateBox?.classList.add("hidden");
+    }
+    
+    loadProgram(); 
+    loadUpdateLogs(); 
 });
 
 // 4. 등급 명칭 변환
