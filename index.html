@@ -322,7 +322,9 @@ function loadProgram() {
 }
 
 // 6. 업데이트 로그 로드 (최신순 정렬 에러 해결 코드)
+// 6. 업데이트 로그 로드 (정렬 문제 해결 버전)
 function loadUpdateLogs() {
+    // 실시간으로 데이터를 가져옵니다.
     db.ref("updateLogs").on("value", snapshot => {
         const logList = document.getElementById("updateLogList");
         if(!logList) return;
@@ -330,11 +332,13 @@ function loadUpdateLogs() {
         logList.innerHTML = "";
         let logs = [];
         
+        // 데이터를 배열에 담습니다.
         snapshot.forEach(child => { 
             logs.push({ key: child.key, ...child.val() }); 
         });
         
-        // 정렬 에러 해결: timestamp를 기준으로 내림차순(최신순) 정렬
+        // [해결 포인트] 정렬 로직: b(다음값) - a(이전값) 순으로 빼면 내림차순(최신순)이 됩니다.
+        // 만약 timestamp가 없는 데이터가 있다면 0으로 취급하여 맨 뒤로 보냅니다.
         logs.sort((a, b) => {
             const timeA = a.timestamp || 0;
             const timeB = b.timestamp || 0;
@@ -342,11 +346,11 @@ function loadUpdateLogs() {
         });
 
         if (logs.length === 0) {
-            logList.innerHTML = "<p style='text-align:center; padding:20px; color:#888;'>기록이 없습니다.</p>";
+            logList.innerHTML = "<p style='text-align:center; padding:20px; color:#888;'>등록된 기록이 없습니다.</p>";
             return;
         }
 
-        // 최신 5개만 화면에 표시
+        // 정렬된 배열에서 최신 5개만 잘라서 화면에 그립니다.
         logs.slice(0, 5).forEach(log => {
             const item = document.createElement("div");
             item.className = "log-item";
