@@ -56,16 +56,36 @@
         .header-text p { margin: 5px 0 0; font-size: 1.1rem; color: #7fc7ff; font-weight: bold; }
 
         /* 4. 내비게이션 */
-        nav { background: #11153a; border-bottom: 1px solid #2d367a; padding: 10px 0; }
-        nav .nav-inner { 
-            max-width: 1000px; margin: 0 auto; display: flex; 
-            flex-wrap: wrap; justify-content: center; gap: 5px; 
-        }
-        nav a { 
-            display: inline-block; color: white; padding: 12px 18px; 
-            text-decoration: none; font-weight: bold; font-size: 15px; border-radius: 8px;
-        }
-        nav a:hover { background: rgba(127, 199, 255, 0.1); color: #7fc7ff; }
+        nav { 
+    background: #11153a; 
+    border-bottom: 1px solid #2d367a; 
+    padding: 10px 0; 
+    overflow-x: auto; /* 화면이 아주 작아질 경우를 대비한 가로 스크롤 */
+}
+nav .nav-inner { 
+    max-width: 1200px; /* 메뉴가 많으므로 전체 폭을 조금 넓게 잡는 것이 좋습니다 */
+    margin: 0 auto; 
+    display: flex; 
+    flex-wrap: nowrap; /* 줄 바꿈 방지 */
+    justify-content: center; 
+    align-items: center;
+    gap: 2px; /* 간격을 살짝 조절 */
+}
+nav a { 
+    display: inline-block; 
+    color: white; 
+    padding: 12px 15px; /* 패딩을 살짝 줄여 공간 확보 */
+    text-decoration: none; 
+    font-weight: bold; 
+    font-size: 14px; /* 글자 크기를 살짝 조절 */
+    border-radius: 8px;
+    white-space: nowrap; /* 텍스트 자체 줄 바꿈 방지 */
+    transition: 0.2s;
+}
+nav a:hover { 
+    background: rgba(127, 199, 255, 0.1); 
+    color: #7fc7ff; 
+}
 
         /* 5. 메인 컨텐츠 & 건의 게시판 전용 카드 */
         .container { max-width: 1000px; margin: 35px auto; padding: 0 20px 100px; }
