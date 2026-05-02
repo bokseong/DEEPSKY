@@ -229,6 +229,7 @@ const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
+// 건의사항 등록용 GAS URL (글로벌 선언)
 const GAS_URL = "https://script.google.com/macros/s/AKfycbzdgX0gHpjHUCv3L2t3LLOnt4t6x31-t4Nd_D6ubqrqIT-mU8Nmlxgue6j3zl-tTJOa/exec"; 
 
 let currentUser = null;
@@ -300,9 +301,9 @@ async function addSuggestion() {
                 mode: 'no-cors',
                 body: new URLSearchParams({
                     type: 'new_suggestion',
-                    name: currentUserName, // GAS의 params.name과 일치
-                    email: currentUser.email, // GAS의 params.email과 일치
-                    message: (isAnon ? "[익명 건의] " : "[실명 건의] ") + text // GAS의 params.message와 일치
+                    name: currentUserName, 
+                    email: currentUser.email, 
+                    message: (isAnon ? "[익명 건의] " : "[실명 건의] ") + text 
                 })
             });
         }
@@ -367,9 +368,11 @@ async function updateStatus(key, newStatus) {
     } catch(e) { alert("권한이 없습니다."); }
 }
 
-// 7. 등급 조정 요청 (에러 핸들링 및 헤더 추가 수정본)
+// 7. 등급 조정 요청 (에러 핸들링 및 전용 GAS URL 적용)
 async function submitRoleRequest() {
-    const role = document.getElementById("requestedRole").value;
+    const roleSelect = document.getElementById("requestedRole");
+    const role = roleSelect.value;
+    const requestedRoleName = roleSelect.options[roleSelect.selectedIndex].text;
     const reason = document.getElementById("requestReason").value.trim();
     
     if(!currentUser) return alert("로그인 후 이용 가능합니다.");
@@ -388,28 +391,37 @@ async function submitRoleRequest() {
             timestamp: firebase.database.ServerValue.TIMESTAMP
         });
 
-        // GAS 메일 알림 (전달 데이터 키값을 GAS의 params와 일치시킴)
-        if(GAS_URL) {
-            try {
-                await fetch(GAS_URL, {
-                    method: 'POST',
-                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                    body: new URLSearchParams({
-                        type: 'role_request',
-                        name: currentUserName,   // GAS의 params.name
-                        email: currentUser.email, // GAS의 params.email
-                        message: "요청 등급: " + getRoleName(role) + "\n사유: " + reason // GAS의 params.message
-                    })
-                });
-            } catch (error) {
-                console.error("Mail send error:", error);
+        // 관리자 등급 조정 요청용 전용 GAS URL (manage.html, mypage.html과 동일)
+        const ROLE_GAS_URL = "https://script.google.com/macros/s/AKfycbzT5zTtKk0tleprYklvV4jwbUq5pGTwHKz4JyF-GKGfj2BjulwJR5WJQqB0eoIZ8cxu/exec";
+        
+        const combinedMessage = `[희망 등급]: ${requestedRoleName}\n[조정 사유]: ${reason}`;
+
+        const formData = new URLSearchParams();
+        formData.append("email", currentUser.email);
+        formData.append("name", currentUserName);
+        formData.append("message", combinedMessage);
+
+        try {
+            const response = await fetch(ROLE_GAS_URL, {
+                method: 'POST',
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: formData
+            });
+            
+            const result = await response.text();
+            if (result === "success") {
+                console.log("등급 요청 메일 전송 성공");
+            } else {
+                console.error("등급 요청 메일 전송 실패 응답:", result);
             }
+        } catch (error) {
+            console.error("Mail fetch error:", error);
         }
 
         alert("등급 조정 요청과 알림 메일이 성공적으로 전송되었습니다.");
         document.getElementById("requestReason").value = "";
     } catch(e) { 
-        console.error(e);
+        console.error("Firebase error:", e);
         alert("전송 중 오류가 발생했습니다."); 
     }
 }
