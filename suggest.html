@@ -229,13 +229,14 @@ const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
+// 구글 앱스 스크립트 URL (기존 URL 유지)
 const GAS_URL = "https://script.google.com/macros/s/AKfycbzdgX0gHpjHUCv3L2t3LLOnt4t6x31-t4Nd_D6ubqrqIT-mU8Nmlxgue6j3zl-tTJOa/exec"; 
 
 let currentUser = null;
 let currentRole = 'guest';
 let currentUserName = '';
 
-// 3. 인증 감시
+// 3. 인증 감시 (로그인 상태 확인 및 권한 체크)
 auth.onAuthStateChanged(async (user) => {
     const lockMsg = document.getElementById("lockMessage");
     const mainCont = document.getElementById("mainContent");
@@ -252,6 +253,7 @@ auth.onAuthStateChanged(async (user) => {
             document.getElementById("loginBtn").classList.add("hidden");
             document.getElementById("logoutBtn").classList.remove("hidden");
 
+            // 'admin' 혹은 'student'만 내용 열람 가능
             if (currentRole === 'admin' || currentRole === 'student') {
                 lockMsg.classList.add("hidden");
                 mainCont.classList.remove("hidden");
@@ -272,7 +274,8 @@ auth.onAuthStateChanged(async (user) => {
 function getRoleName(role) {
     if (role === 'admin') return '관리자';
     if (role === 'student') return '동아리 부원';
-    return '일반 회원';
+    if (role === 'member') return '일반 회원';
+    return 'GUEST';
 }
 
 // 4. 건의사항 등록
@@ -282,9 +285,10 @@ async function addSuggestion() {
     if(!text) return alert("내용을 입력하세요.");
 
     try {
-        await appCheck.getToken(false); // App Check 토큰 획득
+        await appCheck.getToken(false);
         const dateStr = new Date().toLocaleDateString();
         
+        // Firebase 저장
         await db.ref("suggestions").push({
             text: text,
             author: isAnon ? "익명" : currentUserName,
@@ -293,8 +297,8 @@ async function addSuggestion() {
             createdAt: firebase.database.ServerValue.TIMESTAMP
         });
 
-        // GAS 알림 (선택 사항)
-        if(GAS_URL !== "https://script.google.com/macros/s/AKfycbzdgX0gHpjHUCv3L2t3LLOnt4t6x31-t4Nd_D6ubqrqIT-mU8Nmlxgue6j3zl-tTJOa/exec") {
+        // GAS 알림 메일 전송 (건의사항)
+        if(GAS_URL) {
             fetch(GAS_URL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -310,10 +314,10 @@ async function addSuggestion() {
 
         document.getElementById("sInput").value = "";
         alert("건의사항이 소중하게 접수되었습니다.");
-    } catch(e) { alert("제출 중 권한 오류가 발생했습니다."); }
+    } catch(e) { alert("제출 중 오류가 발생했습니다."); }
 }
 
-// 5. 건의 리스트 로드 (7일 후 삭제 로직 포함)
+// 5. 건의 리스트 로드 (7일 후 자동 삭제 로직 포함)
 function loadSuggestions() {
     db.ref("suggestions").on("value", snapshot => {
         const list = document.getElementById("suggestList");
@@ -329,6 +333,7 @@ function loadSuggestions() {
 
         Object.keys(data).reverse().forEach(key => {
             const s = data[key];
+            // 완료 후 7일 지난 글은 숨김
             if (s.status === "done" && s.doneAt && (now - s.doneAt > SEVEN_DAYS)) return;
 
             const statusInfo = {
@@ -368,15 +373,18 @@ async function updateStatus(key, newStatus) {
     } catch(e) { alert("권한이 없습니다."); }
 }
 
-// 7. 등급 조정 요청
+// 7. 등급 조정 요청 (중요: GAS 메일 전송 로직 추가됨)
 async function submitRoleRequest() {
     const role = document.getElementById("requestedRole").value;
     const reason = document.getElementById("requestReason").value.trim();
+    
     if(!currentUser) return alert("로그인 후 이용 가능합니다.");
     if(!reason) return alert("사유를 입력해주세요.");
     
     try {
         await appCheck.getToken(false);
+        
+        // (1) Firebase DB에 요청 내역 저장
         await db.ref("roleRequests/" + currentUser.uid).set({
             email: currentUser.email,
             name: currentUserName,
@@ -385,8 +393,28 @@ async function submitRoleRequest() {
             status: "pending",
             timestamp: firebase.database.ServerValue.TIMESTAMP
         });
-        alert("등급 조정 요청이 전송되었습니다.");
-    } catch(e) { alert("전송 실패"); }
+
+        // (2) GAS를 통해 관리자에게 이메일 알림 발송
+        if(GAS_URL) {
+            fetch(GAS_URL, {
+                method: 'POST',
+                mode: 'no-cors', // CORS 문제 방지
+                body: new URLSearchParams({
+                    type: 'role_request', // GAS 스크립트에서 구분할 타입
+                    senderName: currentUserName,
+                    senderEmail: currentUser.email,
+                    requestedRole: getRoleName(role),
+                    reason: reason
+                })
+            });
+        }
+
+        alert("등급 조정 요청과 알림 메일이 성공적으로 전송되었습니다.");
+        document.getElementById("requestReason").value = "";
+    } catch(e) { 
+        console.error(e);
+        alert("전송 중 오류가 발생했습니다."); 
+    }
 }
 
 function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
