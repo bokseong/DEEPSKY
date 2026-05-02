@@ -229,14 +229,13 @@ const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
-// 구글 앱스 스크립트 URL (기존 URL 유지)
-const GAS_URL = "https://script.google.com/macros/s/AKfycbzT5zTtKk0tleprYklvV4jwbUq5pGTwHKz4JyF-GKGfj2BjulwJR5WJQqB0eoIZ8cxu/exec"; 
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzdgX0gHpjHUCv3L2t3LLOnt4t6x31-t4Nd_D6ubqrqIT-mU8Nmlxgue6j3zl-tTJOa/exec"; 
 
 let currentUser = null;
 let currentRole = 'guest';
 let currentUserName = '';
 
-// 3. 인증 감시 (로그인 상태 확인 및 권한 체크)
+// 3. 인증 감시
 auth.onAuthStateChanged(async (user) => {
     const lockMsg = document.getElementById("lockMessage");
     const mainCont = document.getElementById("mainContent");
@@ -253,7 +252,6 @@ auth.onAuthStateChanged(async (user) => {
             document.getElementById("loginBtn").classList.add("hidden");
             document.getElementById("logoutBtn").classList.remove("hidden");
 
-            // 'admin' 혹은 'student'만 내용 열람 가능
             if (currentRole === 'admin' || currentRole === 'student') {
                 lockMsg.classList.add("hidden");
                 mainCont.classList.remove("hidden");
@@ -288,7 +286,6 @@ async function addSuggestion() {
         await appCheck.getToken(false);
         const dateStr = new Date().toLocaleDateString();
         
-        // Firebase 저장
         await db.ref("suggestions").push({
             text: text,
             author: isAnon ? "익명" : currentUserName,
@@ -297,27 +294,25 @@ async function addSuggestion() {
             createdAt: firebase.database.ServerValue.TIMESTAMP
         });
 
-        // GAS 알림 메일 전송 (건의사항)
         if(GAS_URL) {
             fetch(GAS_URL, {
                 method: 'POST',
                 mode: 'no-cors',
                 body: new URLSearchParams({
                     type: 'new_suggestion',
-                    senderName: currentUserName,
-                    isAnonymous: isAnon,
-                    content: text,
-                    date: dateStr
+                    name: currentUserName, // GAS의 params.name과 일치
+                    email: currentUser.email, // GAS의 params.email과 일치
+                    message: (isAnon ? "[익명 건의] " : "[실명 건의] ") + text // GAS의 params.message와 일치
                 })
             });
         }
 
         document.getElementById("sInput").value = "";
-        alert("건의사항이 소중하게 접수되었습니다.");
+        alert("건의사항이 접수되었습니다.");
     } catch(e) { alert("제출 중 오류가 발생했습니다."); }
 }
 
-// 5. 건의 리스트 로드 (7일 후 자동 삭제 로직 포함)
+// 5. 건의 리스트 로드
 function loadSuggestions() {
     db.ref("suggestions").on("value", snapshot => {
         const list = document.getElementById("suggestList");
@@ -333,7 +328,6 @@ function loadSuggestions() {
 
         Object.keys(data).reverse().forEach(key => {
             const s = data[key];
-            // 완료 후 7일 지난 글은 숨김
             if (s.status === "done" && s.doneAt && (now - s.doneAt > SEVEN_DAYS)) return;
 
             const statusInfo = {
@@ -363,7 +357,7 @@ function loadSuggestions() {
     });
 }
 
-// 6. 상태 업데이트 (관리자 전용)
+// 6. 상태 업데이트
 async function updateStatus(key, newStatus) {
     try {
         await appCheck.getToken(false);
@@ -373,7 +367,7 @@ async function updateStatus(key, newStatus) {
     } catch(e) { alert("권한이 없습니다."); }
 }
 
-// 7. 등급 조정 요청 (중요: GAS 메일 전송 로직 추가됨)
+// 7. 등급 조정 요청 (GAS 변수명에 맞게 전면 수정됨)
 async function submitRoleRequest() {
     const role = document.getElementById("requestedRole").value;
     const reason = document.getElementById("requestReason").value.trim();
@@ -384,7 +378,7 @@ async function submitRoleRequest() {
     try {
         await appCheck.getToken(false);
         
-        // (1) Firebase DB에 요청 내역 저장
+        // Firebase 저장
         await db.ref("roleRequests/" + currentUser.uid).set({
             email: currentUser.email,
             name: currentUserName,
@@ -394,17 +388,16 @@ async function submitRoleRequest() {
             timestamp: firebase.database.ServerValue.TIMESTAMP
         });
 
-        // (2) GAS를 통해 관리자에게 이메일 알림 발송
+        // GAS 메일 알림 (전달 데이터 키값을 GAS의 params와 일치시킴)
         if(GAS_URL) {
             fetch(GAS_URL, {
                 method: 'POST',
-                mode: 'no-cors', // CORS 문제 방지
+                mode: 'no-cors',
                 body: new URLSearchParams({
-                    type: 'role_request', // GAS 스크립트에서 구분할 타입
-                    senderName: currentUserName,
-                    senderEmail: currentUser.email,
-                    requestedRole: getRoleName(role),
-                    reason: reason
+                    type: 'role_request',
+                    name: currentUserName,   // GAS의 params.name
+                    email: currentUser.email, // GAS의 params.email
+                    message: "요청 등급: " + getRoleName(role) + "\n사유: " + reason // GAS의 params.message
                 })
             });
         }
