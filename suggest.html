@@ -367,7 +367,7 @@ async function updateStatus(key, newStatus) {
     } catch(e) { alert("권한이 없습니다."); }
 }
 
-// 7. 등급 조정 요청 (GAS 변수명에 맞게 전면 수정됨)
+// 7. 등급 조정 요청 (에러 핸들링 및 헤더 추가 수정본)
 async function submitRoleRequest() {
     const role = document.getElementById("requestedRole").value;
     const reason = document.getElementById("requestReason").value.trim();
@@ -390,16 +390,20 @@ async function submitRoleRequest() {
 
         // GAS 메일 알림 (전달 데이터 키값을 GAS의 params와 일치시킴)
         if(GAS_URL) {
-            fetch(GAS_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: new URLSearchParams({
-                    type: 'role_request',
-                    name: currentUserName,   // GAS의 params.name
-                    email: currentUser.email, // GAS의 params.email
-                    message: "요청 등급: " + getRoleName(role) + "\n사유: " + reason // GAS의 params.message
-                })
-            });
+            try {
+                await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: new URLSearchParams({
+                        type: 'role_request',
+                        name: currentUserName,   // GAS의 params.name
+                        email: currentUser.email, // GAS의 params.email
+                        message: "요청 등급: " + getRoleName(role) + "\n사유: " + reason // GAS의 params.message
+                    })
+                });
+            } catch (error) {
+                console.error("Mail send error:", error);
+            }
         }
 
         alert("등급 조정 요청과 알림 메일이 성공적으로 전송되었습니다.");
