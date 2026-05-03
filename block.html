@@ -196,28 +196,33 @@ nav .nav-inner {
 
     const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-    // 3. 인증 상태 관리
+   // 3. 인증 상태 관리
     auth.onAuthStateChanged((user) => {
         const status = document.getElementById("userStatus");
         const loginBtn = document.getElementById("loginBtn");
         const logoutBtn = document.getElementById("logoutBtn");
+        const mainContainer = document.getElementById("mainContainer");
 
         if (user) {
+            // [로그인 상태] 컨테이너를 보여주고 유저 정보 로드
+            mainContainer?.classList.remove("hidden");
+
             db.ref('users/' + user.uid).on('value', (snapshot) => {
                 const userData = snapshot.val() || {};
                 const finalName = userData.name || user.displayName || user.email.split('@')[0];
                 let userRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+                
                 if (status) status.innerText = `${finalName}님 (${getRoleName(userRole)})`;
             });
+
             loginBtn?.classList.add("hidden");
             logoutBtn?.classList.remove("hidden");
         } else {
-            if (status) status.innerText = "로그인 해주세요";
-            loginBtn?.classList.remove("hidden");
-            logoutBtn?.classList.add("hidden");
+            // [비로그인 상태] 즉시 알림 후 로그인 페이지로 이동
+            alert("로그인이 필요한 페이지입니다. 로그인 페이지로 이동합니다.");
+            location.href = 'login.html';
         }
     });
-
     function getRoleName(role) {
         if (role === 'admin') return '관리자';
         if (role === 'student') return '동아리 부원';
