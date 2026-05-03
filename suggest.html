@@ -44,18 +44,18 @@ nav {
     background: #11153a; 
     border-bottom: 1px solid #2d367a; 
     padding: 10px 0; 
-    /* PC에서 메뉴가 너무 많을 경우 레이아웃 깨짐 방지 */
-    overflow-x: auto; 
-    white-space: nowrap;
+    overflow-x: visible; 
+    white-space: normal; 
 }
 
 nav .nav-inner { 
-    max-width: 1200px; /* 한 줄 정렬을 위해 최대폭을 약간 넓힘 */
+    max-width: 1200px;
     margin: 0 auto; 
     display: flex; 
-    flex-wrap: nowrap; /* 줄바꿈 해제: 무조건 한 줄로 */
+    /* wrap으로 변경하여 공간이 부족하면 아래로 넘어가게 함 */
+    flex-wrap: wrap; 
     justify-content: center; 
-    gap: 2px; /* 간격을 살짝 좁혀서 한눈에 들어오게 조절 */
+    gap: 5px; /* 줄바꿈 시 가독성을 위해 간격을 조금 넓힘 */
 }
 
 nav a { 
