@@ -211,7 +211,7 @@ appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
 let currentUserData = null;
 
-// 2. 로그인 상태 감지 및 권한 제어
+// 2. 로그인 상태 감지 및 권한 제어 (수정된 로직)
 auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
@@ -221,14 +221,23 @@ auth.onAuthStateChanged(async (user) => {
     const uploadSection = document.getElementById("uploadSection");
 
     if (user) {
+        // [로그인 상태]
         db.ref('users/' + user.uid).on('value', (snapshot) => {
             currentUserData = snapshot.val() || {};
             const name = currentUserData.name || user.displayName || user.email.split('@')[0];
+            
+            // 권한 판정 로직
             const isAdmin = (user.email === ADMIN_EMAIL || currentUserData.role === 'admin');
             const isStudent = (currentUserData.role === 'student');
 
-            // 상단 바 등급 표시
-            let roleName = isAdmin ? "관리자" : (isStudent ? "동아리 부원" : "일반 회원");
+            // 1. 권한 체크: 관리자나 동아리 부원이 아니면 block.html로 튕기기
+            if (!isAdmin && !isStudent) {
+                location.href = "block.html";
+                return; // 이후 코드 실행 방지
+            }
+
+            // 2. 권한이 있는 경우 (admin 또는 student) 페이지 표시
+            let roleName = isAdmin ? "관리자" : "동아리 부원";
             if (status) status.innerText = `${name}님 (${roleName})`;
 
             loginBtn.classList.add("hidden");
@@ -236,18 +245,14 @@ auth.onAuthStateChanged(async (user) => {
             lockMsg.classList.add("hidden");
             mainContent.classList.remove("hidden");
 
-            // 업로드 권한: 관리자 또는 부원인 경우만 섹션 노출
-            if (isAdmin || isStudent) uploadSection.classList.remove("hidden");
-            else uploadSection.classList.add("hidden");
+            // 모든 관리자/부원은 업로드 섹션을 볼 수 있음
+            uploadSection.classList.remove("hidden");
 
             loadPhotos(user, isAdmin, isStudent);
         });
     } else {
-        if (status) status.innerText = "로그인 해주세요";
-        loginBtn.classList.remove("hidden");
-        logoutBtn.classList.add("hidden");
-        lockMsg.classList.remove("hidden");
-        mainContent.classList.add("hidden");
+        // [비로그인 상태] login.html로 이동
+        location.href = "login.html";
     }
 });
 
