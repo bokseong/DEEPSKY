@@ -245,7 +245,6 @@ auth.onAuthStateChanged(async (user) => {
 
             // [권한 로직 1] 부원(student)이나 관리자(admin)가 아니면 block.html로 강제 이동
             if (!isAdmin && !isStudent) {
-                alert("자료실 접근 권한이 없습니다. 등급 조정 요청 페이지로 이동합니다.");
                 location.href = 'block.html';
                 return;
             }
