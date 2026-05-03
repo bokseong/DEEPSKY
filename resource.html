@@ -230,14 +230,8 @@ auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtn = document.getElementById("logoutBtn");
-    const lockMsg = document.getElementById("lockMessage");
-    const mainContent = document.getElementById("mainContent");
     const adminUpload = document.getElementById("adminUpload");
-
-    // 초기 상태: 모두 숨김
-    lockMsg.classList.add("hidden");
-    mainContent.classList.add("hidden");
-    adminUpload.classList.add("hidden");
+    const mainContent = document.getElementById("mainContent");
 
     if (user) {
         // DB에서 실시간으로 유저 등급(role) 확인
@@ -245,60 +239,44 @@ auth.onAuthStateChanged(async (user) => {
             currentUserData = snapshot.val() || {};
             const name = currentUserData.name || user.displayName || user.email.split('@')[0];
             
-            // 권한 정의: DB의 role 필드값이 'admin'인가?
+            // 등급 정의
             const isAdmin = (currentUserData.role === 'admin');
             const isStudent = (currentUserData.role === 'student');
 
-            // 상단 바 등급 표시
-            let roleName = isAdmin ? "관리자" : (isStudent ? "동아리 부원" : "일반 회원");
-            if (status) status.innerText = `${name}님 (${roleName})`;
+            // [권한 로직 1] 부원(student)이나 관리자(admin)가 아니면 block.html로 강제 이동
+            if (!isAdmin && !isStudent) {
+                alert("자료실 접근 권한이 없습니다. 등급 조정 요청 페이지로 이동합니다.");
+                location.href = 'block.html';
+                return;
+            }
 
+            // 상단 바 UI 처리
+            let roleName = isAdmin ? "관리자" : "동아리 부원";
+            if (status) status.innerText = `${name}님 (${roleName})`;
             loginBtn.classList.add("hidden");
             logoutBtn.classList.remove("hidden");
 
-            // [권한 로직] 관리자 혹은 부원인 경우만 콘텐츠 노출
-            if (isAdmin || isStudent) {
-                lockMsg.classList.add("hidden");
-                mainContent.classList.remove("hidden");
-                
-                // [업로드 권한] 관리자 등급일 때만 업로드 박스 노출
-                if (isAdmin) {
-                    adminUpload.classList.remove("hidden");
-                } else {
-                    adminUpload.classList.add("hidden");
-                }
-                
-                loadResources(isAdmin); 
+            // [권한 로직 2] 페이지 콘텐츠 보여주기
+            mainContent.classList.remove("hidden");
+            
+            // [권한 로직 3] 관리자 등급일 때만 업로드 박스 노출
+            if (isAdmin) {
+                adminUpload.classList.remove("hidden");
             } else {
-                // 일반 회원(혹은 등급 미배정) 접근 차단
-                mainContent.classList.add("hidden");
-                lockMsg.classList.remove("hidden");
-                lockMsg.querySelector('h2').innerText = "접근 제한";
-                lockMsg.querySelector('p').innerText = "자료실은 동아리 부원 이상만 이용할 수 있는 공간입니다.";
-                const targetBtn = lockMsg.querySelector('button');
-                targetBtn.innerText = "홈으로 돌아가기";
-                targetBtn.onclick = () => { location.href='index.html' };
+                adminUpload.classList.add("hidden");
             }
+            
+            loadResources(isAdmin); 
         });
 
         try { await appCheck.getToken(false); } catch (e) {}
         
     } else {
-        // 비로그인 상태
-        if (status) status.innerText = "로그인 해주세요";
-        loginBtn.classList.remove("hidden");
-        logoutBtn.classList.add("hidden");
-        mainContent.classList.add("hidden");
-        lockMsg.classList.remove("hidden");
-        lockMsg.querySelector('h2').innerText = "회원 전용 공간";
-        lockMsg.querySelector('p').innerText = "자료실은 DEEP SKY 회원만 접근할 수 있습니다.";
-        const targetBtn = lockMsg.querySelector('button');
-        targetBtn.innerText = "로그인하러 가기";
-        targetBtn.onclick = () => { location.href='login.html' };
+        // [권한 로직 4] 비로그인 상태면 login.html로 강제 이동
+        alert("로그인이 필요한 서비스입니다.");
+        location.href = 'login.html';
     }
 });
-
-// --- 자료실 기능 로직 ---
 
 function loadResources(isAdmin) {
     db.ref("resources").orderByChild('createdAt').on("value", snapshot => {
