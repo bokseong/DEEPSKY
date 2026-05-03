@@ -33,11 +33,24 @@
         /* 3. 헤더 (파란 박스) 및 내비게이션 */
         header { background: linear-gradient(to right, #0d1b52, #1b2f80); padding: 38px 20px; text-align: center; }
 
-        nav { background: #11153a; border-bottom: 1px solid #2d367a; padding: 10px 0; }
-        nav .nav-inner { 
-            max-width: 1000px; margin: 0 auto; display: flex; 
-            flex-wrap: wrap; justify-content: center; gap: 5px; 
-        }
+        nav { 
+    background: #11153a; 
+    border-bottom: 1px solid #2d367a; 
+    padding: 10px 0; 
+    /* 줄바꿈을 허용하기 위해 아래 두 줄 수정/삭제 */
+    overflow-x: visible; 
+    white-space: normal; 
+}
+
+nav .nav-inner { 
+    max-width: 1200px;
+    margin: 0 auto; 
+    display: flex; 
+    /* wrap으로 변경하여 공간이 부족하면 아래로 넘어가게 함 */
+    flex-wrap: wrap; 
+    justify-content: center; 
+    gap: 5px; /* 줄바꿈 시 가독성을 위해 간격을 조금 넓힘 */
+}
         nav a { 
             display: inline-block; color: white; padding: 12px 18px; 
             text-decoration: none; font-weight: bold; font-size: 15px; border-radius: 8px;
