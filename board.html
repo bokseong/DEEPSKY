@@ -208,18 +208,31 @@ auth.onAuthStateChanged(async (user) => {
         db.ref('users/' + user.uid).on('value', (snapshot) => {
             const userData = snapshot.val() || {};
             const finalName = userData.name || user.email.split('@')[0];
+            
+            // 1. 등급 판정
             currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+            
             if(status) status.innerText = `${finalName}님 (${getRoleName(currentUserRole)})`;
-            if (topWriteBtn) topWriteBtn.classList.remove("hidden");
+
+            // 2. 글쓰기 권한 제어: 관리자(admin) 또는 동아리 부원(student)만 글쓰기 버튼 표시
+            if (currentUserRole === 'admin' || currentUserRole === 'student') {
+                topWriteBtn?.classList.remove("hidden");
+            } else {
+                // 일반 회원(member)은 글쓰기 버튼 숨김
+                topWriteBtn?.classList.add("hidden");
+            }
         });
         loginBtn?.classList.add("hidden");
         logoutBtn?.classList.remove("hidden");
     } else {
+        // 3. 비로그인(guest) 처리
         currentUserRole = "guest";
         if(status) status.innerText = "로그인 해주세요";
         loginBtn?.classList.remove("hidden");
         logoutBtn?.classList.add("hidden");
-        if (topWriteBtn) topWriteBtn.classList.add("hidden");
+        
+        // 비로그인은 글쓰기 버튼 숨김
+        topWriteBtn?.classList.add("hidden");
     }
     loadPosts();
 });
