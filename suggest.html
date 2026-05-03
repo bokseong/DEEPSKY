@@ -239,8 +239,6 @@ let currentUserName = '';
 
 // 3. 인증 감시
 auth.onAuthStateChanged(async (user) => {
-    const lockMsg = document.getElementById("lockMessage");
-    const mainCont = document.getElementById("mainContent");
     const status = document.getElementById("userStatus");
 
     if (user) {
@@ -250,24 +248,25 @@ auth.onAuthStateChanged(async (user) => {
             currentUserName = data.name || user.displayName || user.email.split('@')[0];
             currentRole = (user.email === ADMIN_EMAIL) ? 'admin' : (data.role || 'member');
             
-            status.innerText = `${currentUserName}님 (${getRoleName(currentRole)})`;
+            // 상단 바 정보 업데이트
+            if (status) status.innerText = `${currentUserName}님 (${getRoleName(currentRole)})`;
             document.getElementById("loginBtn").classList.add("hidden");
             document.getElementById("logoutBtn").classList.remove("hidden");
 
+            // 권한 체크 로직
             if (currentRole === 'admin' || currentRole === 'student') {
-                lockMsg.classList.add("hidden");
-                mainCont.classList.remove("hidden");
+                // 권한 있음: 메인 콘텐츠 표시 및 데이터 로드
+                document.getElementById("lockMessage").classList.add("hidden");
+                document.getElementById("mainContent").classList.remove("hidden");
                 loadSuggestions();
             } else {
-                lockMsg.classList.remove("hidden");
-                mainCont.classList.add("hidden");
+                // 권한 없음 (member 등): 등급 조정 요청 페이지(block.html)로 즉시 이동
+                location.href = 'block.html';
             }
         });
     } else {
-        status.innerText = "로그인 해주세요";
-        document.getElementById("loginBtn").classList.remove("hidden");
-        document.getElementById("logoutBtn").classList.add("hidden");
-        lockMsg.classList.remove("hidden");
+        // 비로그인: 로그인 페이지(login.html)로 즉시 이동
+        location.href = 'login.html';
     }
 });
 
