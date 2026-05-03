@@ -269,8 +269,12 @@ auth.onAuthStateChanged(async (user) => {
     const logoutBtn = document.getElementById("logoutBtn");
     const emailInput = document.getElementById("userEmail");
     const nameInput = document.getElementById("userName");
+    const container = document.querySelector('.container');
 
     if (user) {
+        // [로그인 성공 시] 화면을 보여줌
+        container.classList.remove("hidden");
+        
         if(emailInput) emailInput.value = user.email;
         loginBtn.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
@@ -288,7 +292,8 @@ auth.onAuthStateChanged(async (user) => {
             if(nameInput) nameInput.value = currentName;
         });
     } else {
-        alert("로그인이 필요합니다.");
+        // [비로그인 상태 시] 즉시 안내 후 로그인 페이지로 이동
+        alert("로그인이 필요한 페이지입니다. 로그인 페이지로 이동합니다.");
         location.href = "login.html";
     }
 });
