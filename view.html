@@ -206,14 +206,9 @@ auth.onAuthStateChanged(async (user) => {
             currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
             status.innerText = `${currentUserName}님 (${getRoleName(currentUserRole)})`;
 
-            if (currentUserRole === 'admin' || currentUserRole === 'student') {
-                commentFormArea.classList.remove("hidden");
-                commentLoginNotice.classList.add("hidden");
-            } else {
-                commentFormArea.classList.add("hidden");
-                commentLoginNotice.classList.remove("hidden");
-                commentLoginNotice.innerText = "댓글은 동아리 부원 이상의 등급 소유자만 작성할 수 있습니다.";
-            }
+            // [수정] 로그인한 유저라면 등급에 상관없이 댓글 작성 폼을 보여줌
+            commentFormArea.classList.remove("hidden");
+            commentLoginNotice.classList.add("hidden");
         });
         loginBtn.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
@@ -223,8 +218,11 @@ auth.onAuthStateChanged(async (user) => {
         status.innerText = "로그인 해주세요";
         loginBtn.classList.remove("hidden");
         logoutBtn.classList.add("hidden");
+        
+        // [수정] 비로그인 시에만 댓글 폼을 숨기고 안내 메시지 표시
         commentFormArea.classList.add("hidden");
         commentLoginNotice.classList.remove("hidden");
+        commentLoginNotice.innerText = "댓글을 작성하려면 로그인이 필요합니다.";
     }
 
     if (postId) {
@@ -234,10 +232,6 @@ auth.onAuthStateChanged(async (user) => {
         alert("게시글 ID가 없습니다.");
         location.href = "board.html";
     }
-});
-
-document.getElementById("commentInput")?.addEventListener("keypress", function(e) {
-    if (e.key === "Enter") addComment();
 });
 
 function loadPost(user) {
@@ -341,7 +335,8 @@ function addComment() {
     const input = document.getElementById("commentInput");
     
     if (!user) return alert("로그인이 필요합니다.");
-    if (currentUserRole !== 'admin' && currentUserRole !== 'student') return alert("댓글 작성 권한이 없습니다.");
+    // [수정] guest가 아니면 (즉, 로그인한 회원이면) 누구나 작성 가능하도록 조건 변경
+    if (currentUserRole === 'guest') return alert("댓글 작성 권한이 없습니다.");
     if (!input.value.trim()) return alert("내용을 입력하세요.");
 
     const commentMsg = input.value.trim();
