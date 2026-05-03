@@ -205,7 +205,7 @@ nav .nav-inner {
 
         if (user) {
             // [로그인 상태] 컨테이너를 보여주고 유저 정보 로드
-            mainContainer?.classList.remove("hidden");
+            if (mainContainer) mainContainer.classList.remove("hidden");
 
             db.ref('users/' + user.uid).on('value', (snapshot) => {
                 const userData = snapshot.val() || {};
@@ -218,11 +218,11 @@ nav .nav-inner {
             loginBtn?.classList.add("hidden");
             logoutBtn?.classList.remove("hidden");
         } else {
-            // [비로그인 상태] 즉시 알림 후 로그인 페이지로 이동
-            alert("로그인이 필요한 페이지입니다. 로그인 페이지로 이동합니다.");
+            // [비로그인 상태] 경고 없이 즉시 로그인 페이지로 리다이렉트
             location.href = 'login.html';
         }
     });
+    
     function getRoleName(role) {
         if (role === 'admin') return '관리자';
         if (role === 'student') return '동아리 부원';
