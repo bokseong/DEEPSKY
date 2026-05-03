@@ -285,8 +285,9 @@ async function addSuggestion() {
 
     try {
         await appCheck.getToken(false);
-        const dateStr = new Date().toLocaleDateString();
+        const dateStr = new Date().toLocaleString(); // 날짜와 시간 포함
         
+        // Firebase 저장
         await db.ref("suggestions").push({
             text: text,
             author: isAnon ? "익명" : currentUserName,
@@ -295,22 +296,29 @@ async function addSuggestion() {
             createdAt: firebase.database.ServerValue.TIMESTAMP
         });
 
+        // 관리자 알림 메일 발송 (GAS 호출)
         if(GAS_URL) {
+            const formData = new URLSearchParams();
+            formData.append("type", "new_suggestion");
+            formData.append("senderName", currentUserName); // 실제 이름 (GAS에서 익명 여부에 따라 처리)
+            formData.append("content", text);
+            formData.append("isAnonymous", isAnon ? "true" : "false");
+            formData.append("date", dateStr);
+
             fetch(GAS_URL, {
                 method: 'POST',
-                mode: 'no-cors',
-                body: new URLSearchParams({
-                    type: 'new_suggestion',
-                    name: currentUserName, 
-                    email: currentUser.email, 
-                    message: (isAnon ? "[익명 건의] " : "[실명 건의] ") + text 
-                })
+                mode: 'no-cors', // CORS 문제 방지
+                body: formData
             });
         }
 
         document.getElementById("sInput").value = "";
+        document.getElementById("sAnon").checked = false; // 체크박스 초기화
         alert("건의사항이 접수되었습니다.");
-    } catch(e) { alert("제출 중 오류가 발생했습니다."); }
+    } catch(e) { 
+        console.error(e);
+        alert("제출 중 오류가 발생했습니다."); 
+    }
 }
 
 // 5. 건의 리스트 로드
