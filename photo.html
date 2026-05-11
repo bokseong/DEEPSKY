@@ -1,4 +1,4 @@
-<!DOCTYPE.html>
+    <!DOCTYPE.html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -307,8 +307,7 @@ function loadPhotos(user, isAdmin, isStudent) {
 
             const card = document.createElement("div");
             card.className = "photo-card";
-            card.innerHTML = `
-                <img src="${item.url}" onclick="window.open('${item.url}')" onerror="this.src='https://via.placeholder.com/300x200?text=Image+Load+Error'">
+            card.innerHTML =
                 <div class="photo-info">
                     <span class="owner-tag">By ${item.ownerName}</span>
                     <div class="photo-title">${item.title}</div>
@@ -324,7 +323,7 @@ function loadPhotos(user, isAdmin, isStudent) {
                     <a href="${item.url}" target="_blank" class="btn-view">원본보기</a>
                     ${canDeletePhoto ? `<button class="btn-del" onclick="deletePhoto('${key}')">삭제</button>` : ''}
                 </div>
-            `;
+            ;
             grid.appendChild(card);
             loadComments(key, item.ownerUid, isAdmin);
         });
