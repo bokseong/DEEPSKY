@@ -190,8 +190,7 @@ nav .nav-inner {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
-<script>
-// 1. Firebase 설정
+// 1. Firebase 설정 (제공해주신 설정값 유지)
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -212,7 +211,7 @@ appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
 let currentUserData = null;
 
-// 2. 로그인 상태 감지 및 권한 제어 (수정된 로직)
+// 2. 로그인 상태 감지 및 권한 제어
 auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
@@ -222,7 +221,7 @@ auth.onAuthStateChanged(async (user) => {
     const uploadSection = document.getElementById("uploadSection");
 
     if (user) {
-        // [로그인 상태]
+        // [로그인 상태] 유저 데이터 실시간 감시
         db.ref('users/' + user.uid).on('value', (snapshot) => {
             currentUserData = snapshot.val() || {};
             const name = currentUserData.name || user.displayName || user.email.split('@')[0];
@@ -231,33 +230,32 @@ auth.onAuthStateChanged(async (user) => {
             const isAdmin = (user.email === ADMIN_EMAIL || currentUserData.role === 'admin');
             const isStudent = (currentUserData.role === 'student');
 
-            // 1. 권한 체크: 관리자나 동아리 부원이 아니면 block.html로 튕기기
-            if (!isAdmin && !isStudent) {
-                location.href = "block.html";
-                return; // 이후 코드 실행 방지
-            }
-
-            // 2. 권한이 있는 경우 (admin 또는 student) 페이지 표시
-            let roleName = isAdmin ? "관리자" : "동아리 부원";
+            // UI 업데이트
+            let roleName = isAdmin ? "관리자" : (isStudent ? "동아리 부원" : "일반 회원");
             if (status) status.innerText = `${name}님 (${roleName})`;
 
             loginBtn.classList.add("hidden");
             logoutBtn.classList.remove("hidden");
             lockMsg.classList.add("hidden");
-            mainContent.classList.remove("hidden");
+            mainContent.classList.remove("hidden"); // 로그인한 모든 유저는 사진 열람 가능
 
-            // 모든 관리자/부원은 업로드 섹션을 볼 수 있음
-            uploadSection.classList.remove("hidden");
+            // 업로드 권한: 관리자(admin) 또는 부원(student)만 업로드 섹션 노출
+            if (isAdmin || isStudent) {
+                uploadSection.classList.remove("hidden");
+            } else {
+                uploadSection.classList.add("hidden");
+            }
 
+            // 사진 목록 로드 (로그인한 사람에게만 보임)
             loadPhotos(user, isAdmin, isStudent);
         });
     } else {
-        // [비로그인 상태] login.html로 이동
-        location.href = "login.html";
+        // [비로그인 상태] block.html로 튕기기
+        location.href = "block.html";
     }
 });
 
-// 3. 사진 기능
+// 3. 구글 드라이브 링크 변환 함수
 function convertDriveLink(url) {
     if (url.includes('drive.google.com')) {
         let fileId = "";
@@ -268,37 +266,58 @@ function convertDriveLink(url) {
     return url;
 }
 
+// 4. 사진 일괄 등록 (관리자/부원 전용)
 async function uploadBulkPhotos() {
     const user = auth.currentUser;
+    if (!user) return alert("로그인이 필요합니다.");
+
+    // 보안을 위해 DB에서 권한 재확인
+    const snapshot = await db.ref('users/' + user.uid).once('value');
+    const userData = snapshot.val() || {};
+    const isAdmin = (user.email === ADMIN_EMAIL || userData.role === 'admin');
+    const isStudent = (userData.role === 'student');
+
+    if (!isAdmin && !isStudent) {
+        return alert("사진 업로드 권한이 없습니다. (관리자 또는 부원 전용)");
+    }
+
     const urlsText = document.getElementById("imageUrls").value.trim();
     const titleText = document.getElementById("commonTitle").value.trim();
-    if(!urlsText || !titleText) return alert("내용을 입력하세요.");
+    
+    if(!urlsText || !titleText) return alert("제목과 링크를 모두 입력하세요.");
 
     const urlList = urlsText.split('\n').map(u => u.trim()).filter(u => u !== "");
+    
     try {
         await appCheck.getToken(true);
         const promises = urlList.map((url, index) => {
             return db.ref('photos_link').push({
                 url: convertDriveLink(url),
                 title: urlList.length > 1 ? `${titleText} (${index + 1})` : titleText,
-                ownerName: currentUserData.name || user.email.split('@')[0],
+                ownerName: userData.name || user.email.split('@')[0],
                 ownerUid: user.uid,
                 createdAt: firebase.database.ServerValue.TIMESTAMP
             });
         });
         await Promise.all(promises);
-        alert("성공적으로 업로드되었습니다.");
+        alert("갤러리에 성공적으로 등록되었습니다.");
         document.getElementById("imageUrls").value = "";
         document.getElementById("commonTitle").value = "";
-    } catch (e) { alert("업로드 실패: 권한을 확인하세요."); }
+    } catch (e) { 
+        alert("등록 실패: 데이터베이스 권한을 확인하세요."); 
+    }
 }
 
+// 5. 사진 목록 로드 및 렌더링
 function loadPhotos(user, isAdmin, isStudent) {
     const grid = document.getElementById("photoGrid");
     db.ref('photos_link').orderByChild('createdAt').on('value', snapshot => {
         grid.innerHTML = "";
         const data = snapshot.val();
-        if(!data) return;
+        if(!data) {
+            grid.innerHTML = "<p style='grid-column: 1/-1; text-align:center; color:#888;'>등록된 사진이 없습니다.</p>";
+            return;
+        }
 
         Object.keys(data).reverse().forEach(key => {
             const item = data[key];
@@ -307,14 +326,15 @@ function loadPhotos(user, isAdmin, isStudent) {
 
             const card = document.createElement("div");
             card.className = "photo-card";
-            card.innerHTML =
+            card.innerHTML = `
+                <img src="${item.url}" onerror="this.src='https://via.placeholder.com/300?text=Image+Error'" onclick="window.open('${item.url}')">
                 <div class="photo-info">
                     <span class="owner-tag">By ${item.ownerName}</span>
                     <div class="photo-title">${item.title}</div>
                 </div>
                 <div class="comment-section">
                     <div class="comment-list" id="list-${key}">댓글 로드 중...</div>
-                    <div class="comment-input-group ${(isAdmin || isStudent) ? '' : 'hidden'}">
+                    <div class="comment-input-group">
                         <input type="text" id="input-${key}" placeholder="댓글 입력...">
                         <button class="btn-comment-add" onclick="addComment('${key}')">등록</button>
                     </div>
@@ -323,19 +343,20 @@ function loadPhotos(user, isAdmin, isStudent) {
                     <a href="${item.url}" target="_blank" class="btn-view">원본보기</a>
                     ${canDeletePhoto ? `<button class="btn-del" onclick="deletePhoto('${key}')">삭제</button>` : ''}
                 </div>
-            ;
+            `;
             grid.appendChild(card);
             loadComments(key, item.ownerUid, isAdmin);
         });
     });
 }
 
+// 6. 댓글 기능
 function loadComments(photoKey, photoOwnerUid, isAdmin) {
     const listDiv = document.getElementById(`list-${photoKey}`);
     db.ref(`photos_link/${photoKey}/comments`).on('value', snapshot => {
         listDiv.innerHTML = "";
         const comments = snapshot.val();
-        if(!comments) { listDiv.innerHTML = "<span style='color:#666'>댓글이 없습니다.</span>"; return; }
+        if(!comments) { listDiv.innerHTML = "<span style='color:#666; font-size:12px;'>댓글이 없습니다.</span>"; return; }
         
         Object.keys(comments).forEach(cKey => {
             const c = comments[cKey];
@@ -367,15 +388,20 @@ async function addComment(photoKey) {
             createdAt: firebase.database.ServerValue.TIMESTAMP
         });
         input.value = "";
-    } catch (e) { alert("권한이 없습니다."); }
+    } catch (e) { alert("댓글 등록 권한이 없습니다."); }
 }
 
 async function deleteComment(photoKey, commentKey) {
-    if(confirm("댓글을 삭제하시겠습니까?")) await db.ref(`photos_link/${photoKey}/comments/${commentKey}`).remove();
+    if(confirm("댓글을 삭제하시겠습니까?")) {
+        await db.ref(`photos_link/${photoKey}/comments/${commentKey}`).remove();
+    }
 }
 
+// 7. 삭제 및 필터 기능
 async function deletePhoto(key) {
-    if(confirm("이 사진을 삭제하시겠습니까?")) await db.ref('photos_link/' + key).remove();
+    if(confirm("이 사진을 삭제하시겠습니까?")) {
+        await db.ref('photos_link/' + key).remove();
+    }
 }
 
 function filterPhotos() {
@@ -388,7 +414,10 @@ function filterPhotos() {
     });
 }
 
-function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.href='index.html'); }
-</script>
+function logout() { 
+    if(confirm("로그아웃 하시겠습니까?")) {
+        auth.signOut().then(() => location.href='index.html');
+    } 
+}
 </body>
 </html>
