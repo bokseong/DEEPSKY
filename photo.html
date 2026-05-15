@@ -191,7 +191,7 @@ nav .nav-inner {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
-// 1. Firebase 설정 (제공해주신 설정값 유지)
+// 1. Firebase 설정
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -238,20 +238,20 @@ auth.onAuthStateChanged(async (user) => {
             loginBtn.classList.add("hidden");
             logoutBtn.classList.remove("hidden");
             lockMsg.classList.add("hidden");
-            mainContent.classList.remove("hidden"); // 로그인한 모든 유저는 사진 열람 가능
+            mainContent.classList.remove("hidden");
 
-            // 업로드 권한: 관리자(admin) 또는 부원(student)만 업로드 섹션 노출
+            // 업로드 권한: 관리자 또는 부원만 업로드 섹션 노출
             if (isAdmin || isStudent) {
                 uploadSection.classList.remove("hidden");
             } else {
                 uploadSection.classList.add("hidden");
             }
 
-            // 사진 목록 로드 (로그인한 사람에게만 보임)
+            // 사진 목록 로드
             loadPhotos(user, isAdmin, isStudent);
         });
     } else {
-        // [비로그인 상태] block.html로 튕기기
+        // [비로그인 상태] 차단 페이지로 이동
         location.href = "block.html";
     }
 });
@@ -272,14 +272,13 @@ async function uploadBulkPhotos() {
     const user = auth.currentUser;
     if (!user) return alert("로그인이 필요합니다.");
 
-    // 보안을 위해 DB에서 권한 재확인
     const snapshot = await db.ref('users/' + user.uid).once('value');
     const userData = snapshot.val() || {};
     const isAdmin = (user.email === ADMIN_EMAIL || userData.role === 'admin');
     const isStudent = (userData.role === 'student');
 
     if (!isAdmin && !isStudent) {
-        return alert("사진 업로드 권한이 없습니다. (관리자 또는 부원 전용)");
+        return alert("사진 업로드 권한이 없습니다.");
     }
 
     const urlsText = document.getElementById("imageUrls").value.trim();
@@ -301,22 +300,22 @@ async function uploadBulkPhotos() {
             });
         });
         await Promise.all(promises);
-        alert("갤러리에 성공적으로 등록되었습니다.");
+        alert("성공적으로 등록되었습니다.");
         document.getElementById("imageUrls").value = "";
         document.getElementById("commonTitle").value = "";
     } catch (e) { 
-        alert("등록 실패: 데이터베이스 권한을 확인하세요."); 
+        alert("등록 실패: 권한을 확인하세요."); 
     }
 }
 
-// 5. 사진 목록 로드 및 렌더링
+// 5. 사진 목록 로드 (미리보기 이미지 제거됨)
 function loadPhotos(user, isAdmin, isStudent) {
     const grid = document.getElementById("photoGrid");
     db.ref('photos_link').orderByChild('createdAt').on('value', snapshot => {
         grid.innerHTML = "";
         const data = snapshot.val();
         if(!data) {
-            grid.innerHTML = "<p style='grid-column: 1/-1; text-align:center; color:#888;'>등록된 사진이 없습니다.</p>";
+            grid.innerHTML = "<p style='grid-column: 1/-1; text-align:center; color:#888;'>등록된 게시물이 없습니다.</p>";
             return;
         }
 
@@ -328,7 +327,6 @@ function loadPhotos(user, isAdmin, isStudent) {
             const card = document.createElement("div");
             card.className = "photo-card";
             card.innerHTML = `
-                <img src="${item.url}" onerror="this.src='https://via.placeholder.com/300?text=Image+Error'" onclick="window.open('${item.url}')">
                 <div class="photo-info">
                     <span class="owner-tag">By ${item.ownerName}</span>
                     <div class="photo-title">${item.title}</div>
@@ -389,7 +387,7 @@ async function addComment(photoKey) {
             createdAt: firebase.database.ServerValue.TIMESTAMP
         });
         input.value = "";
-    } catch (e) { alert("댓글 등록 권한이 없습니다."); }
+    } catch (e) { alert("권한이 없습니다."); }
 }
 
 async function deleteComment(photoKey, commentKey) {
@@ -400,7 +398,7 @@ async function deleteComment(photoKey, commentKey) {
 
 // 7. 삭제 및 필터 기능
 async function deletePhoto(key) {
-    if(confirm("이 사진을 삭제하시겠습니까?")) {
+    if(confirm("이 게시물을 삭제하시겠습니까?")) {
         await db.ref('photos_link/' + key).remove();
     }
 }
