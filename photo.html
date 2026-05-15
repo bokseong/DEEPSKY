@@ -190,6 +190,7 @@ nav .nav-inner {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
+<script>
 // 1. Firebase 설정 (제공해주신 설정값 유지)
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
@@ -419,5 +420,6 @@ function logout() {
         auth.signOut().then(() => location.href='index.html');
     } 
 }
+</script>
 </body>
 </html>
