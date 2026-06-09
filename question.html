@@ -130,6 +130,8 @@ const db = firebase.database();
 const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
+// 💡 5001번 우분투 ngrok 백엔드 서버 연동용 기본 설정 주소 추가
+const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxds-gEKufN1Bh_XwWiuHTynprR5VfP0IB6_OYVCaAzcZo5xQsKg6MG-OwQqdbzXQWiRg/exec";
 
@@ -138,7 +140,7 @@ let currentUserName = "익명";
 let currentUserRole = "guest";
 let cachedData = null;
 
-// 공통 알림 함수 (GAS 연동)
+// 공통 알림 함수 (GAS 연동 - 기존 코드 유지)
 async function sendMail(payload) {
     const formData = new URLSearchParams();
     for (let key in payload) formData.append(key, payload[key]);
@@ -174,28 +176,57 @@ auth.onAuthStateChanged(async (user) => {
     loadQuestions();
 });
 
-function loadQuestions() {
-    db.ref("questions").on("value", snapshot => {
-        cachedData = snapshot.val();
+// 💡 질문 리스트 로드 (자체 5001번 ngrok 서버와 실시간으로 실존 연동)
+async function loadQuestions() {
+    try {
+        // ngrok 우회 헤더 마법의 주문 탑재 및 백엔드 GET 호출
+        const response = await fetch(`${API_BASE_URL}/api/question`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "ngrok-skip-browser-warning": "69420"
+            }
+        });
+        if (!response.ok) throw new Error("서버에서 질문을 읽어오지 못했습니다.");
+        
+        cachedData = await response.json(); // 질문 내용(db에 question 구조) 받아옴
         renderList(cachedData);
-    });
+    } catch (error) {
+        console.error("질문 로드 실패:", error);
+        document.getElementById("questionList").innerHTML = `<p style="text-align:center; color:#ff4d4d;">서버 연동 오류 (백엔드가 오프라인 상태일 수 있습니다.)</p>`;
+    }
 }
 
+// 💡 새로운 질문 등록 (자체 5001번 ngrok 서버 연동 및 보안 규칙 매칭 버전)
 async function addQuestion() {
     const textInput = document.getElementById("qInput");
     const text = textInput.value.trim();
     if(!text) return alert("질문을 입력해주세요.");
 
     try {
+        // 보안 규칙을 통과하고 우분투 DB에 question 항목으로 적재될 데이터 구조화
         const newPost = {
             text: text,
             author: currentUserName,
             email: currentUser ? currentUser.email : "anonymous",
-            createdAt: firebase.database.ServerValue.TIMESTAMP
+            uid: currentUser ? currentUser.uid : "anonymous_uid",
+            timestamp: Date.now(),
+            date: new Date().toLocaleDateString('ko-KR')
         };
-        await db.ref("questions").push(newPost);
+
+        // 백엔드로 POST 전송
+        const response = await fetch(`${API_BASE_URL}/api/question`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "ngrok-skip-browser-warning": "69420"
+            },
+            body: JSON.stringify(newPost)
+        });
+
+        if(!response.ok) throw new Error("서버 저장에 실패했습니다.");
         
-        // 관리자 알림 (GAS 호출)
+        // 관리자 알림 (GAS 호출 - 기존 연동 유지)
         sendMail({
             type: "new_question",
             senderName: currentUserName,
@@ -204,9 +235,13 @@ async function addQuestion() {
 
         textInput.value = "";
         alert("질문이 등록되었습니다.");
-    } catch (err) { alert("등록 실패"); }
+        loadQuestions(); // 갱신된 리스트 새로 불러오기
+    } catch (err) { 
+        alert("등록 실패: 서버 및 보안 규칙 상태를 확인하세요."); 
+    }
 }
 
+// 💡 답변 등록 (각 질문 내부 하위 항목에 replies-reply 배열 형식 구조화 연동)
 async function saveAnswer(qKey) {
     if(currentUserRole !== 'admin' && currentUserRole !== 'student') return alert("답변 권한이 없습니다.");
     const ansInput = document.getElementById("ans_"+qKey);
@@ -214,17 +249,30 @@ async function saveAnswer(qKey) {
     if(!ansText) return alert("내용을 입력하세요.");
 
     try {
-        const qSnap = await db.ref(`questions/${qKey}`).once('value');
-        const qData = qSnap.val();
+        // 기존 객체 내의 원본 질문 데이터 추적
+        const qData = cachedData[qKey];
 
-        await db.ref(`questions/${qKey}/replies`).push({
+        const newReply = {
             text: ansText,
             author: currentUserName,
             email: currentUser.email,
-            createdAt: firebase.database.ServerValue.TIMESTAMP
+            uid: currentUser.uid,
+            timestamp: Date.now()
+        };
+
+        // 특정 qKey 질문의 하위 replies 경로로 POST 통신 진행
+        const response = await fetch(`${API_BASE_URL}/api/question/${qKey}/reply`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "ngrok-skip-browser-warning": "69420"
+            },
+            body: JSON.stringify(newReply)
         });
 
-        // 질문자가 로그인 사용자였을 때만 알림 발송
+        if(!response.ok) throw new Error("서버에 답변을 추가하지 못했습니다.");
+
+        // 질문자가 로그인 사용자였을 때만 알림 발송 (기존 GAS 연동 유지)
         if (qData.email && qData.email !== "anonymous") {
             sendMail({
                 type: "new_answer",
@@ -236,28 +284,39 @@ async function saveAnswer(qKey) {
         }
 
         ansInput.value = "";
-    } catch (err) { alert("등록 실패."); }
+        loadQuestions(); // 등록 완료 후 갱신
+    } catch (err) { 
+        alert("등록 실패."); 
+    }
 }
 
+// 💡 화면 렌더링 로직 (기존 HTML 돔 구조 및 CSS 속성 완벽 호환)
 function renderList(data) {
     const list = document.getElementById("questionList");
     const searchTerm = document.getElementById("qSearch").value.toLowerCase();
     list.innerHTML = "";
-    if(!data) return;
+    if(!data || Object.keys(data).length === 0) {
+        list.innerHTML = `<p style="text-align:center; padding:20px; color:#888;">등록된 질문이 없습니다.</p>`;
+        return;
+    }
     
     const canReply = (currentUserRole === 'admin' || currentUserRole === 'student');
     const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
 
+    // 파이어베이스 기존 실시간 내림차순 정렬 로직 보존하며 렌더링
     Object.keys(data).reverse().forEach(qKey => {
         const q = data[qKey];
         const isQAuthor = currentUser && q.email !== "anonymous" && currentUser.email === q.email;
-        if (searchTerm && !q.text.toLowerCase().includes(searchTerm)) return;
+        
+        // 검색 필터 검증 (질문 본문, 작성자 명칭 포함 여부 검사)
+        if (searchTerm && !q.text.toLowerCase().includes(searchTerm) && !q.author.toLowerCase().includes(searchTerm)) return;
 
         let repliesHtml = '<div class="replies-container">';
         if (q.replies) {
             Object.keys(q.replies).forEach(rKey => {
                 const r = q.replies[rKey];
                 const canDeleteReply = isAdmin || (currentUser && currentUser.email === r.email) || isQAuthor;
+                
                 repliesHtml += `
                     <div class="ans-box">
                         <div class="ans-content"><b>A.</b> ${r.text} <br> <span class="ans-author">- ${r.author}</span></div>
@@ -284,8 +343,39 @@ function renderList(data) {
 }
 
 function filterQuestions() { renderList(cachedData); }
-async function deleteQuestion(qKey) { if(confirm("삭제하시겠습니까?")) db.ref("questions/"+qKey).remove(); }
-async function deleteAnswer(qKey, rKey) { if(confirm("삭제하시겠습니까?")) db.ref(`questions/${qKey}/replies/${rKey}`).remove(); }
+
+// 💡 질문 전전체 삭제 연동 함수
+async function deleteQuestion(qKey) { 
+    if(!confirm("삭제하시겠습니까?")) return;
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/question/${qKey}`, {
+            method: "DELETE",
+            headers: { "ngrok-skip-browser-warning": "69420" }
+        });
+        if (!response.ok) throw new Error();
+        alert("삭제되었습니다.");
+        loadQuestions();
+    } catch(e) {
+        alert("삭제 권한이 없거나 서버 에러가 발생했습니다.");
+    }
+}
+
+// 💡 답글 단일 삭제 연동 함수
+async function deleteAnswer(qKey, rKey) { 
+    if(!confirm("삭제하시겠습니까?")) return;
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/question/${qKey}/reply/${rKey}`, {
+            method: "DELETE",
+            headers: { "ngrok-skip-browser-warning": "69420" }
+        });
+        if (!response.ok) throw new Error();
+        alert("삭제되었습니다.");
+        loadQuestions();
+    } catch(e) {
+        alert("답변 삭제 권한이 없거나 실패했습니다.");
+    }
+}
+
 function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
 </script>
 </body>
