@@ -257,7 +257,14 @@ async function loadProgram() {
     if(!el) return;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/api/program`);
+        // 💡 ngrok 경고창 패스를 위해 headers 옵션을 추가했습니다.
+        const response = await fetch(`${API_BASE_URL}/api/program`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "ngrok-skip-browser-warning": "69420"
+            }
+        });
         if (!response.ok) throw new Error("데이터 로드 실패");
         
         const data = await response.json();
@@ -275,7 +282,14 @@ async function loadUpdateLogs() {
     if(!logList) return;
     
     try {
-        const response = await fetch(`${API_BASE_URL}/api/update-logs`);
+        // 💡 여기도 똑같이 ngrok 경고창 패스 headers 옵션을 추가했습니다.
+        const response = await fetch(`${API_BASE_URL}/api/update-logs`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "ngrok-skip-browser-warning": "69420"
+            }
+        });
         if (!response.ok) throw new Error("로그 로드 실패");
 
         const logs = await response.json(); // 백엔드에서 배열 형태로 전달받음
