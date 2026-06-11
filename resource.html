@@ -282,10 +282,13 @@ async function loadResources() {
 async function uploadResource() {
 if (currentUserRole !== 'admin') return alert("관리자만 업로드할 수 있습니다.");
 
-     const title = document.getElementById("fileTitle").value.trim();
-     const desc = document.getElementById("fileDesc").value.trim();
-     const link = document.getElementById("fileLink").value.trim();
-     const fileInput = document.getElementById("fileData"); // 수정된 ID 매칭
+    const title = document.getElementById("fileTitle").value.trim();
+    const desc = document.getElementById("fileDesc").value.trim();
+    const link = document.getElementById("fileLink").value.trim();
+    const fileInput = document.getElementById("rFile");
+    if (fileInput && fileInput.files.length > 0) {
+        formData.append("file", fileInput.files[0]);
+    }
 
      if (!title) return alert("제목을 입력하세요.");
 
