@@ -308,9 +308,8 @@ function checkWriteAuth() {
     location.href = "write.html";
 }
 
-// 검색 필터링
 function filterPosts() {
-    const term = document.getElementById("boardSearch").value.toLowerCase();
+    const term = document.getElementById("searchInput").value.toLowerCase();
     if (!term) {
         loadBoardPosts();
         return;
