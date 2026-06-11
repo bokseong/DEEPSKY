@@ -216,7 +216,7 @@ auth.onAuthStateChanged(async (user) => {
             const isAdmin = (user.email === ADMIN_EMAIL) || (userData.role === 'admin');
             let userRole = isAdmin ? 'admin' : (userData.role || 'member');
             
-            if(status) status.innerText = `${finalName}님 (${getRoleName(userRole)})`;
+           if(status) status.innerText = `${finalName}님 (${getRoleName(userRole)})`;
 
             if (isAdmin) {
                 adminBox?.classList.remove("hidden");
