@@ -174,7 +174,8 @@ nav .nav-inner {
             <h3>새로운 자료 등록 (관리자)</h3>
             <input type="text" id="fileTitle" placeholder="자료 제목">
             <input type="text" id="fileDesc" placeholder="자료 설명">
-            <input type="text" id="fileLink" placeholder="다운로드/보기">
+            <input type="text" id="fileLink" placeholder="다운로드/보기 (외부 링크)">
+            <input type="file" id="fileData" style="width: 100%; padding: 12px; margin-bottom: 10px; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px;">
             <button class="btn-main" onclick="uploadResource()">자료 게시하기</button>
         </div>
 
@@ -279,29 +280,35 @@ async function loadResources() {
 
 // 파일과 데이터를 자체 서버로 업로드 (multipart/form-data)
 async function uploadResource() {
-    if (currentUserRole !== 'admin') return alert("관리자만 업로드할 수 있습니다.");
-    
-    const title = document.getElementById("rTitle").value;
-    const content = document.getElementById("rContent").value;
-    const fileInput = document.getElementById("rFile");
+if (currentUserRole !== 'admin') return alert("관리자만 업로드할 수 있습니다.");
 
-    if (!title) return alert("제목을 입력하세요.");
+     const title = document.getElementById("fileTitle").value.trim();
+     const desc = document.getElementById("fileDesc").value.trim();
+     const link = document.getElementById("fileLink").value.trim();
+     const fileInput = document.getElementById("fileData"); // 수정된 ID 매칭
 
-    const formData = new FormData();
-    formData.append("title", title);
-    formData.append("content", content);
-    formData.append("author", currentUserName);
-    formData.append("date", new Date().toLocaleDateString('ko-KR'));
-    if (fileInput.files.length > 0) formData.append("file", fileInput.files[0]);
+     if (!title) return alert("제목을 입력하세요.");
 
-    try {
-        await fetch(`${API_BASE_URL}/api/resources`, {
-            method: "POST",
-            headers: { "ngrok-skip-browser-warning": "69420" },
-            body: formData
-        });
-        alert("등록 완료");
-        loadResources();
+     const formData = new FormData();
+     formData.append("title", title);
+     formData.append("content", desc);
+     formData.append("link", link);
+     formData.append("author", currentUserName);
+     formData.append("date", new Date().toLocaleDateString('ko-KR'));
+     if (fileInput && fileInput.files.length > 0) formData.append("file", fileInput.files[0]);
+
+     try {
+         await fetch(`${API_BASE_URL}/api/resources`, {
+             method: "POST",
+             headers: { "ngrok-skip-browser-warning": "69420" },
+             body: formData
+         });
+         alert("자료 등록 완료");
+         document.getElementById("fileTitle").value = "";
+         document.getElementById("fileDesc").value = "";
+         document.getElementById("fileLink").value = "";
+         if(fileInput) fileInput.value = "";
+         loadResources();
     } catch (err) { alert("업로드 에러"); }
 }
 
