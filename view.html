@@ -159,7 +159,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
-// 1. Firebase 설정
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -171,225 +170,183 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-const appCheck = firebase.appCheck();
-appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
-
 const auth = firebase.auth();
 const db = firebase.database();
+
+const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-const GAS_URL = "https://script.google.com/macros/s/AKfycbzYfQsVrnGOHpFECSp4s3JLZPtA30S6UIkHgWdr0lDTcMHlNeCOUxlKAuBnR_Z69Sw0aA/exec";
+const params = new URLSearchParams(location.search);
+const postId = params.get("id");
 
-const urlParams = new URLSearchParams(window.location.search);
-const postId = urlParams.get('id');
-
-let currentUserName = "";
-let currentUserRole = "";
-let currentPostAuthorUid = ""; 
-let currentPostTitle = "";
-
-function getRoleName(role) {
-    switch(role) {
-        case 'admin': return '관리자';
-        case 'student': return '동아리 부원';
-        default: return '일반 회원';
-    }
-}
+let currentUser = null;
+let currentUserName = "익명";
+let currentUserRole = "guest";
+let postAuthorUid = "";
 
 auth.onAuthStateChanged(async (user) => {
+    currentUser = user;
     const status = document.getElementById("userStatus");
-    const loginBtn = document.getElementById("loginBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const commentFormArea = document.getElementById("commentFormArea");
-    const commentLoginNotice = document.getElementById("commentLoginNotice");
-
     if (user) {
         db.ref('users/' + user.uid).on('value', (snapshot) => {
             const userData = snapshot.val() || {};
             currentUserName = userData.name || user.displayName || user.email.split('@')[0];
             currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
-            status.innerText = `${currentUserName}님 (${getRoleName(currentUserRole)})`;
-
-            // [수정] 로그인한 유저라면 등급에 상관없이 댓글 작성 폼을 보여줌
-            commentFormArea.classList.remove("hidden");
-            commentLoginNotice.classList.add("hidden");
+            if (status) status.innerText = `${currentUserName}님 (${currentUserRole==='admin'?'관리자':(currentUserRole==='student'?'부원':'일반')})`;
+            loadPostDetail();
         });
-        loginBtn.classList.add("hidden");
-        logoutBtn.classList.remove("hidden");
+        document.getElementById("loginBtn")?.classList.add("hidden");
+        document.getElementById("logoutBtn")?.classList.remove("hidden");
     } else {
-        currentUserName = "익명";
         currentUserRole = "guest";
-        status.innerText = "로그인 해주세요";
-        loginBtn.classList.remove("hidden");
-        logoutBtn.classList.add("hidden");
-        
-        // [수정] 비로그인 시에만 댓글 폼을 숨기고 안내 메시지 표시
-        commentFormArea.classList.add("hidden");
-        commentLoginNotice.classList.remove("hidden");
-        commentLoginNotice.innerText = "댓글을 작성하려면 로그인이 필요합니다.";
-    }
-
-    if (postId) {
-        loadPost(user);
-        loadComments(user);
-    } else {
-        alert("게시글 ID가 없습니다.");
-        location.href = "board.html";
+        if (status) status.innerText = "로그인 해주세요";
+        document.getElementById("loginBtn")?.classList.remove("hidden");
+        document.getElementById("logoutBtn")?.classList.add("hidden");
+        loadPostDetail();
     }
 });
 
-function loadPost(user) {
-    db.ref("freeboard/" + postId).once("value").then(async (snapshot) => {
-        const postData = snapshot.val();
-        const postArea = document.getElementById("postArea");
-        if (!postData) {
-            postArea.innerHTML = "<div style='text-align:center; padding:100px;'><h3>삭제된 게시글입니다.</h3></div>";
-            postArea.classList.remove("hidden");
-            return;
-        }
-
-        currentPostAuthorUid = postData.uid; 
-        currentPostTitle = postData.title; 
-
-        postArea.classList.remove("hidden");
-        document.getElementById("viewTitle").innerText = postData.title;
-        document.getElementById("viewContent").innerText = postData.content;
-        document.getElementById("viewDate").innerText = new Date(postData.createdAt || Date.now()).toLocaleString();
-
-        let authorDisplayName = postData.author || "익명";
-        if (postData.uid) {
-            const userSnap = await db.ref('users/' + postData.uid).once('value');
-            if (userSnap.exists()) authorDisplayName = userSnap.val().name || authorDisplayName;
-        }
-        document.getElementById("viewAuthor").innerText = "작성자: " + authorDisplayName;
-
-        renderLinks(postData);
-
-        const deleteBtn = document.getElementById("deleteBtn");
-        const editBtn = document.getElementById("editBtn");
-        if (user && (user.uid === postData.uid || user.email === ADMIN_EMAIL)) {
-            deleteBtn.classList.remove("hidden");
-            if (user.uid === postData.uid) {
-                editBtn.classList.remove("hidden");
-                editBtn.onclick = () => { location.href = `write.html?id=${postId}`; };
-            }
-        }
-    });
-}
-
-function renderLinks(post) {
-    const linkArea = document.getElementById("linkArea");
-    const viewFileLink = document.getElementById("viewFileLink");
-    const oldLinks = linkArea.querySelectorAll(".dynamic-link");
-    oldLinks.forEach(l => l.remove());
-
-    if (post.links && post.links.length > 0) {
-        linkArea.classList.remove("hidden");
-        viewFileLink.classList.add("hidden"); 
-        post.links.forEach(link => {
-            const newBtn = document.createElement("a");
-            newBtn.href = link.url;
-            newBtn.target = "_blank";
-            newBtn.className = "btn-link dynamic-link";
-            newBtn.style.display = "block";
-            newBtn.style.marginBottom = "8px";
-            newBtn.innerText = "🔗 " + link.name;
-            linkArea.appendChild(newBtn);
-        });
-    } else if (post.fileUrl && post.fileUrl.trim() !== "") {
-        linkArea.classList.remove("hidden");
-        viewFileLink.classList.remove("hidden");
-        let url = post.fileUrl.trim();
-        if (!url.startsWith('http')) url = 'https://' + url;
-        viewFileLink.href = url;
-        viewFileLink.innerText = "🔗 " + (post.fileName || "첨부 링크 열기");
-    } else {
-        linkArea.classList.add("hidden");
-    }
-}
-
-function loadComments(user) {
-    db.ref("freeboard/" + postId + "/comments").on("value", (snapshot) => {
-        const listArea = document.getElementById("commentList");
-        listArea.innerHTML = "";
-        if (!snapshot.exists()) {
-            listArea.innerHTML = "<div style='color:#666; font-size:14px; text-align:center; padding:10px;'>등록된 댓글이 없습니다.</div>";
-            return;
-        }
-        snapshot.forEach((child) => {
-            const comment = child.val();
-            const commentId = child.key;
-            const canDelete = user && (user.uid === comment.uid || user.uid === currentPostAuthorUid || user.email === ADMIN_EMAIL);
-            const html = `
-                <div class="comment-item">
-                    <div class="comment-meta">
-                        <span class="comment-author">${escapeHtml(comment.author)}</span>
-                        <span>${new Date(comment.createdAt).toLocaleString()}
-                        ${canDelete ? `<button class="btn-comment-del" onclick="deleteComment('${commentId}')" style="margin-left:10px;">삭제</button>` : ""}</span>
-                    </div>
-                    <div class="comment-text">${escapeHtml(comment.content)}</div>
-                </div>`;
-            listArea.innerHTML += html;
-        });
-    });
-}
-
-function addComment() {
-    const user = auth.currentUser;
-    const input = document.getElementById("commentInput");
-    
-    if (!user) return alert("로그인이 필요합니다.");
-    // [수정] guest가 아니면 (즉, 로그인한 회원이면) 누구나 작성 가능하도록 조건 변경
-    if (currentUserRole === 'guest') return alert("댓글 작성 권한이 없습니다.");
-    if (!input.value.trim()) return alert("내용을 입력하세요.");
-
-    const commentMsg = input.value.trim();
-
-    db.ref("freeboard/" + postId + "/comments").push({
-        uid: user.uid,
-        author: currentUserName,
-        content: commentMsg,
-        createdAt: Date.now()
-    }).then(() => {
-        if (currentPostAuthorUid && currentPostAuthorUid !== user.uid) {
-            sendNotificationEmail(commentMsg);
-        }
-        input.value = "";
-    }).catch(err => alert("댓글 등록 실패: " + err.message));
-}
-
-async function sendNotificationEmail(msg) {
+// 상세조회 바인딩 및 다운로드 링크 세팅
+async function loadPostDetail() {
+    if (!postId) return alert("비정상적인 접근 경로입니다.");
     try {
-        const snap = await db.ref("users/" + currentPostAuthorUid).once("value");
-        const authorData = snap.val();
-        if (!authorData || !authorData.email) return;
+        const res = await fetch(`${API_BASE_URL}/api/freeboard/${postId}`, {
+            method: "GET",
+            headers: { "ngrok-skip-browser-warning": "69420" }
+        });
+        if (!res.ok) throw new Error();
+        const post = await res.json();
 
-        const formData = new URLSearchParams();
-        formData.append("email", authorData.email);
-        formData.append("name", authorData.name || "회원");
-        formData.append("postTitle", currentPostTitle);
-        formData.append("commentAuthor", currentUserName);
-        formData.append("commentContent", msg);
-        formData.append("postUrl", window.location.href);
+        postAuthorUid = post.uid;
 
-        fetch(GAS_URL, {
-            method: "POST",
-            body: formData,
-            headers: { "Content-Type": "application/x-www-form-urlencoded" }
-        })
-        .then(res => res.text())
-        .then(result => console.log("알림 발송 상태:", result))
-        .catch(err => console.error("GAS 발송 오류:", err));
+        document.getElementById("vTitle").innerText = post.title || "제목 없음";
+        document.getElementById("vMeta").innerText = `작성자: ${post.author || '익명'} | 날짜: ${post.date || ''}`;
+        document.getElementById("vContent").innerText = post.content || "";
 
-    } catch (e) {
-        console.error("알림 프로세스 중 오류:", e);
+        // 링크 처리
+        const linkEl = document.getElementById("vLink");
+        if (post.link) {
+            linkEl.innerHTML = `<a href="${post.link}" target="_blank" style="color:#7fc7ff; text-decoration:underline;">첨부 링크 바로가기 🔗</a>`;
+            linkEl.classList.remove("hidden");
+        } else {
+            linkEl.classList.add("hidden");
+        }
+
+        // 자체 업로드 파일 및 다운로드 주소 처리
+        const fileContainer = document.getElementById("vFileContainer");
+        const fileBtn = document.getElementById("vFileDownloadBtn");
+        if (post.file_path && fileContainer && fileBtn) {
+            fileBtn.href = `${API_BASE_URL}/api/download?path=${encodeURIComponent(post.file_path)}`;
+            fileBtn.innerText = `[ ${post.file_name || '파일 다운로드'} ]`;
+            fileContainer.classList.remove("hidden");
+        } else if (fileContainer) {
+            fileContainer.classList.add("hidden");
+        }
+
+        // 보안 규칙 기준 권한 활성화 (원작자 혹은 관리자 본문 삭제)
+        if (currentUser && (currentUser.uid === post.uid || currentUserRole === 'admin')) {
+            document.getElementById("postDeleteBtn")?.classList.remove("hidden");
+        }
+
+        renderComments(post.comments);
+    } catch (err) {
+        alert("데이터 수신 오류가 발생했습니다.");
     }
 }
 
-function deleteComment(id) { if(confirm("댓글을 삭제하시겠습니까?")) db.ref("freeboard/"+postId+"/comments/"+id).remove(); }
-function deletePost() { if(confirm("게시글을 삭제하시겠습니까?")) db.ref("freeboard/"+postId).remove().then(() => location.href='board.html'); }
+// 댓글 컴포넌트 렌더링
+function renderComments(comments) {
+    const box = document.getElementById("commentBox");
+    if (!box) return;
+    box.innerHTML = "";
+    if (!comments) return;
+
+    Object.keys(comments).forEach(cKey => {
+        const c = comments[cKey];
+        const item = document.createElement("div");
+        item.className = "comment-item";
+        item.style.borderBottom = "1px solid #1b2f80";
+        item.style.padding = "10px 0";
+
+        // 파이어베이스 보안 가이드라인 일치화 (댓글작성자, 원글작성자, 어드민 삭제 승인)
+        const isCommentAuthor = currentUser && currentUser.uid === c.uid;
+        const isPostAuthor = currentUser && currentUser.uid === postAuthorUid;
+        const isAdmin = currentUserRole === 'admin';
+        const canDelete = isCommentAuthor || isPostAuthor || isAdmin;
+
+        item.innerHTML = `
+            <div style="font-size:12px; color:#7fc7ff;">${c.author} (${c.date || ''})</div>
+            <div style="margin:5px 0; font-size:14px;">${c.text}</div>
+            ${canDelete ? `<button onclick="deleteComment('${cKey}')" style="background:none; border:none; color:#ff4d4d; font-size:11px; cursor:pointer; padding:0;">[삭제]</button>` : ""}
+        `;
+        box.appendChild(item);
+    });
+}
+
+// 자체 서버 댓글 등록 연동
+async function addComment() {
+    if (!currentUser) return alert("로그인 후 작성 가능합니다.");
+    const input = document.getElementById("cInput");
+    const text = input.value.trim();
+    if (!text) return alert("내용을 채워주세요.");
+
+    try {
+        const commentData = {
+            text: text,
+            author: currentUserName,
+            uid: currentUser.uid,
+            date: new Date().toLocaleDateString('ko-KR')
+        };
+
+        const res = await fetch(`${API_BASE_URL}/api/freeboard/${postId}/comment`, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "ngrok-skip-browser-warning": "69420"
+            },
+            body: JSON.stringify(commentData)
+        });
+
+        if (!res.ok) throw new Error();
+        input.value = "";
+        loadPostDetail();
+    } catch (err) {
+        alert("댓글 작성 실패");
+    }
+}
+
+// 자체 서버 본문 제거 연동
+async function deletePost() {
+    if (!confirm("정말로 이 글을 삭제하시겠습니까?")) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/freeboard/${postId}`, {
+            method: "DELETE",
+            headers: { "ngrok-skip-browser-warning": "69420" }
+        });
+        if (!res.ok) throw new Error();
+        alert("삭제 완료되었습니다.");
+        location.href = "board.html";
+    } catch (err) {
+        alert("삭제 권한이 없거나 처리에 실패했습니다.");
+    }
+}
+
+// 자체 서버 댓글 삭제 연동
+async function deleteComment(cKey) {
+    if (!confirm("댓글을 제거하시겠습니까?")) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/freeboard/${postId}/comment/${cKey}`, {
+            method: "DELETE",
+            headers: { "ngrok-skip-browser-warning": "69420" }
+        });
+        if (!res.ok) throw new Error();
+        loadPostDetail();
+    } catch (err) {
+        alert("삭제 처리에 실패했습니다.");
+    }
+}
+
 function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
-function escapeHtml(t) { const d = document.createElement('div'); d.innerText = t; return d.innerHTML; }
 </script>
 </body>
 </html>
