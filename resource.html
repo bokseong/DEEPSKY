@@ -203,7 +203,6 @@ nav .nav-inner {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
-// 1. Firebase 설정
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -214,177 +213,102 @@ const firebaseConfig = {
     appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
 };
 
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
-// 세션 유지 및 App Check 활성화
-auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
-const appCheck = firebase.appCheck();
-appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
+const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
+const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-let allResources = []; 
-let currentUserData = null;
+let currentUser = null;
+let currentUserName = "익명";
+let currentUserRole = "guest";
 
-// 2. 로그인 상태 감지 및 UI 제어 (DB 권한 기준)
-auth.onAuthStateChanged(async (user) => {
+auth.onAuthStateChanged((user) => {
+    currentUser = user;
     const status = document.getElementById("userStatus");
-    const loginBtn = document.getElementById("loginBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const adminUpload = document.getElementById("adminUpload");
-    const mainContent = document.getElementById("mainContent");
-
     if (user) {
-        // DB에서 실시간으로 유저 등급(role) 확인
         db.ref('users/' + user.uid).on('value', (snapshot) => {
-            currentUserData = snapshot.val() || {};
-            const name = currentUserData.name || user.displayName || user.email.split('@')[0];
+            const userData = snapshot.val() || {};
+            currentUserName = userData.name || user.displayName || user.email.split('@')[0];
+            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+            if (status) status.innerText = `${currentUserName}님 (${currentUserRole})`;
             
-            // 등급 정의
-            const isAdmin = (currentUserData.role === 'admin');
-            const isStudent = (currentUserData.role === 'student');
-
-            // [권한 로직 1] 부원(student)이나 관리자(admin)가 아니면 block.html로 강제 이동
-            if (!isAdmin && !isStudent) {
-                location.href = 'block.html';
-                return;
-            }
-
-            // 상단 바 UI 처리
-            let roleName = isAdmin ? "관리자" : "동아리 부원";
-            if (status) status.innerText = `${name}님 (${roleName})`;
-            loginBtn.classList.add("hidden");
-            logoutBtn.classList.remove("hidden");
-
-            // [권한 로직 2] 페이지 콘텐츠 보여주기
-            mainContent.classList.remove("hidden");
-            
-            // [권한 로직 3] 관리자 등급일 때만 업로드 박스 노출
-            if (isAdmin) {
-                adminUpload.classList.remove("hidden");
+            // 학생 등급 이상만 열람 가능
+            if(currentUserRole === 'admin' || currentUserRole === 'student') {
+                loadResources();
+                // 관리자만 업로드 폼 노출 (UI에 id="uploadForm"이 있다고 가정)
+                if (currentUserRole === 'admin') document.getElementById("uploadForm")?.classList.remove("hidden");
             } else {
-                adminUpload.classList.add("hidden");
+                document.getElementById("resourceList").innerHTML = "<p style='text-align:center;'>자료실 열람 권한이 없습니다 (student 이상).</p>";
             }
-            
-            loadResources(isAdmin); 
         });
-
-        try { await appCheck.getToken(false); } catch (e) {}
-        
     } else {
-        // [권한 로직 4] 비로그인 상태면 login.html로 강제 이동
-        alert("로그인이 필요한 서비스입니다.");
-        location.href = 'login.html';
+        location.href = "index.html";
     }
 });
 
-function loadResources(isAdmin) {
-    db.ref("resources").orderByChild('createdAt').on("value", snapshot => {
-        const data = snapshot.val();
-        allResources = []; 
-        if(data) {
-            Object.keys(data).forEach(key => {
-                allResources.push({ id: key, ...data[key] });
-            });
-            allResources.reverse(); 
-        }
-        renderResources(allResources, isAdmin);
-    });
-}
-
-function renderResources(items, isAdmin) {
-    const list = document.getElementById("resourceList");
-    list.innerHTML = "";
-    
-    if(items.length === 0) {
-        list.innerHTML = "<p style='grid-column: 1/-1; text-align: center; color: #888; padding: 60px 0;'>등록된 자료가 없습니다.</p>";
-        return;
-    }
-
-    items.forEach(item => {
-        const div = document.createElement("div");
-        div.className = "resource-item";
+async function loadResources() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/resources`, {
+            headers: { "ngrok-skip-browser-warning": "69420" }
+        });
+        const data = await res.json();
+        const list = document.getElementById("resourceList");
+        list.innerHTML = "";
         
-        // 관리자 권한이 있을 때만 삭제 버튼 생성
-        const delBtn = isAdmin ? `<button class="btn-delete" onclick="deleteRes('${item.id}')">삭제하기</button>` : "";
-
-        div.innerHTML = `
-            <div>
-                <div class="file-name">📁 ${item.title}</div>
-                <div class="file-desc">${item.desc || '설명 없음'}</div>
-            </div>
-            <div>
-                <a href="${item.link}" target="_blank" class="btn-download">자료 보기</a>
-                ${delBtn}
-            </div>
-        `;
-        list.appendChild(div);
-    });
-}
-
-async function uploadResource() {
-    // 실행 시 한 번 더 관리자 권한 확인
-    if (!currentUserData || currentUserData.role !== 'admin') {
-        alert("관리자 권한이 필요합니다.");
-        return;
-    }
-
-    const title = document.getElementById("fileTitle").value.trim();
-    const desc = document.getElementById("fileDesc").value.trim();
-    let link = document.getElementById("fileLink").value.trim();
-    
-    if(!title || !link) return alert("제목과 링크를 입력해주세요.");
-    if(!link.startsWith('http')) link = 'https://' + link;
-    
-    try {
-        await appCheck.getToken(true);
-        await db.ref("resources").push({ 
-            title, 
-            desc, 
-            link, 
-            createdAt: firebase.database.ServerValue.TIMESTAMP 
+        Object.keys(data).reverse().forEach(key => {
+            const item = data[key];
+            const div = document.createElement("div");
+            div.className = "resource-item"; // 기존 디자인 클래스 유지
+            div.innerHTML = `
+                <div style="margin-bottom:10px;"><strong>${item.title}</strong> (${item.date})</div>
+                <div style="font-size:14px; color:#ddd;">${item.content}</div>
+                <div style="margin-top:10px;">
+                    ${item.file_path ? `<a href="${API_BASE_URL}/api/download?path=${encodeURIComponent(item.file_path)}" target="_blank" style="color:#7fc7ff;">[첨부파일 다운로드]</a>` : ""}
+                    ${currentUserRole === 'admin' ? `<button onclick="deleteResource('${key}')" style="margin-left:10px; color:red; background:none; border:none; cursor:pointer;">[삭제]</button>` : ""}
+                </div>
+                <hr style="border-top:1px solid #1b2f80; margin-top:15px;">
+            `;
+            list.appendChild(div);
         });
-        alert("자료가 성공적으로 등록되었습니다.");
-        document.getElementById("fileTitle").value = "";
-        document.getElementById("fileDesc").value = "";
-        document.getElementById("fileLink").value = "";
     } catch (err) {
-        alert("업로드 실패: 권한이 없거나 오류가 발생했습니다.");
+        console.error("자료 로드 실패:", err);
     }
 }
 
-async function deleteRes(key) {
-    if(!confirm("정말 이 자료를 삭제하시겠습니까?")) return;
-    if (!currentUserData || currentUserData.role !== 'admin') return alert("권한이 없습니다.");
+// 파일과 데이터를 자체 서버로 업로드 (multipart/form-data)
+async function uploadResource() {
+    if (currentUserRole !== 'admin') return alert("관리자만 업로드할 수 있습니다.");
     
+    const title = document.getElementById("rTitle").value;
+    const content = document.getElementById("rContent").value;
+    const fileInput = document.getElementById("rFile");
+
+    if (!title) return alert("제목을 입력하세요.");
+
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("content", content);
+    formData.append("author", currentUserName);
+    formData.append("date", new Date().toLocaleDateString('ko-KR'));
+    if (fileInput.files.length > 0) formData.append("file", fileInput.files[0]);
+
     try {
-        await appCheck.getToken(true);
-        await db.ref("resources/" + key).remove();
-        alert("삭제되었습니다.");
-    } catch (e) {
-        alert("삭제 실패");
-    }
-}
-
-function filterResources() {
-    const searchInput = document.getElementById("searchInput");
-    if (!searchInput) return;
-    const keyword = searchInput.value.toLowerCase();
-    const isAdmin = currentUserData && currentUserData.role === 'admin';
-    const filtered = allResources.filter(item => {
-        const title = (item.title || "").toLowerCase();
-        const desc = (item.desc || "").toLowerCase();
-        return title.includes(keyword) || desc.includes(keyword);
-    });
-    renderResources(filtered, isAdmin);
-}
-
-function logout() { 
-    if(confirm("로그아웃 하시겠습니까?")) {
-        auth.signOut().then(() => {
-            location.href = 'index.html';
+        await fetch(`${API_BASE_URL}/api/resources`, {
+            method: "POST",
+            headers: { "ngrok-skip-browser-warning": "69420" },
+            body: formData
         });
-    }
+        alert("등록 완료");
+        loadResources();
+    } catch (err) { alert("업로드 에러"); }
+}
+
+async function deleteResource(id) {
+    if(!confirm("삭제하시겠습니까?")) return;
+    await fetch(`${API_BASE_URL}/api/resources/${id}`, { method: "DELETE", headers: { "ngrok-skip-browser-warning": "69420" } });
+    loadResources();
 }
 </script>
 </body>
