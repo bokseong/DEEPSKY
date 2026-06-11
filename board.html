@@ -173,6 +173,7 @@ nav .nav-inner {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
+// 1. 파이어베이스 초기화 및 기본 설정
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -186,155 +187,102 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
-const appCheck = firebase.appCheck();
-appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
+const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
+
 let currentUser = null;
 let currentUserRole = "guest";
-
-// 페이지네이션 설정
+let allPosts = [];
 let currentPage = 1;
 const postsPerPage = 10;
-let allPosts = []; // 필터링된 모든 게시글을 담을 배열
 
+// 인증 상태 감시 및 회원 정보 등급 동기화
 auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     const status = document.getElementById("userStatus");
-    const loginBtn = document.getElementById("loginBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const topWriteBtn = document.getElementById("topWriteBtn");
-
     if (user) {
         db.ref('users/' + user.uid).on('value', (snapshot) => {
             const userData = snapshot.val() || {};
-            const finalName = userData.name || user.email.split('@')[0];
-            
-            // 1. 등급 판정
+            const currentUserName = userData.name || user.displayName || user.email.split('@')[0];
             currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
-            
-            if(status) status.innerText = `${finalName}님 (${getRoleName(currentUserRole)})`;
-
-            // 2. 글쓰기 권한 제어: 관리자(admin) 또는 동아리 부원(student)만 글쓰기 버튼 표시
-            if (currentUserRole === 'admin' || currentUserRole === 'student') {
-                topWriteBtn?.classList.remove("hidden");
-            } else {
-                // 일반 회원(member)은 글쓰기 버튼 숨김
-                topWriteBtn?.classList.add("hidden");
-            }
+            if (status) status.innerText = `${currentUserName}님 (${currentUserRole==='admin'?'관리자':(currentUserRole==='student'?'부원':'일반')})`;
+            renderPage();
         });
-        loginBtn?.classList.add("hidden");
-        logoutBtn?.classList.remove("hidden");
+        document.getElementById("loginBtn")?.classList.add("hidden");
+        document.getElementById("logoutBtn")?.classList.remove("hidden");
     } else {
-        // 3. 비로그인(guest) 처리
         currentUserRole = "guest";
-        if(status) status.innerText = "로그인 해주세요";
-        loginBtn?.classList.remove("hidden");
-        logoutBtn?.classList.add("hidden");
-        
-        // 비로그인은 글쓰기 버튼 숨김
-        topWriteBtn?.classList.add("hidden");
+        if (status) status.innerText = "로그인 해주세요";
+        document.getElementById("loginBtn")?.classList.remove("hidden");
+        document.getElementById("logoutBtn")?.classList.add("hidden");
+        renderPage();
     }
-    loadPosts();
+    loadBoardPosts();
 });
 
-function getRoleName(role) {
-    switch(role) {
-        case 'admin': return '관리자';
-        case 'student': return '동아리 부원';
-        default: return '일반 회원';
+// 자체 서버 DB 연동 데이터 리스트 수신
+async function loadBoardPosts() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/freeboard`, {
+            method: "GET",
+            headers: { "ngrok-skip-browser-warning": "69420" }
+        });
+        if (!res.ok) throw new Error("서버 응답 오류");
+        const data = await res.json();
+        
+        // 데이터 정렬 처리 (최신 타임스탬프 순)
+        allPosts = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+        allPosts.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        
+        renderPage();
+    } catch (err) {
+        console.error("게시판 로드 실패:", err);
+        const list = document.getElementById("boardList");
+        if (list) list.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#ff4d4d;">서버 연결에 실패했습니다.</td></tr>`;
     }
 }
 
-function formatDate(timestamp) {
-    if (!timestamp) return "시간 정보 없음";
-    const date = new Date(timestamp);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-}
-
-async function loadPosts() {
-    const list = document.getElementById("postList");
-    const keyword = document.getElementById("searchInput")?.value.toLowerCase().trim() || "";
-
-    db.ref("freeboard").off(); // 중복 리스너 방지
-    db.ref("freeboard").on("value", (snapshot) => {
-        const data = snapshot.val();
-        if(!data) {
-            list.innerHTML = "<p style='text-align:center; padding:40px; color:#888;'>등록된 글이 없습니다.</p>";
-            document.getElementById("pagination").innerHTML = "";
-            return;
-        }
-
-        // 1. 전체 게시글을 배열로 변환 및 정렬
-        const keys = Object.keys(data).sort((a, b) => {
-            const timeA = data[a].createdAt || data[a].updatedAt || 0;
-            const timeB = data[b].createdAt || data[b].updatedAt || 0;
-            return timeB - timeA;
-        });
-
-        // 2. 검색 필터링
-        allPosts = keys.map(key => ({ id: key, ...data[key] })).filter(p => {
-            const authorName = p.author || "익명";
-            return p.title.toLowerCase().includes(keyword) || authorName.toLowerCase().includes(keyword);
-        });
-
-        renderPage();
-    });
-}
-
+// 테이블 렌더링 함수
 function renderPage() {
-    const list = document.getElementById("postList");
-    const paginArea = document.getElementById("pagination");
+    const list = document.getElementById("boardList");
+    if (!list) return;
     list.innerHTML = "";
-    
-    if (allPosts.length === 0) {
-        list.innerHTML = "<p style='text-align:center; padding:40px; color:#888;'>검색 결과가 없습니다.</p>";
-        paginArea.innerHTML = "";
+
+    const startIndex = (currentPage - 1) * postsPerPage;
+    const endIndex = startIndex + postsPerPage;
+    const paginatedPosts = allPosts.slice(startIndex, endIndex);
+
+    if (paginatedPosts.length === 0) {
+        list.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888;">등록된 게시글이 없습니다.</td></tr>`;
         return;
     }
 
-    // 3. 페이지 슬라이싱 (10개씩)
-    const startIndex = (currentPage - 1) * postsPerPage;
-    const endIndex = startIndex + postsPerPage;
-    const pagePosts = allPosts.slice(startIndex, endIndex);
+    paginatedPosts.forEach((p, idx) => {
+        const row = document.createElement("tr");
+        row.style.cursor = "pointer";
+        row.onclick = () => location.href = `view.html?id=${p.id}`;
 
-    // 4. 화면 출력
-    pagePosts.forEach(p => {
-        const item = document.createElement("div");
-        item.className = "post-item";
-        
-        const displayTime = p.createdAt || p.updatedAt || 0;
-        const authorName = p.author || "익명";
+        // 첨부파일 또는 링크가 존재할 때 클립 표시 적용
+        const fileIcon = (p.file_path || p.link) ? " 📎" : "";
 
-        let html = `
-            <div class="post-info-area" onclick="location.href='view.html?id=${p.id}'">
-                <div>
-                    <div class="post-title">${p.title}</div>
-                    <div class="post-meta">${authorName} | ${formatDate(displayTime)}</div>
-                </div>
-            </div>
+        row.innerHTML = `
+            <td>${allPosts.length - (startIndex + idx)}</td>
+            <td style="text-align:left;">${p.title || '제목 없음'}${fileIcon}</td>
+            <td>${p.author || '익명'}</td>
+            <td>${p.date || ''}</td>
         `;
-        item.innerHTML = html;
-
-        // 삭제 권한 확인
-        if(currentUser && (currentUser.uid === p.uid || currentUserRole === 'admin')) {
-            const delBtn = document.createElement("button");
-            delBtn.className = "del-btn";
-            delBtn.innerText = "삭제";
-            delBtn.onclick = (e) => deletePost(e, p.id);
-            item.appendChild(delBtn);
-        }
-        list.appendChild(item);
+        list.appendChild(row);
     });
 
-    // 5. 페이지네이션 버튼 생성
     renderPagination();
 }
 
+// 페이지네이션 제어
 function renderPagination() {
     const paginArea = document.getElementById("pagination");
+    if (!paginArea) return;
     paginArea.innerHTML = "";
-    
     const totalPages = Math.ceil(allPosts.length / postsPerPage);
     if (totalPages <= 1) return;
 
@@ -345,37 +293,38 @@ function renderPagination() {
         btn.onclick = () => {
             currentPage = i;
             renderPage();
-            window.scrollTo(0, 0); // 페이지 이동 시 상단으로 이동
+            window.scrollTo(0, 0);
         };
         paginArea.appendChild(btn);
     }
 }
 
-async function deletePost(e, key) {
-    e.stopPropagation();
-    if(confirm("정말로 이 글을 삭제하시겠습니까?")) {
-        try {
-            await appCheck.getToken(false);
-            await db.ref("freeboard/" + key).remove();
-            alert("성공적으로 삭제되었습니다.");
-        } catch (err) {
-            alert("삭제 실패: 권한이 없거나 네트워크 오류입니다.");
-        }
+// 글쓰기 권한 검사
+function checkWriteAuth() {
+    if (!currentUser) {
+        alert("로그인이 필요합니다.");
+        return;
     }
+    location.href = "write.html";
 }
 
-document.getElementById("searchInput")?.addEventListener("keyup", (e) => {
-    if (e.key === "Enter") {
-        currentPage = 1;
-        loadPosts();
+// 검색 필터링
+function filterPosts() {
+    const term = document.getElementById("boardSearch").value.toLowerCase();
+    if (!term) {
+        loadBoardPosts();
+        return;
     }
-});
-
-function logout() { 
-    if(confirm("로그아웃 하시겠습니까?")) {
-        auth.signOut().then(() => { location.reload(); });
-    }
+    const filtered = allPosts.filter(p => 
+        (p.title && p.title.toLowerCase().includes(term)) || 
+        (p.author && p.author.toLowerCase().includes(term))
+    );
+    allPosts = filtered;
+    currentPage = 1;
+    renderPage();
 }
+
+function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
 </script>
 </body>
 </html>
