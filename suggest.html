@@ -211,7 +211,6 @@ nav a:hover {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
-// 1. Firebase 초기화
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -221,221 +220,86 @@ const firebaseConfig = {
     messagingSenderId: "800777151311",
     appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
 };
-
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
-
-// 2. App Check 활성화
-const appCheck = firebase.appCheck();
-appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
-
+const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
-// 건의사항 등록용 GAS URL (글로벌 선언)
-const GAS_URL = "https://script.google.com/macros/s/AKfycbzdgX0gHpjHUCv3L2t3LLOnt4t6x31-t4Nd_D6ubqrqIT-mU8Nmlxgue6j3zl-tTJOa/exec"; 
 
 let currentUser = null;
-let currentRole = 'guest';
-let currentUserName = '';
+let currentUserRole = "guest";
 
-// 3. 인증 감시
-auth.onAuthStateChanged(async (user) => {
-    const status = document.getElementById("userStatus");
-
+auth.onAuthStateChanged((user) => {
     if (user) {
         currentUser = user;
-        db.ref('users/' + user.uid).on('value', snapshot => {
-            const data = snapshot.val() || {};
-            currentUserName = data.name || user.displayName || user.email.split('@')[0];
-            currentRole = (user.email === ADMIN_EMAIL) ? 'admin' : (data.role || 'member');
+        db.ref('users/' + user.uid).on('value', (snapshot) => {
+            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (snapshot.val()?.role || 'member');
             
-            // 상단 바 정보 업데이트
-            if (status) status.innerText = `${currentUserName}님 (${getRoleName(currentRole)})`;
-            document.getElementById("loginBtn").classList.add("hidden");
-            document.getElementById("logoutBtn").classList.remove("hidden");
-
-            // 권한 체크 로직
-            if (currentRole === 'admin' || currentRole === 'student') {
-                // 권한 있음: 메인 콘텐츠 표시 및 데이터 로드
-                document.getElementById("lockMessage").classList.add("hidden");
-                document.getElementById("mainContent").classList.remove("hidden");
+            // 열람은 학생 이상만 가능
+            if(currentUserRole === 'admin' || currentUserRole === 'student') {
                 loadSuggestions();
             } else {
-                // 권한 없음 (member 등): 등급 조정 요청 페이지(block.html)로 즉시 이동
-                location.href = 'block.html';
+                document.getElementById("suggestList").innerHTML = "<p>건의함 내용은 동아리원 이상 열람 가능합니다. 작성만 가능합니다.</p>";
             }
         });
     } else {
-        // 비로그인: 로그인 페이지(login.html)로 즉시 이동
-        location.href = 'login.html';
+        location.href = "index.html";
     }
 });
 
-function getRoleName(role) {
-    if (role === 'admin') return '관리자';
-    if (role === 'student') return '동아리 부원';
-    if (role === 'member') return '일반 회원';
-    return 'GUEST';
-}
-
-// 4. 건의사항 등록
-async function addSuggestion() {
-    const text = document.getElementById("sInput").value.trim();
-    const isAnon = document.getElementById("sAnon").checked;
-    if(!text) return alert("내용을 입력하세요.");
-
+async function loadSuggestions() {
     try {
-        await appCheck.getToken(false);
-        const dateStr = new Date().toLocaleString(); // 날짜와 시간 포함
-        
-        // Firebase 저장
-        await db.ref("suggestions").push({
-            text: text,
-            author: isAnon ? "익명" : currentUserName,
-            date: dateStr,
-            status: "waiting",
-            createdAt: firebase.database.ServerValue.TIMESTAMP
-        });
-
-        // 관리자 알림 메일 발송 (GAS 호출)
-        if(GAS_URL) {
-            const formData = new URLSearchParams();
-            formData.append("type", "new_suggestion");
-            formData.append("senderName", currentUserName); // 실제 이름 (GAS에서 익명 여부에 따라 처리)
-            formData.append("content", text);
-            formData.append("isAnonymous", isAnon ? "true" : "false");
-            formData.append("date", dateStr);
-
-            fetch(GAS_URL, {
-                method: 'POST',
-                mode: 'no-cors', // CORS 문제 방지
-                body: formData
-            });
-        }
-
-        document.getElementById("sInput").value = "";
-        document.getElementById("sAnon").checked = false; // 체크박스 초기화
-        alert("건의사항이 접수되었습니다.");
-    } catch(e) { 
-        console.error(e);
-        alert("제출 중 오류가 발생했습니다."); 
-    }
-}
-
-// 5. 건의 리스트 로드
-function loadSuggestions() {
-    db.ref("suggestions").on("value", snapshot => {
+        const res = await fetch(`${API_BASE_URL}/api/suggests`, { headers: { "ngrok-skip-browser-warning": "69420" } });
+        const data = await res.json();
         const list = document.getElementById("suggestList");
         list.innerHTML = "";
-        const data = snapshot.val();
-        if(!data) {
-            list.innerHTML = "<p style='text-align:center; color:#888;'>등록된 건의사항이 없습니다.</p>";
-            return;
-        }
-
-        const now = Date.now();
-        const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
-
+        
         Object.keys(data).reverse().forEach(key => {
             const s = data[key];
-            if (s.status === "done" && s.doneAt && (now - s.doneAt > SEVEN_DAYS)) return;
-
-            const statusInfo = {
-                waiting: { text: "검토 대기", class: "status-waiting" },
-                ing: { text: "검토 중", class: "status-ing" },
-                done: { text: "반영 완료", class: "status-done" }
-            };
-
-            const item = document.createElement("div");
-            item.className = "suggest-item";
-            item.innerHTML = `
-                <div class="suggest-meta">
-                    <span>${s.author} | ${s.date}</span>
-                    <span class="status-badge ${statusInfo[s.status].class}">${statusInfo[s.status].text}</span>
-                </div>
-                <div class="suggest-text">${s.text}</div>
-                ${currentRole === 'admin' ? `
-                    <div class="admin-controls">
-                        <button class="btn-status" style="background:#555" onclick="updateStatus('${key}', 'waiting')">대기</button>
-                        <button class="btn-status" style="background:#f39c12" onclick="updateStatus('${key}', 'ing')">진행</button>
-                        <button class="btn-status" style="background:#27ae60" onclick="updateStatus('${key}', 'done')">완료</button>
-                    </div>
-                ` : ""}
+            const div = document.createElement("div");
+            div.className = "suggest-item";
+            div.innerHTML = `
+                <div><strong>${s.title}</strong> - ${s.author}</div>
+                <div style="margin-top:5px;">${s.content}</div>
+                ${currentUserRole === 'admin' ? `<button onclick="deleteSuggest('${key}')" style="color:red; margin-top:5px;">삭제</button>` : ""}
+                <hr>
             `;
-            list.appendChild(item);
+            list.appendChild(div);
         });
-    });
+    } catch (err) {}
 }
 
-// 6. 상태 업데이트
-async function updateStatus(key, newStatus) {
+async function submitSuggest() {
+    const title = document.getElementById("sTitle").value;
+    const content = document.getElementById("sContent").value;
+    if(!title || !content) return alert("내용을 입력하세요.");
+
     try {
-        await appCheck.getToken(false);
-        const updates = { status: newStatus };
-        if (newStatus === "done") updates.doneAt = Date.now();
-        await db.ref(`suggestions/${key}`).update(updates);
-    } catch(e) { alert("권한이 없습니다."); }
+        await fetch(`${API_BASE_URL}/api/suggests`, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "ngrok-skip-browser-warning": "69420"
+            },
+            body: JSON.stringify({
+                title: title, content: content, 
+                author: currentUser.email.split('@')[0],
+                uid: currentUser.uid, date: new Date().toLocaleDateString()
+            })
+        });
+        alert("건의가 접수되었습니다!");
+        if(currentUserRole === 'admin' || currentUserRole === 'student') loadSuggestions();
+    } catch (err) { alert("접수 에러"); }
 }
 
-// 7. 등급 조정 요청 (에러 핸들링 및 전용 GAS URL 적용)
-async function submitRoleRequest() {
-    const roleSelect = document.getElementById("requestedRole");
-    const role = roleSelect.value;
-    const requestedRoleName = roleSelect.options[roleSelect.selectedIndex].text;
-    const reason = document.getElementById("requestReason").value.trim();
-    
-    if(!currentUser) return alert("로그인 후 이용 가능합니다.");
-    if(!reason) return alert("사유를 입력해주세요.");
-    
-    try {
-        await appCheck.getToken(false);
-        
-        // Firebase 저장
-        await db.ref("roleRequests/" + currentUser.uid).set({
-            email: currentUser.email,
-            name: currentUserName,
-            requestedRole: role,
-            reason: reason,
-            status: "pending",
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-        });
-
-        // 관리자 등급 조정 요청용 전용 GAS URL (manage.html, mypage.html과 동일)
-        const ROLE_GAS_URL = "https://script.google.com/macros/s/AKfycbzT5zTtKk0tleprYklvV4jwbUq5pGTwHKz4JyF-GKGfj2BjulwJR5WJQqB0eoIZ8cxu/exec";
-        
-        const combinedMessage = `[희망 등급]: ${requestedRoleName}\n[조정 사유]: ${reason}`;
-
-        const formData = new URLSearchParams();
-        formData.append("email", currentUser.email);
-        formData.append("name", currentUserName);
-        formData.append("message", combinedMessage);
-
-        try {
-            const response = await fetch(ROLE_GAS_URL, {
-                method: 'POST',
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: formData
-            });
-            
-            const result = await response.text();
-            if (result === "success") {
-                console.log("등급 요청 메일 전송 성공");
-            } else {
-                console.error("등급 요청 메일 전송 실패 응답:", result);
-            }
-        } catch (error) {
-            console.error("Mail fetch error:", error);
-        }
-
-        alert("등급 조정 요청과 알림 메일이 성공적으로 전송되었습니다.");
-        document.getElementById("requestReason").value = "";
-    } catch(e) { 
-        console.error("Firebase error:", e);
-        alert("전송 중 오류가 발생했습니다."); 
+async function deleteSuggest(id) {
+    if(confirm("삭제하시겠습니까?")) {
+        await fetch(`${API_BASE_URL}/api/suggests/${id}`, { method: "DELETE", headers: { "ngrok-skip-browser-warning": "69420" } });
+        loadSuggestions();
     }
 }
 
-function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
+    function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
 </script>
 </body>
 </html>
