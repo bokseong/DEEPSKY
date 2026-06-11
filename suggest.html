@@ -247,28 +247,35 @@ auth.onAuthStateChanged((user) => {
     }
 });
 
-async function loadSuggestions() {
-    try {
-        const res = await fetch(`${API_BASE_URL}/api/suggests`, { headers: { "ngrok-skip-browser-warning": "69420" } });
-        const data = await res.json();
-        const list = document.getElementById("suggestList");
-        list.innerHTML = "";
-        
-        Object.keys(data).reverse().forEach(key => {
-            const s = data[key];
-            const div = document.createElement("div");
-            div.className = "suggest-item";
-            div.innerHTML = `
-                <div><strong>${s.title}</strong> - ${s.author}</div>
-                <div style="margin-top:5px;">${s.content}</div>
-                ${currentUserRole === 'admin' ? `<button onclick="deleteSuggest('${key}')" style="color:red; margin-top:5px;">삭제</button>` : ""}
-                <hr>
-            `;
-            list.appendChild(div);
-        });
-    } catch (err) {}
-}
+async function addSuggestion() {
+const content = document.getElementById("sInput").value.trim();
+if(!content) return alert("건의 내용을 입력하세요.");
 
+     const isAnon = document.getElementById("sAnon")?.checked;
+     const authorName = isAnon ? "익명" : currentUserName;
+
+     try {
+         await fetch(`${API_BASE_URL}/api/suggests`, {
+             method: "POST",
+             headers: { 
+                 "Content-Type": "application/json",
+                 "ngrok-skip-browser-warning": "69420"
+             },
+             body: JSON.stringify({
+                 title: "건의사항", // HTML에 제목 칸이 없으므로 기본값 지정
+                 content: content, 
+                 author: authorName,
+                 uid: currentUser.uid, 
+                 date: new Date().toLocaleDateString()
+             })
+         });
+         alert("건의가 성공적으로 접수되었습니다!");
+         document.getElementById("sInput").value = "";
+         if(document.getElementById("sAnon")) document.getElementById("sAnon").checked = false;
+
+         if(currentUserRole === 'admin' || currentUserRole === 'student') loadSuggestions();
+     } catch (err) { alert("접수 중 에러가 발생했습니다."); }
+ }
 async function submitSuggest() {
     const title = document.getElementById("sTitle").value;
     const content = document.getElementById("sContent").value;
