@@ -46,13 +46,48 @@ nav .nav-inner {
 }
         nav a { display: inline-block; color: white; padding: 12px 18px; text-decoration: none; font-weight: bold; font-size: 15px; transition: 0.2s;border-radius: 8px; }
         nav a:hover { background: rgba(127, 199, 255, 0.1); color: #7fc7ff; }
-        /* 업데이트 로그 게시판 */
-        .log-item { border-bottom: 1px solid #2d367a; padding: 10px 0; }
-        .log-item:last-child { border-bottom: none; }
-        .log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        .log-version { color: #7fc7ff; font-weight: bold; font-size: 0.9rem; }
-        .log-date { color: #888; font-size: 0.8rem; }
-        .log-text { color: #ccc; line-height: 1.4; white-space: pre-wrap; }
+        /* 업데이트 로그 개별 박스 디자인 스타일 */
+.log-box {
+    background: rgba(27, 47, 128, 0.25);
+    border: 1px solid #1b2f80;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s, background 0.2s;
+}
+
+.log-box:hover {
+    transform: translateY(-2px);
+    background: rgba(27, 47, 128, 0.4);
+}
+
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+}
+
+.log-version {
+    color: #4fc3f7;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+.log-date {
+    color: #888;
+    font-size: 12px;
+}
+
+.log-content {
+    font-size: 14px;
+    color: #e0e0e0;
+    line-height: 1.5;
+    white-space: pre-line; /* 줄바꿈 기호(\n)가 있으면 그대로 표현 */
+}
         /* 5. 메인 컨텐츠 & 카드 */
         .container { max-width: 1000px; margin: 35px auto; padding: 0 20px; }
         .card { background: #161b4a; padding: 25px; border-radius: 15px; border: 1px solid #2d367a; margin-bottom: 25px; }
@@ -280,7 +315,9 @@ async function loadProgram() {
 async function loadUpdateLogs() {
     try {
         const response = await fetch(`${API_BASE_URL}/api/update-logs`, {
-            headers: { "ngrok-skip-browser-warning": "69420" }
+            headers: { 
+                "ngrok-skip-browser-warning": "69420" // ngrok 경고창 우회 헤더
+            }
         });
         if (!response.ok) throw new Error("로그 로드 실패");
         
@@ -290,25 +327,33 @@ async function loadUpdateLogs() {
         
         logList.innerHTML = "";
 
-        // 💡 1. 객체 형태{}의 데이터를 가공 가능한 배열[] 구조로 완벽 변환
+        // 1. 객체를 배열로 변환
         const logsArray = Object.keys(data).map(key => ({
             id: key,
             ...data[key]
         }));
 
-        // 💡 2. 변환된 배열을 날짜(date) 또는 버전 기준 최신순으로 정렬
+        // 2. 날짜 기준 최신순 정렬
         logsArray.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        // 💡 3. 화면에 렌더링
         if (logsArray.length === 0) {
-            logList.innerHTML = "<p style='color:#888;'>등록된 업데이트 기록이 없습니다.</p>";
+            logList.innerHTML = "<p style='color:#888; text-align:center;'>등록된 업데이트 기록이 없습니다.</p>";
             return;
         }
 
+        // 💡 3. 개별 박스(Card Box) 형태로 동적 HTML 생성 및 삽입
         logsArray.forEach(log => {
-            const li = document.createElement("li");
-            li.innerHTML = `<strong>v${log.version}</strong> (${log.date})<br>${log.content}`;
-            logList.appendChild(li);
+            const box = document.createElement("div");
+            box.className = "log-box"; // CSS 효과 적용
+            
+            box.innerHTML = `
+                <div class="log-header">
+                    <span class="log-version">v${log.version}</span>
+                    <span class="log-date">${log.date}</span>
+                </div>
+                <div class="log-content">${log.content}</div>
+            `;
+            logList.appendChild(box);
         });
 
     } catch (error) {
