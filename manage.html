@@ -128,6 +128,16 @@ nav .nav-inner {
                 <tbody id="userList"></tbody>
             </table>
         </div>
+        <div class="manage-section" style="margin-top: 40px; margin-bottom: 40px;">
+            <h2 style="color: #7fc7ff; border-bottom: 2px solid #1b2f80; padding-bottom: 10px;">등급 승인 요청 관리</h2>
+            <div id="roleRequestList" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
+        </div>
+    </div>
+
+    <div class="manage-section" style="margin-top: 40px; margin-bottom: 40px;">
+        <h2 style="color: #7fc7ff; border-bottom: 2px solid #1b2f80; padding-bottom: 10px;">자체 서버 건의함 내역 관리</h2>
+            <div id="suggestManagerList" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;"></div>
+        </div>
     </div>
 </div>
 
@@ -143,7 +153,7 @@ nav .nav-inner {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
-// 1. Firebase 설정
+// 1. 파이어베이스 초기화 및 기본 설정
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -157,116 +167,219 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
+
+const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-const appCheck = firebase.appCheck();
-appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
+let currentUser = null;
+let currentUserRole = "guest";
 
-// 2. 인증 및 리다이렉트 로직
-auth.onAuthStateChanged(async (user) => {
-    const status = document.getElementById("userStatus");
-    const loginBtn = document.getElementById("loginBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const msg = document.getElementById("authMsg");
-    const content = document.getElementById("adminContent");
-
+// 관리자 권한 검증 및 초기화 데이터 로드
+auth.onAuthStateChanged((user) => {
     if (user) {
-        // [로그인 상태]
-        loginBtn?.classList.add("hidden");
-        logoutBtn?.classList.remove("hidden");
-
-        // 유저 등급 실시간 확인
-        db.ref('users/' + user.uid).on('value', snapshot => {
-            const userData = snapshot.val() || {};
-            const finalName = userData.name || user.email.split('@')[0];
+        currentUser = user;
+        db.ref('users/' + user.uid).once('value').then(snap => {
+            const userData = snap.val() || {};
+            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
             
-            // 등급 판정
-            let userRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
-            
-            if(status) status.innerText = `${finalName}님 (${getRoleName(userRole)})`;
-
-            if (userRole === "admin") {
-                // 관리자면 페이지 보여주기
-                msg?.classList.add("hidden");
-                content?.classList.remove("hidden");
-                loadUserList(); 
+            // 보안 규칙 상 admin 권한이 아니면 강제 퇴장 처리
+            if (currentUserRole !== 'admin') {
+                alert("관리자 전용 페이지입니다.");
+                location.href = "index.html";
             } else {
-                // 권한 없으면 block.html로 이동
-                location.href = "block.html";
+                // 관리자 검증 완료 시 모든 데이터 로드
+                loadAllUsers();
+                loadRoleRequests();
+                loadServerSuggestions();
             }
         });
     } else {
-        // [비로그인 상태] login.html로 이동
+        alert("로그인이 필요합니다.");
         location.href = "login.html";
     }
 });
 
-// 3. 회원 목록 불러오기
-function loadUserList() {
-    const userListTbody = document.getElementById("userList");
-    if(!userListTbody) return;
-    
+// ==========================================
+// [기능 1] 전체 회원 목록 및 등급 관리 (Firebase RTDB)
+// ==========================================
+function loadAllUsers() {
     db.ref('users').on('value', snapshot => {
-        userListTbody.innerHTML = "";
+        const list = document.getElementById("userList");
+        if (!list) return;
+        list.innerHTML = "";
+        
         snapshot.forEach(child => {
             const uid = child.key;
-            const userData = child.val();
-            const role = userData.role || "member"; 
-
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td>${userData.name || '미설정'}</td>
-                <td>${userData.email || '-'}</td>
-                <td><span style="color: ${getRoleColor(role)}; font-weight: bold;">${getRoleName(role)}</span></td>
-                <td>
-                    <select id="sel-${uid}">
-                        <option value="member" ${role === 'member' ? 'selected' : ''}>일반 회원</option>
-                        <option value="student" ${role === 'student' ? 'selected' : ''}>동아리 부원</option>
-                        <option value="admin" ${role === 'admin' ? 'selected' : ''}>관리자</option>
+            const data = child.val();
+            const currentRole = data.role || 'member';
+            
+            const div = document.createElement("div");
+            div.style.padding = "12px";
+            div.style.borderBottom = "1px solid #1b2f80";
+            div.style.display = "flex";
+            div.style.justifyContent = "between";
+            div.style.alignItems = "center";
+            
+            div.innerHTML = `
+                <div>
+                    <strong>${data.name || '이름없음'}</strong> (${data.email || '이메일없음'})
+                    <span style="color:#7fc7ff; margin-left:10px;">현재 등급: ${currentRole}</span>
+                </div>
+                <div>
+                    <select id="role_${uid}" style="padding:5px; background:#0b0f2b; color:white; border:1px solid #1b2f80; border-radius:4px;">
+                        <option value="member" ${currentRole === 'member' ? 'selected' : ''}>일반(member)</option>
+                        <option value="student" ${currentRole === 'student' ? 'selected' : ''}>부원(student)</option>
+                        <option value="admin" ${currentRole === 'admin' ? 'selected' : ''}>관리자(admin)</option>
                     </select>
-                </td>
-                <td><button class="btn-update" onclick="updateLevel('${uid}')">저장</button></td>
+                    <button onclick="updateUserRole('${uid}')" style="margin-left:8px; padding:5px 10px; background:#1b2f80; border:none; color:white; border-radius:4px; cursor:pointer;">변경</button>
+                </div>
             `;
-            userListTbody.appendChild(tr);
+            list.appendChild(div);
         });
     });
 }
 
-function getRoleName(role) {
-    switch(role) {
-        case 'admin': return '관리자';
-        case 'student': return '동아리 부원';
-        case 'member': return '일반 회원';
-        default: return '일반 회원';
-    }
+// 직접 권한 수정 함수
+function updateUserRole(uid) {
+    const newRole = document.getElementById("role_" + uid).value;
+    db.ref('users/' + uid).update({ role: newRole })
+      .then(() => alert("등급 권한이 성공적으로 수정되었습니다."))
+      .catch(e => alert("등급 수정 실패: " + e.message));
 }
 
-function getRoleColor(role) {
-    if (role === 'admin') return '#ff4d4d';
-    if (role === 'student') return '#7fc7ff';
-    return '#888';
-}
 
-async function updateLevel(targetUid) {
-    const newRole = document.getElementById(`sel-${targetUid}`).value;
-    const roleName = getRoleName(newRole);
-
-    if (confirm(`해당 회원을 [${roleName}] 등급으로 변경하시겠습니까?`)) {
-        try {
-            await appCheck.getToken(false);
-            await db.ref('users/' + targetUid).update({ role: newRole });
-            alert("성공적으로 변경되었습니다.");
-        } catch (err) {
-            alert("변경 실패: " + err.message);
+// ==========================================
+// [기능 2] 등급 조정 요청 관리 (Firebase RTDB - roleRequests 노드)
+// ==========================================
+function loadRoleRequests() {
+    db.ref('roleRequests').on('value', snapshot => {
+        const list = document.getElementById("roleRequestList");
+        if (!list) return;
+        list.innerHTML = "";
+        
+        if (!snapshot.exists()) {
+            list.innerHTML = "<p style='color:#888; text-align:center;'>접수된 등급 승인 요청이 없습니다.</p>";
+            return;
         }
+        
+        snapshot.forEach(child => {
+            const reqId = child.key;
+            const reqData = child.val();
+            
+            const div = document.createElement("div");
+            div.style.padding = "12px";
+            div.style.background = "rgba(255, 255, 255, 0.02)";
+            div.style.border = "1px solid #1b2f80";
+            div.style.borderRadius = "8px";
+            div.style.marginBottom = "10px";
+            
+            div.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <strong>신청자:</strong> ${reqData.name || '익명'} (${reqData.email || ''})<br>
+                        <strong>요청 등급:</strong> <span style="color:#7fc7ff; font-weight:bold;">${reqData.requestedRole || 'student'}</span><br>
+                        <small style="color:#888;">신청일시: ${reqData.date || ''}</small>
+                    </div>
+                    <div>
+                        <button onclick="approveRoleRequest('${reqData.uid}', '${reqData.requestedRole}', '${reqId}')" style="padding:6px 12px; background:#28a745; border:none; color:white; border-radius:4px; cursor:pointer; margin-right:5px;">승인</button>
+                        <button onclick="rejectRoleRequest('${reqId}')" style="padding:6px 12px; background:#dc3545; border:none; color:white; border-radius:4px; cursor:pointer;">거절</button>
+                    </div>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    });
+}
+
+// 등급 요청 승인 처리 (해당 유저 role을 업데이트하고 요청서 삭제)
+async function approveRoleRequest(userUid, targetRole, reqId) {
+    if (!confirm("이 요청을 승인하고 등급을 조절하시겠습니까?")) return;
+    try {
+        // 1. 사용자 등급 변경
+        await db.ref('users/' + userUid).update({ role: targetRole });
+        // 2. 등급 요청 노드에서 항목 삭제
+        await db.ref('roleRequests/' + reqId).remove();
+        alert("등급 요청 승인이 완료되었습니다.");
+    } catch (err) {
+        alert("승인 처리 중 오류 발생: " + err.message);
     }
 }
 
-window.logout = () => {
-    if(confirm("로그아웃 하시겠습니까?")) {
-        auth.signOut().then(() => { location.href = "index.html"; });
+// 등급 요청 거절 처리 (요청 노드에서 단순 삭제)
+async function rejectRoleRequest(reqId) {
+    if (!confirm("요청을 거절하고 삭제하시겠습니까?")) return;
+    try {
+        await db.ref('roleRequests/' + reqId).remove();
+        alert("요청이 취소/거절되었습니다.");
+    } catch (err) {
+        alert("처리 실패: " + err.message);
     }
-};
+}
+
+
+// ==========================================
+// [기능 3] 자체 백엔드 서버 건의함 종합 관리 (자체 서버 API 연동)
+// ==========================================
+async function loadServerSuggestions() {
+    const list = document.getElementById("suggestManagerList");
+    if (!list) return;
+    
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/suggests`, {
+            method: "GET",
+            headers: { "ngrok-skip-browser-warning": "69420" }
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        
+        list.innerHTML = "";
+        const keys = Object.keys(data).reverse(); // 최신순 정렬
+        
+        if (keys.length === 0) {
+            list.innerHTML = "<p style='color:#888; text-align:center;'>등록된 건의사항이 없습니다.</p>";
+            return;
+        }
+        
+        keys.forEach(key => {
+            const s = data[key];
+            const div = document.createElement("div");
+            div.style.padding = "15px";
+            div.style.background = "rgba(11, 15, 43, 0.6)";
+            div.style.borderLeft = "4px solid #7fc7ff";
+            div.style.marginBottom = "12px";
+            div.style.position = "relative";
+            
+            div.innerHTML = `
+                <div style="font-size:15px; font-weight:bold; color:#fff; margin-bottom:5px;">${s.title}</div>
+                <div style="font-size:13px; color:#ccc; white-space:pre-wrap; margin-bottom:10px;">${s.content}</div>
+                <div style="font-size:11px; color:#888;">작성자: ${s.author} | 날짜: ${s.date || ''}</div>
+                <button onclick="deleteServerSuggest('${key}')" style="position:absolute; top:15px; right:15px; background:none; border:none; color:#ff4d4d; font-size:13px; cursor:pointer; font-weight:bold;">[삭제]</button>
+            `;
+            list.appendChild(div);
+        });
+    } catch (err) {
+        console.error("자체 서버 건의함 로드 오류:", err);
+        list.innerHTML = "<p style='color:#ff4d4d; text-align:center;'>자체 백엔드 서버 연결 실패</p>";
+    }
+}
+
+// 자체 백엔드 건의사항 영구 삭제 제어
+async function deleteServerSuggest(id) {
+    if (!confirm("이 건의글을 자체 데이터베이스에서 영구 삭제하시겠습니까?")) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/suggests/${id}`, {
+            method: "DELETE",
+            headers: { "ngrok-skip-browser-warning": "69420" }
+        });
+        if (!res.ok) throw new Error();
+        alert("건의사항 삭제 완료");
+        loadServerSuggestions(); // 리스트 새로고침
+    } catch (err) {
+        alert("삭제 처리 중 통신 에러가 발생했습니다.");
+    }
+}
+
+function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.href="index.html"); }
 </script>
 </body>
 </html>
