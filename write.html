@@ -76,6 +76,10 @@
                 <button type="button" onclick="addLinkField()" style="width: 40px; background: #5a7aff; color: white; border: none; border-radius: 5px; cursor: pointer;">+</button>
             </div>
         </div>
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; margin-bottom:5px; font-weight:bold; color:#7fc7ff;">파일 업로드:</label>
+            <input type="file" id="pFile" style="width:100%; padding:10px; background:#0b0f2b; color:white; border:1px solid #1b2f80; border-radius:8px;">
+        </div>
     </div>
 
         <textarea id="postContent" placeholder="내용을 자유롭게 입력하세요..."></textarea>
@@ -97,7 +101,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
-// 1. Firebase 초기화
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -108,185 +111,78 @@ const firebaseConfig = {
     appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
 };
 
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
+const db = firebase.database();
 
-// App Check 활성화
-const appCheck = firebase.appCheck();
-appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
-
-// 전역 변수
-const urlParams = new URLSearchParams(window.location.search);
-const editPostId = urlParams.get('id');
-let currentUserName = "익명";
+const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-// [추가] 등급 명칭 변환 함수
-function getRoleName(role) {
-    switch(role) {
-        case 'admin': return '관리자';
-        case 'student': return '동아리 부원';
-        default: return '일반 회원';
-    }
-}
+let currentUser = null;
+let currentUserName = "익명";
+let currentUserRole = "guest";
 
-// 2. 인증 상태 확인 및 데이터 로드 통합 (등급 표시 로직 추가)
 auth.onAuthStateChanged(async (user) => {
-    const statusText = document.getElementById("userStatus");
-    const loginBtn = document.getElementById("loginBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-
+    currentUser = user;
+    const status = document.getElementById("userStatus");
     if (user) {
-        console.log("인증 성공:", user.email);
-        
-        loginBtn.classList.add("hidden");
-        logoutBtn.classList.remove("hidden");
-
-        try {
-            await appCheck.getToken();
-        } catch (e) {
-            console.warn("App Check 인증 지연 중...");
-        }
-
-        // [수정] 유저 이름 및 등급 실시간 로드
-        db.ref("users/" + user.uid).on("value", (snap) => {
-            const userData = snap.val() || {};
+        db.ref('users/' + user.uid).on('value', (snapshot) => {
+            const userData = snapshot.val() || {};
             currentUserName = userData.name || user.displayName || user.email.split('@')[0];
-            const role = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
-            
-            statusText.innerText = `${currentUserName}님 (${getRoleName(role)})`;
+            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+            if (status) status.innerText = `${currentUserName}님 (${currentUserRole==='admin'?'관리자':(currentUserRole==='student'?'부원':'일반')})`;
         });
-
-        if (editPostId) {
-            loadEditData(user);
-        }
+        document.getElementById("loginBtn")?.classList.add("hidden");
+        document.getElementById("logoutBtn")?.classList.remove("hidden");
     } else {
-        console.log("인증 정보 로딩 중...");
-        setTimeout(() => {
-            if (!auth.currentUser) {
-                alert("로그인 세션이 만료되었습니다. 다시 로그인해주세요.");
-                location.href = "login.html";
-            }
-        }, 2000);
+        alert("로그인 세션이 만료되었습니다. 목록으로 복귀합니다.");
+        location.href = "board.html";
     }
 });
 
-// 3. 수정 데이터 로드 함수
-async function loadEditData(user) {
-    const titleHeader = document.querySelector("h2");
-    const submitBtn = document.querySelector(".btn-submit");
+// 데이터 + 파일바이너리를 FormData 객체에 취합하여 전송
+async function savePost() {
+    const title = document.getElementById("pTitle").value.trim();
+    const content = document.getElementById("pContent").value.trim();
+    const link = document.getElementById("pLink").value.trim();
+    const fileInput = document.getElementById("pFile");
 
-    titleHeader.innerText = "게시글 수정하기";
-    submitBtn.innerText = "수정 완료";
-
-    db.ref("freeboard/" + editPostId).once("value").then(snapshot => {
-        const data = snapshot.val();
-        if (!data) {
-            alert("게시글을 찾을 수 없거나 이미 삭제되었습니다.");
-            location.href = "board.html";
-            return;
-        }
-        
-        if (data.uid !== user.uid && user.email !== ADMIN_EMAIL) {
-            alert("본인이 작성한 글만 수정할 수 있습니다.");
-            location.href = `view.html?id=${editPostId}`;
-            return;
-        }
-
-        document.getElementById("postTitle").value = data.title || "";
-        document.getElementById("postContent").value = data.content || "";
-
-        const container = document.getElementById("linkContainer");
-        if (data.links && data.links.length > 0) {
-            container.innerHTML = ""; 
-            data.links.forEach((link, index) => {
-                addLinkField(); 
-                const urlInputs = document.querySelectorAll(".postFileUrl");
-                const nameInputs = document.querySelectorAll(".postFileName");
-                urlInputs[index].value = link.url;
-                nameInputs[index].value = link.name;
-            });
-            const firstItem = container.firstElementChild;
-            const btn = firstItem.querySelector("button");
-            btn.innerText = "+";
-            btn.style.background = "#5a7aff";
-            btn.onclick = addLinkField;
-        } else if (data.fileUrl) {
-            document.querySelector(".postFileUrl").value = data.fileUrl;
-            document.querySelector(".postFileName").value = data.fileName || "";
-        }
-    });
-}
-
-// 4. 게시글 등록/수정 실행
-async function submitPost() {
-    const title = document.getElementById("postTitle").value.trim();
-    const content = document.getElementById("postContent").value.trim();
-    if(!title || !content) return alert("제목과 내용을 모두 입력해주세요.");
-
-    const submitBtn = document.querySelector(".btn-submit");
-    submitBtn.disabled = true;
-    submitBtn.innerText = "처리 중...";
+    if (!title || !content) return alert("제목과 내용을 입력해주세요.");
+    if (!currentUser) return alert("인증 오류가 발생했습니다.");
 
     try {
-        await appCheck.getToken();
+        const formData = new FormData();
+        formData.append("title", title);
+        formData.append("content", content);
+        formData.append("link", link);
+        formData.append("author", currentUserName);
+        formData.append("email", currentUser.email);
+        formData.append("uid", currentUser.uid);
+        formData.append("date", new Date().toLocaleDateString('ko-KR'));
+        formData.append("timestamp", Date.now());
 
-        const urlInputs = document.querySelectorAll(".postFileUrl");
-        const nameInputs = document.querySelectorAll(".postFileName");
-        let links = [];
+        // 선택 파일 바인딩
+        if (fileInput && fileInput.files.length > 0) {
+            formData.append("file", fileInput.files[0]);
+        }
 
-        urlInputs.forEach((input, index) => {
-            let url = input.value.trim();
-            if (url) {
-                if (!url.startsWith('http')) url = 'https://' + url;
-                links.push({ 
-                    url: url, 
-                    name: nameInputs[index].value.trim() || "첨부 링크" 
-                });
-            }
+        const res = await fetch(`${API_BASE_URL}/api/freeboard`, {
+            method: "POST",
+            headers: { "ngrok-skip-browser-warning": "69420" },
+            body: formData
         });
 
-        const postData = {
-            title: title,
-            content: content,
-            links: links,
-            author: currentUserName,
-            uid: auth.currentUser.uid,
-            updatedAt: firebase.database.ServerValue.TIMESTAMP 
-        };
-
-        if (editPostId) {
-            await db.ref("freeboard/" + editPostId).update(postData);
-            alert("게시글이 성공적으로 수정되었습니다.");
-            location.href = `view.html?id=${editPostId}`;
-        } else {
-            postData.createdAt = firebase.database.ServerValue.TIMESTAMP;
-            await db.ref("freeboard").push(postData);
-            alert("게시글이 등록되었습니다.");
-            location.href = "board.html";
-        }
+        if (!res.ok) throw new Error("서버 저장 처리 실패");
+        
+        alert("게시글이 성공적으로 등록되었습니다.");
+        location.href = "board.html";
     } catch (err) {
-        alert("저장 실패: " + err.message);
-        submitBtn.disabled = false;
-        submitBtn.innerText = editPostId ? "수정 완료" : "게시글 등록하기";
+        console.error(err);
+        alert("글 등록 중 통신 오류가 발생했습니다.");
     }
 }
 
-function addLinkField() {
-    const container = document.getElementById("linkContainer");
-    const div = document.createElement("div");
-    div.className = "link-item";
-    div.style = "display: flex; gap: 10px; margin-bottom: 10px;";
-    div.innerHTML = `
-        <input type="text" class="postFileUrl" placeholder="링크 주소 (https://...)" style="flex: 2; margin-bottom: 0;">
-        <input type="text" class="postFileName" placeholder="표시될 이름" style="flex: 1; margin-bottom: 0;">
-        <button type="button" onclick="this.parentElement.remove()" style="width: 40px; background: #ff4d4d; color: white; border: none; border-radius: 5px; cursor: pointer;">-</button>
-    `;
-    container.appendChild(div);
-}
-
-function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.href = "index.html"); }
+function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.href="board.html"); }
 </script>
 </body>
 </html>
