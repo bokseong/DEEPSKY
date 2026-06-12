@@ -6,7 +6,6 @@
     <link rel="icon" href="logo.png" type="image/png">
     <title>DEEP SKY</title>
     <style>
-        /* 기존 디자인 유지 */
         * { box-sizing: border-box; }
         body { margin: 0; font-family: "Segoe UI", sans-serif; background: #0b0f2b; color: white; line-height: 1.6; }
         .hidden { display: none !important; }
@@ -180,7 +179,7 @@ auth.onAuthStateChanged(async (user) => {
 async function loadQuestions() {
     try {
         // ngrok 우회 헤더 마법의 주문 탑재 및 백엔드 GET 호출
-        const response = await fetch(`${API_BASE_URL}/api/question`, {
+        const response = await fetch(`${API_BASE_URL}/api/questions`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
