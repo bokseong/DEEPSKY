@@ -147,14 +147,20 @@ nav .nav-inner {
         <div class="action-bar">
             <input type="text" id="searchInput" placeholder="제목 또는 작성자로 검색..." 
                style="flex: 1; background: #0b0f2b; color: white; border: 1px solid #2d367a; border-radius: 5px; padding: 10px 15px; outline: none; font-size: 14px;">
-            <button onclick="currentPage=1; loadBoardPosts();" style="background: #3a5aff; color: white; border: none; border-radius: 5px; padding: 0 20px; cursor: pointer; font-weight: bold; transition: 0.2s;">
+            <button onclick="filterPosts();" style="background: #3a5aff; color: white; border: none; border-radius: 5px; padding: 0 20px; cursor: pointer; font-weight: bold; transition: 0.2s;">
                 검색
             </button>
             <a href="write.html" class="btn-write" id="topWriteBtn">글쓰기</a>
         </div>
 
-        <div class="post-list" id="postList">
-            <p style="text-align:center; padding:50px; color:#888;">게시글을 불러오는 중...</p>
+        <div class="post-list">
+            <table style="width: 100%; border-collapse: collapse; text-align: center;">
+                <tbody id="boardList">
+                    <tr>
+                        <td style="padding:50px; color:#888;">게시글을 불러오는 중...</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
         <div id="pagination" class="pagination"></div>
