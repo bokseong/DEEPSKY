@@ -264,22 +264,6 @@ let displayPosts = [];
 let currentPage = 1;
 const postsPerPage = 10;
 
-const totalPages = Math.ceil(displayPosts.length / postsPerPage); // 글이 11개면 totalPages는 2가 됨
-if (totalPages <= 1) return; // 글이 10개 이하이면 번호판을 아예 숨김
-
-for (let i = 1; i <= totalPages; i++) {
-    const btn = document.createElement("button");
-    btn.innerText = i; // 버튼에 1, 2, 3... 숫자를 넣음
-    btn.className = `page-num ${i === currentPage ? 'active' : ''}`;
-    btn.onclick = (e) => {
-        e.stopPropagation();
-        currentPage = i; // 숫자를 누르면 해당 페이지로 변경
-        renderPage();    // 화면 다시 그리기
-        window.scrollTo(0, 0); // 화면 맨 위로 스크롤 이동
-    };
-    paginArea.appendChild(btn);
-}
-
 // 인증 상태 감시 및 회원 정보 등급 동기화
 auth.onAuthStateChanged(async (user) => {
     currentUser = user;
@@ -360,6 +344,9 @@ function renderPage() {
         // 2. 박스 내부 기본 레이아웃 구성
         item.innerHTML = `
             <div class="post-header-row">
+                <span class="post-title">
+                    <span class="post-index"></span>${p.title || '제목 없음'}${fileIcon}
+                </span>
                 <div class="post-action-area"></div>
             </div>
             <div class="post-meta-row">
@@ -423,14 +410,16 @@ function renderPagination() {
     const paginArea = document.getElementById("pagination");
     if (!paginArea) return;
     paginArea.innerHTML = "";
-    const totalPages = Math.ceil(allPosts.length / postsPerPage);
+    
+    const totalPages = Math.ceil(displayPosts.length / postsPerPage);
     if (totalPages <= 1) return;
 
     for (let i = 1; i <= totalPages; i++) {
         const btn = document.createElement("button");
         btn.innerText = i;
         btn.className = `page-num ${i === currentPage ? 'active' : ''}`;
-        btn.onclick = () => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
             currentPage = i;
             renderPage();
             window.scrollTo(0, 0);
