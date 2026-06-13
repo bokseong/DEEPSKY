@@ -284,7 +284,6 @@ auth.onAuthStateChanged(async (user) => {
         }
         
         await loadBoardPosts();
-        });
     } else {
         currentUserRole = "guest";
         if (status) status.innerText = "로그인 해주세요";
