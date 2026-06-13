@@ -265,14 +265,17 @@ const postsPerPage = 10;
 
 // 인증 상태 감시 및 회원 정보 등급 동기화
 auth.onAuthStateChanged(async (user) => {
-    currentUser = user;
     const status = document.getElementById("userStatus");
     
     if (user) {
+        // 1. 유저 객체 먼저 안전하게 할당
+        currentUser = user;
+        
         document.getElementById("loginBtn")?.classList.add("hidden");
         document.getElementById("logoutBtn")?.classList.remove("hidden");
         
         try {
+            // 2. 구글 데이터베이스에서 유저 역할(Role)을 완벽하게 가져올 때까지 기다립니다.
             const snapshot = await db.ref('users/' + user.uid).get();
             const userData = snapshot.val() || {};
             const currentUserName = userData.name || user.displayName || user.email.split('@')[0];
@@ -280,11 +283,18 @@ auth.onAuthStateChanged(async (user) => {
             
             if (status) status.innerText = `${currentUserName}님 (${currentUserRole==='admin'?'관리자':(currentUserRole==='student'?'부원':'일반')})`;
         } catch (e) {
-            console.log("인증 복구 세션 동기화 중...");
+            console.error("인증 데이터 베이스 조회 실패:", e);
+            // 에러가 나더라도 기본 역할 부여 후 세션 유지
+            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : 'member';
+            if (status) status.innerText = `${user.email.split('@')[0]}님(회원)`;
         }
         
+        // 3. 위의 모든 인증 절차와 데이터 세팅이 "완벽히 끝난 후" 게시글을 로드합니다.
         await loadBoardPosts();
+        
     } else {
+        // 로그아웃 상태인 경우 안전하게 초기화
+        currentUser = null;
         currentUserRole = "guest";
         if (status) status.innerText = "로그인 해주세요";
         document.getElementById("loginBtn")?.classList.remove("hidden");
