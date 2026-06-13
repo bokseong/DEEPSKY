@@ -249,7 +249,7 @@ const firebaseConfig = {
     appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
 };
 
-// 앱 초기화 꼬임 방지
+// 인스턴스 중복 생성 및 세션 충돌 방지
 const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
@@ -264,7 +264,10 @@ let displayPosts = [];
 let currentPage = 1;
 const postsPerPage = 10;
 
-// 인증 상태 감시 및 회원 정보 등급 동기화
+// 파이어베이스 초기화 및 토큰 검증이 완료될 때까지 자체 DB 호출을 대기시키는 인터락 변수
+let isAuthInitialized = false;
+
+// [회원 관리 전용] 인증 상태 감시 및 회원 정보 등급 동기화
 auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     
@@ -274,6 +277,7 @@ auth.onAuthStateChanged(async (user) => {
         document.getElementById("logoutBtn")?.classList.remove("hidden");
         
         try {
+            // 회원 이름 및 역할(Role)만 파이어베이스 Realtime DB에서 획득합니다 (글 정보는 조회 X)
             const snapshot = await db.ref('users/' + user.uid).get();
             const userData = snapshot.val() || {};
             const currentUserName = userData.name || user.displayName || user.email.split('@')[0];
@@ -281,7 +285,7 @@ auth.onAuthStateChanged(async (user) => {
             
             if (status) status.innerText = `${currentUserName}님 (${currentUserRole==='admin'?'관리자':(currentUserRole==='student'?'부원':'일반')})`;
         } catch (e) {
-            console.error("인증 데이터 베이스 조회 실패:", e);
+            console.error("인증 유저 데이터 조회 실패:", e);
             currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : 'member';
             if (status) status.innerText = `${user.email.split('@')[0]}님(회원)`;
         }
@@ -293,7 +297,8 @@ auth.onAuthStateChanged(async (user) => {
         document.getElementById("logoutBtn")?.classList.add("hidden");
     }
     
-    // 인증 절차가 완전히 끝난 후 단 한 번만 게시글을 로드합니다.
+    // 파이어베이스 인증 상태 처리가 끝났음을 알리고 자체 백엔드 서버 DB 조회를 시작합니다.
+    isAuthInitialized = true;
     await loadBoardPosts();
 });
 
@@ -301,7 +306,7 @@ auth.onAuthStateChanged(async (user) => {
 document.addEventListener("DOMContentLoaded", () => {
     const writeBtn = document.getElementById("topWriteBtn");
     if (writeBtn) {
-        writeBtn.removeAttribute("href"); // 기존 이동 속성 제거
+        writeBtn.removeAttribute("href"); // 인라인 이동 속성 제거하여 스크립트 제어권 확보
         writeBtn.style.cursor = "pointer";
         writeBtn.onclick = (e) => {
             e.preventDefault();
@@ -310,18 +315,23 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
-// 자체 서버 DB 연동 데이터 리스트 수신
+// [게시글 조회 전용] 파이어베이스 로직을 철저히 배제하고 오직 자체 서버 DB에서만 글 수신
 async function loadBoardPosts() {
+    // 세션 안정성이 확보되기 전 비동기 순서가 꼬여 구글 gateway가 차단(401)하는 현상 방어
+    if (!isAuthInitialized) return;
+
     try {
         const res = await fetch(`${API_BASE_URL}/api/freeboard`, {
             method: "GET",
             headers: { "ngrok-skip-browser-warning": "69420" }
         });
-        if (!res.ok) throw new Error("서버 응답 오류");
+        if (!res.ok) throw new Error("자체 백엔드 서버 응답 오류");
         const data = await res.json();
         
+        // 자체 백엔드 JSON 배열 구조를 오브젝트 키 기준으로 파싱 및 매핑
         allPosts = Object.keys(data).map(key => ({ id: key, ...data[key] }));
         
+        // 최신 글 순으로 정렬
         allPosts.sort((a, b) => {
             const dateA = a.date || "";
             const dateB = b.date || "";
@@ -331,7 +341,7 @@ async function loadBoardPosts() {
         displayPosts = [...allPosts];
         renderPage();
     } catch (err) {
-        console.error("게시판 로드 실패:", err);
+        console.error("자체 서버 게시판 로드 실패:", err);
         const list = document.getElementById("postList");
         if (list) list.innerHTML = `<p style="text-align:center; padding:50px; color:#ff4d4d;">서버 연결에 실패했습니다.</p>`;
     }
@@ -372,6 +382,7 @@ function renderPage() {
             </div>
         `;
 
+        // 삭제 권한 연산 (관리자이거나, 자체 DB 데이터 내 uid와 파이어베이스 로그인 유저 uid 교차 대조)
         const isDeleteAuth = (currentUserRole === 'admin') || (currentUser && p.uid === currentUser.uid);
 
         if (isDeleteAuth) {
@@ -381,7 +392,7 @@ function renderPage() {
             delBtn.className = "del-btn";
             
             delBtn.onclick = async (e) => {
-                e.stopPropagation(); 
+                e.stopPropagation(); // 카드 전체 클릭 이벤트(상세보기 이동) 전파 방지
                 
                 if (confirm("정말로 이 게시글을 삭제하시겠습니까?")) {
                     try {
@@ -396,7 +407,7 @@ function renderPage() {
                         const result = await res.json();
                         if (res.ok && result.success) {
                             alert("성공적으로 삭제되었습니다.");
-                            loadBoardPosts();
+                            await loadBoardPosts(); // 자체 서버 새로고침
                         } else {
                             alert(`삭제 실패: ${result.error || "알 수 없는 오류"}`);
                         }
@@ -446,7 +457,7 @@ function checkWriteAuth() {
     location.href = "write.html";
 }
 
-// 검색 필터링 최적화 (불필요한 loadBoardPosts 재호출 제거)
+// 검색 필터링 최적화
 function filterPosts() {
     const term = document.getElementById("searchInput").value.toLowerCase().trim();
     if (!term) {
@@ -461,7 +472,12 @@ function filterPosts() {
     renderPage();
 }
 
-function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
+// 로그아웃 처리
+function logout() { 
+    if(confirm("로그아웃 하시겠습니까?")) {
+        auth.signOut().then(() => location.reload()); 
+    } 
+}
 </script>
 </body>
 </html>
