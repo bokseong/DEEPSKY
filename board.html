@@ -235,10 +235,9 @@ nav .nav-inner {
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-// 1. 파이어베이스 초기화 및 기본 설정
+    // 1. 파이어베이스 초기화 및 기본 설정
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -249,10 +248,9 @@ const firebaseConfig = {
     appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
 };
 
-// 인스턴스 중복 생성 및 세션 충돌 방지
+// 앱 초기화 및 인증 세션만 활성화 (db 객체 삭제)
 const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
-const db = firebase.database();
 
 const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
@@ -264,10 +262,10 @@ let displayPosts = [];
 let currentPage = 1;
 const postsPerPage = 10;
 
-// 파이어베이스 초기화 및 토큰 검증이 완료될 때까지 자체 DB 호출을 대기시키는 인터락 변수
+// 파이어베이스 인증 상태가 결정될 때까지 대기시키는 플래그
 let isAuthInitialized = false;
 
-// [회원 관리 전용] 인증 상태 감시 및 회원 정보 등급 동기화
+// [인증 세션 전용] 로그인 상태만 감시 (Firedb 조회 완전 배제)
 auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     
@@ -276,18 +274,12 @@ auth.onAuthStateChanged(async (user) => {
         document.getElementById("loginBtn")?.classList.add("hidden");
         document.getElementById("logoutBtn")?.classList.remove("hidden");
         
-        try {
-            // 회원 이름 및 역할(Role)만 파이어베이스 Realtime DB에서 획득합니다 (글 정보는 조회 X)
-            const snapshot = await db.ref('users/' + user.uid).get();
-            const userData = snapshot.val() || {};
-            const currentUserName = userData.name || user.displayName || user.email.split('@')[0];
-            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
-            
-            if (status) status.innerText = `${currentUserName}님 (${currentUserRole==='admin'?'관리자':(currentUserRole==='student'?'부원':'일반')})`;
-        } catch (e) {
-            console.error("인증 유저 데이터 조회 실패:", e);
-            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : 'member';
-            if (status) status.innerText = `${user.email.split('@')[0]}님(회원)`;
+        // Firedb를 거치지 않고 이메일 주소 및 기본 프로필로만 역할 설정
+        const currentUserName = user.displayName || user.email.split('@')[0];
+        currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : 'member';
+        
+        if (status) {
+            status.innerText = `${currentUserName}님 (${currentUserRole === 'admin' ? '관리자' : '회원'})`;
         }
     } else {
         currentUser = null;
@@ -297,16 +289,16 @@ auth.onAuthStateChanged(async (user) => {
         document.getElementById("logoutBtn")?.classList.add("hidden");
     }
     
-    // 파이어베이스 인증 상태 처리가 끝났음을 알리고 자체 백엔드 서버 DB 조회를 시작합니다.
+    // 인증 확인이 끝났으므로 즉시 자체 서버 DB에서만 글을 땡겨옵니다.
     isAuthInitialized = true;
     await loadBoardPosts();
 });
 
-// HTML 로드가 완료된 후 안전하게 버튼 이벤트를 연결합니다.
+// HTML 로딩 완료 후 버튼 이벤트 바인딩
 document.addEventListener("DOMContentLoaded", () => {
     const writeBtn = document.getElementById("topWriteBtn");
     if (writeBtn) {
-        writeBtn.removeAttribute("href"); // 인라인 이동 속성 제거하여 스크립트 제어권 확보
+        writeBtn.removeAttribute("href"); 
         writeBtn.style.cursor = "pointer";
         writeBtn.onclick = (e) => {
             e.preventDefault();
@@ -315,9 +307,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
-// [게시글 조회 전용] 파이어베이스 로직을 철저히 배제하고 오직 자체 서버 DB에서만 글 수신
+// [오직 자체 서버 DB 연동] 100% 자체 백엔드 API만 호출
 async function loadBoardPosts() {
-    // 세션 안정성이 확보되기 전 비동기 순서가 꼬여 구글 gateway가 차단(401)하는 현상 방어
     if (!isAuthInitialized) return;
 
     try {
@@ -328,10 +319,10 @@ async function loadBoardPosts() {
         if (!res.ok) throw new Error("자체 백엔드 서버 응답 오류");
         const data = await res.json();
         
-        // 자체 백엔드 JSON 배열 구조를 오브젝트 키 기준으로 파싱 및 매핑
+        // 자체 서버에서 받아온 JSON 데이터 파싱
         allPosts = Object.keys(data).map(key => ({ id: key, ...data[key] }));
         
-        // 최신 글 순으로 정렬
+        // 최신 날짜 순 정렬
         allPosts.sort((a, b) => {
             const dateA = a.date || "";
             const dateB = b.date || "";
@@ -347,7 +338,7 @@ async function loadBoardPosts() {
     }
 }
 
-// 테이블 렌더링 함수
+// 화면에 글 목록 렌더링
 function renderPage() {
     const list = document.getElementById("postList");
     if (!list) return;
@@ -382,7 +373,7 @@ function renderPage() {
             </div>
         `;
 
-        // 삭제 권한 연산 (관리자이거나, 자체 DB 데이터 내 uid와 파이어베이스 로그인 유저 uid 교차 대조)
+        // 삭제 권한: 관리자이거나 자체 DB에 기록된 uid가 현재 로그인한 유저의 uid와 같은 경우
         const isDeleteAuth = (currentUserRole === 'admin') || (currentUser && p.uid === currentUser.uid);
 
         if (isDeleteAuth) {
@@ -392,7 +383,7 @@ function renderPage() {
             delBtn.className = "del-btn";
             
             delBtn.onclick = async (e) => {
-                e.stopPropagation(); // 카드 전체 클릭 이벤트(상세보기 이동) 전파 방지
+                e.stopPropagation(); 
                 
                 if (confirm("정말로 이 게시글을 삭제하시겠습니까?")) {
                     try {
@@ -407,7 +398,7 @@ function renderPage() {
                         const result = await res.json();
                         if (res.ok && result.success) {
                             alert("성공적으로 삭제되었습니다.");
-                            await loadBoardPosts(); // 자체 서버 새로고침
+                            await loadBoardPosts(); 
                         } else {
                             alert(`삭제 실패: ${result.error || "알 수 없는 오류"}`);
                         }
@@ -457,7 +448,7 @@ function checkWriteAuth() {
     location.href = "write.html";
 }
 
-// 검색 필터링 최적화
+// 검색 필터링
 function filterPosts() {
     const term = document.getElementById("searchInput").value.toLowerCase().trim();
     if (!term) {
@@ -478,6 +469,6 @@ function logout() {
         auth.signOut().then(() => location.reload()); 
     } 
 }
-</script>
+
 </body>
 </html>
