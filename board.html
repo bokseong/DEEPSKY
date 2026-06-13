@@ -272,14 +272,18 @@ auth.onAuthStateChanged(async (user) => {
         document.getElementById("loginBtn")?.classList.add("hidden");
         document.getElementById("logoutBtn")?.classList.remove("hidden");
         
-        db.ref('users/' + user.uid).on('value', async (snapshot) => {
+        try {
+            const snapshot = await db.ref('users/' + user.uid).get();
             const userData = snapshot.val() || {};
             const currentUserName = userData.name || user.displayName || user.email.split('@')[0];
             currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
             
             if (status) status.innerText = `${currentUserName}님 (${currentUserRole==='admin'?'관리자':(currentUserRole==='student'?'부원':'일반')})`;
-
-            await loadBoardPosts();
+        } catch (e) {
+            console.log("인증 복구 세션 동기화 중...");
+        }
+        
+        await loadBoardPosts();
         });
     } else {
         currentUserRole = "guest";
