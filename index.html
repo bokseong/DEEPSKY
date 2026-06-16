@@ -309,6 +309,7 @@ async function loadProgram() {
 }
 
 // index.html 내부의 loadUpdateLogs 함수를 이 코드로 교체합니다.
+// index.html 내부의 loadUpdateLogs 함수를 이 최신 5개 제한 슬라이스 버전으로 교체합니다.
 async function loadUpdateLogs() {
     if (!isAuthInitialized) return;
     const logList = document.getElementById("updateLogList");
@@ -356,8 +357,13 @@ async function loadUpdateLogs() {
             return;
         }
 
-        // 화면에 박스 그려주기
-        logsArray.forEach(log => {
+        // ====================================================
+        // 💡 [핵심 수정] 화면 표시 전, 정확히 최신 5개만 슬라이스(자르기) 합니다.
+        // ====================================================
+        const displayLogs = logsArray.slice(0, 5);
+
+        // 자른 5개의 데이터만 화면에 박스로 그려주기
+        displayLogs.forEach(log => {
             const box = document.createElement("div");
             box.className = "log-box"; 
             
