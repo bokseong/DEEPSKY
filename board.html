@@ -237,7 +237,6 @@ nav .nav-inner {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-    // 1. 파이어베이스 초기화 및 기본 설정
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -248,9 +247,12 @@ const firebaseConfig = {
     appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
 };
 
-// 앱 초기화 및 인증 세션만 활성화 (db 객체 삭제)
 const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
+
+// 💡 1. 브라우저를 닫아도 로그인이 완전히 유지되도록 영구성(LOCAL) 설정 강제 지정
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+    .catch(err => console.error("세션 유지 설정 실패:", err));
 
 const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
@@ -262,19 +264,18 @@ let displayPosts = [];
 let currentPage = 1;
 const postsPerPage = 10;
 
-// 파이어베이스 인증 상태가 결정될 때까지 대기시키는 플래그
+// 💡 2. 인증 감지 상태를 보다 안전하게 처리하기 위한 초기화 플래그 변경
 let isAuthInitialized = false;
 
-// [인증 세션 전용] 로그인 상태만 감시 (Firedb 조회 완전 배제)
 auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
+    isAuthInitialized = true; // 인증 프로세스가 한 번이라도 돌았음을 증명
     
     if (user) {
         currentUser = user;
         document.getElementById("loginBtn")?.classList.add("hidden");
         document.getElementById("logoutBtn")?.classList.remove("hidden");
         
-        // Firedb를 거치지 않고 이메일 주소 및 기본 프로필로만 역할 설정
         const currentUserName = user.displayName || user.email.split('@')[0];
         currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : 'member';
         
@@ -289,12 +290,10 @@ auth.onAuthStateChanged(async (user) => {
         document.getElementById("logoutBtn")?.classList.add("hidden");
     }
     
-    // 인증 확인이 끝났으므로 즉시 자체 서버 DB에서만 글을 땡겨옵니다.
-    isAuthInitialized = true;
+    // 인증이 확인되었으므로 즉시 게시글 로드
     await loadBoardPosts();
 });
 
-// HTML 로딩 완료 후 버튼 이벤트 바인딩
 document.addEventListener("DOMContentLoaded", () => {
     const writeBtn = document.getElementById("topWriteBtn");
     if (writeBtn) {
@@ -305,24 +304,44 @@ document.addEventListener("DOMContentLoaded", () => {
             checkWriteAuth();
         };
     }
+    // 혹시라도 Firebase 로딩이 지연될 경우를 대비해 1.5초 후 강제 로딩 시도 (방어 코드)
+    setTimeout(() => {
+        if(!isAuthInitialized) {
+            isAuthInitialized = true;
+            loadBoardPosts();
+        }
+    }, 1500);
 });
 
-// [오직 자체 서버 DB 연동] 100% 자체 백엔드 API만 호출
 async function loadBoardPosts() {
+    // 초기화가 안 끝났다면 대기
     if (!isAuthInitialized) return;
 
     try {
+        // 💡 3. 안정성을 위해 GET 요청 시에도 현재 로그인되어 있다면 토큰을 헤더에 탑재
+        const headers = { "ngrok-skip-browser-warning": "69420" };
+        if (currentUser) {
+            const token = await currentUser.getIdToken();
+            headers["Authorization"] = `Bearer ${token}`;
+        }
+
         const res = await fetch(`${API_BASE_URL}/api/freeboard`, {
             method: "GET",
-            headers: { "ngrok-skip-browser-warning": "69420" }
+            headers: headers
         });
+        
+        // 401 인증 에러 처리 리디렉션 보호막
+        if (res.status === 401) {
+            alert("보안을 위해 다시 로그인 해주세요.");
+            location.href = "login.html";
+            return;
+        }
+
         if (!res.ok) throw new Error("자체 백엔드 서버 응답 오류");
         const data = await res.json();
         
-        // 자체 서버에서 받아온 JSON 데이터 파싱
         allPosts = Object.keys(data).map(key => ({ id: key, ...data[key] }));
         
-        // 최신 날짜 순 정렬
         allPosts.sort((a, b) => {
             const dateA = a.date || "";
             const dateB = b.date || "";
@@ -334,11 +353,10 @@ async function loadBoardPosts() {
     } catch (err) {
         console.error("자체 서버 게시판 로드 실패:", err);
         const list = document.getElementById("postList");
-        if (list) list.innerHTML = `<p style="text-align:center; padding:50px; color:#ff4d4d;">서버 연결에 실패했습니다.</p>`;
+        if (list) list.innerHTML = `<p style="text-align:center; padding:50px; color:#ff4d4d;">서ber 연결에 실패했습니다.</p>`;
     }
 }
 
-// 화면에 글 목록 렌더링
 function renderPage() {
     const list = document.getElementById("postList");
     if (!list) return;
@@ -373,7 +391,6 @@ function renderPage() {
             </div>
         `;
 
-        // 삭제 권한: 관리자이거나 자체 DB에 기록된 uid가 현재 로그인한 유저의 uid와 같은 경우
         const isDeleteAuth = (currentUserRole === 'admin') || (currentUser && p.uid === currentUser.uid);
 
         if (isDeleteAuth) {
@@ -391,10 +408,17 @@ function renderPage() {
                         const res = await fetch(`${API_BASE_URL}/api/freeboard/${p.id}`, {
                             method: "DELETE",
                             headers: {
-                                "Authorization": `Bearer ${token}`
+                                "Authorization": `Bearer ${token}`,
+                                "ngrok-skip-browser-warning": "69420"
                             }
                         });
                         
+                        if (res.status === 401) {
+                            alert("인증이 만료되었습니다. 다시 로그인 해주세요.");
+                            location.href = "login.html";
+                            return;
+                        }
+
                         const result = await res.json();
                         if (res.ok && result.success) {
                             alert("성공적으로 삭제되었습니다.");
@@ -416,7 +440,6 @@ function renderPage() {
     renderPagination();
 }
 
-// 페이지네이션 제어
 function renderPagination() {
     const paginArea = document.getElementById("pagination");
     if (!paginArea) return;
@@ -439,16 +462,15 @@ function renderPagination() {
     }
 }
 
-// 글쓰기 권한 검사
 function checkWriteAuth() {
     if (!currentUser) {
-        alert("로그인이 필요합니다.");
+        alert("보안을 위해 로그인 해주세요.");
+        location.href = "login.html";
         return;
     }
     location.href = "write.html";
 }
 
-// 검색 필터링
 function filterPosts() {
     const term = document.getElementById("searchInput").value.toLowerCase().trim();
     if (!term) {
@@ -463,7 +485,6 @@ function filterPosts() {
     renderPage();
 }
 
-// 로그아웃 처리
 function logout() { 
     if(confirm("로그아웃 하시겠습니까?")) {
         auth.signOut().then(() => location.reload()); 
