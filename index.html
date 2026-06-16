@@ -278,7 +278,7 @@ auth.onAuthStateChanged(async (user) => {
     await loadUpdateLogs(); 
 });
 
-// 5. 이번 주 프로그램 로드 (100% 자체 서버 DB 전담조회)
+// 5. 이번 주 프로그램 로드 (예외 처리 강화 버전)
 async function loadProgram() {
     if (!isAuthInitialized) return;
     const el = document.getElementById("weekProgramText");
@@ -289,21 +289,26 @@ async function loadProgram() {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
-                "ngrok-skip-browser-warning": "69420" // ngrok 브라우저 차단 우회 헤더
+                "ngrok-skip-browser-warning": "69420"
             }
         });
         if (!response.ok) throw new Error("데이터 로드 실패");
         
         const data = await response.json();
-        // 백엔드 고유 파일 시스템/DB 텍스트 바인딩
-        el.innerText = data ? data.text : "등록된 공지사항이 존재하지 않습니다.";
+        
+        // 데이터나 내부 text 필드가 비어있을 때의 방어 코드
+        if (data && data.text && data.text.trim() !== "") {
+            el.innerText = data.text;
+        } else {
+            el.innerText = "현재 등록된 예정 프로그램(공지사항)이 없습니다. 관리자 메뉴에서 등록해 주세요.";
+        }
     } catch (error) {
         console.error("주간 프로그램 로드 에러:", error);
-        el.innerText = "공지사항 데이터를 자체 서버로부터 안전하게 불러오지 못했습니다.";
+        el.innerText = "공지사항 데이터를 불러오지 못했습니다.";
     }
 }
 
-// 6. 업데이트 로그 로드 (100% 자체 서버 DB 연동 및 최신순 정렬)
+// 6. 업데이트 로그 로드 (데이터 형식 검증 강화 버전)
 async function loadUpdateLogs() {
     if (!isAuthInitialized) return;
     const logList = document.getElementById("updateLogList");
@@ -321,38 +326,44 @@ async function loadUpdateLogs() {
         const data = await response.json();
         logList.innerHTML = "";
 
-        // 오브젝트 객체를 핸들링하기 편하게 가공 배열로 파싱
-        const logsArray = Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-        }));
+        let logsArray = [];
 
-        // 날짜 타임스탬프 기준 내림차순 최신순 정렬
+        // 데이터 타입 체크 (배열 형태와 객체 형태 모두 대응)
+        if (Array.isArray(data)) {
+            logsArray = data;
+        } else if (data && typeof data === 'object') {
+            logsArray = Object.keys(data).map(key => ({
+                id: key,
+                ...data[key]
+            }));
+        }
+
+        // 유효한 로그 항목만 필터링하고 날짜 기준 정렬
+        logsArray = logsArray.filter(log => log && (log.version || log.content));
         logsArray.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         if (logsArray.length === 0) {
-            logList.innerHTML = "<p style='color:#888; text-align:center;'>등록된 업데이트 기록이 없습니다.</p>";
+            logList.innerHTML = "<p style='color:#888; text-align:center; padding: 20px;'>등록된 업데이트 기록이 없습니다.<br>관리자 메뉴에서 첫 기록을 작성해 보세요!</p>";
             return;
         }
 
-        // 도출된 리스트 템플릿 카드로 동적 드로우
         logsArray.forEach(log => {
             const box = document.createElement("div");
             box.className = "log-box"; 
             
             box.innerHTML = `
                 <div class="log-header">
-                    <span class="log-version">v${log.version}</span>
-                    <span class="log-date">${log.date}</span>
+                    <span class="log-version">v${log.version || '0.0.0'}</span>
+                    <span class="log-date">${log.date || ''}</span>
                 </div>
-                <div class="log-content">${log.content}</div>
+                <div class="log-content">${log.content || ''}</div>
             `;
             logList.appendChild(box);
         });
 
     } catch (error) {
         console.error("업데이트 로그 로드 에러:", error);
-        logList.innerHTML = "<p style='color:#ff4d4d; text-align:center;'>업데이트 기록을 받아오지 못했습니다.</p>";
+        logList.innerHTML = "<p style='color:#ff4d4d; text-align:center;'>업데이트 기록을 파싱하는 중 오류가 발생했습니다.</p>";
     }
 }
 
