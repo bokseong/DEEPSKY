@@ -308,7 +308,7 @@ async function loadProgram() {
     }
 }
 
-// 6. 업데이트 로그 로드 (데이터 형식 검증 강화 버전)
+// index.html 내부의 loadUpdateLogs 함수를 이 코드로 교체합니다.
 async function loadUpdateLogs() {
     if (!isAuthInitialized) return;
     const logList = document.getElementById("updateLogList");
@@ -323,12 +323,21 @@ async function loadUpdateLogs() {
         });
         if (!response.ok) throw new Error("로그 로드 실패");
         
-        const data = await response.json();
+        let data = await response.json();
         logList.innerHTML = "";
+
+        // 💡 방어 코드: 만약 들어온 데이터가 Object가 아니라 String(문자열) 형태라면 강제로 JSON 파싱
+        if (typeof data === 'string') {
+            try {
+                data = JSON.parse(data);
+            } catch(pErr) {
+                console.error("문자열 강제 JSON 파싱 실패:", pErr);
+            }
+        }
 
         let logsArray = [];
 
-        // 데이터 타입 체크 (배열 형태와 객체 형태 모두 대응)
+        // 데이터 형태 가공 (배열/객체 통합 처리)
         if (Array.isArray(data)) {
             logsArray = data;
         } else if (data && typeof data === 'object') {
@@ -338,15 +347,16 @@ async function loadUpdateLogs() {
             }));
         }
 
-        // 유효한 로그 항목만 필터링하고 날짜 기준 정렬
+        // 유효한 로그만 필터링 후 최신순 정렬
         logsArray = logsArray.filter(log => log && (log.version || log.content));
         logsArray.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         if (logsArray.length === 0) {
-            logList.innerHTML = "<p style='color:#888; text-align:center; padding: 20px;'>등록된 업데이트 기록이 없습니다.<br>관리자 메뉴에서 첫 기록을 작성해 보세요!</p>";
+            logList.innerHTML = "<p style='color:#888; text-align:center; padding:20px;'>등록된 업데이트 기록이 없습니다.</p>";
             return;
         }
 
+        // 화면에 박스 그려주기
         logsArray.forEach(log => {
             const box = document.createElement("div");
             box.className = "log-box"; 
@@ -363,7 +373,7 @@ async function loadUpdateLogs() {
 
     } catch (error) {
         console.error("업데이트 로그 로드 에러:", error);
-        logList.innerHTML = "<p style='color:#ff4d4d; text-align:center;'>업데이트 기록을 파싱하는 중 오류가 발생했습니다.</p>";
+        logList.innerHTML = "<p style='color:#ff4d4d; text-align:center; padding:20px;'>기록을 화면에 표시하지 못했습니다.</p>";
     }
 }
 
