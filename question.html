@@ -94,7 +94,7 @@ nav .nav-inner {
         <input type="text" id="qSearch" onkeyup="filterQuestions()" placeholder="질문 내용, 작성자, 답글을 검색하세요...">
     </div>
     <div class="write-card">
-        <input type="text" id="qInput" placeholder="질문 내용을 입력하세요. (비로그인은 익명) 최대한 빠르게 답변하겠습니다!">
+        <input type="text" id="qInput" placeholder="질문 내용을 입력하세요. 최대한 빠르게 답변하겠습니다!">
         <button class="btn-main" onclick="addQuestion()">질문 등록</button>
     </div>
     <div id="questionList">
@@ -104,7 +104,7 @@ nav .nav-inner {
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
     <br>
-    Email : leader.deepsky@gmail.com &nbsp; &nbsp; &nbsp; &nbsp;| &nbsp; &nbsp; &nbsp; &nbsp;Designed by jw-astro09
+    Email : leader.deepsky@gmail.com &nbsp;| &nbsp;Designed by jw-astro09
 </footer>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -195,18 +195,22 @@ async function loadQuestions() {
     }
 }
 
-// 💡 새로운 질문 등록 (주소 매칭 /api/questions, 필드명content로 수정, Firebase 토큰 헤더 탑재)
 async function addQuestion() {
     const textInput = document.getElementById("qInput");
     const text = textInput.value.trim();
     if(!text) return alert("질문을 입력해주세요.");
-    if(!currentUser) return alert("로그인이 필요한 서비스입니다.");
+    
+    // 프론트엔드 1차 검증: 로그인 상태가 아니면 즉시 차단
+    if(!currentUser) {
+        alert("보안을 위해 로그인 해주세요.");
+        location.href = 'login.html'; // 로그인 페이지명에 맞게 수정 가능
+        return;
+    }
 
     try {
         // 백엔드 위조 인증 차단용 JWT ID 토큰 추출 발행
         const idToken = await currentUser.getIdToken(true);
 
-        // 백엔드 수신 규격 일치화: 'text' -> 'content', 'title' 필드 자동 생성 추가
         const newPost = {
             title: text.substring(0, 15) + (text.length > 15 ? "..." : ""),
             content: text,
@@ -214,21 +218,26 @@ async function addQuestion() {
             timestamp: Date.now()
         };
 
-        // 백엔드 URL 복수형 매칭 진행
         const response = await fetch(`${API_BASE_URL}/api/questions`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${idToken}`, // 필수 인증 헤더 장착
+                "Authorization": `Bearer ${idToken}`,
                 "ngrok-skip-browser-warning": "69420"
             },
             body: JSON.stringify(newPost)
         });
 
+        // 💡 백엔드에서 401 에러(인증 실패)를 반환한 경우 처리
+        if (response.status === 401) {
+            alert("보안을 위해 로그인 해주세요.");
+            location.href = 'login.html'; // 로그인 페이지로 이동
+            return;
+        }
+
         const result = await response.json();
         if(!response.ok) throw new Error(result.error || "서버 저장에 실패했습니다.");
         
-        // 관리자 알림 (GAS 호출 - 기존 연동 유지)
         sendMail({
             type: "new_question",
             senderName: currentUserName,
@@ -237,7 +246,7 @@ async function addQuestion() {
 
         textInput.value = "";
         alert("질문이 등록되었습니다.");
-        loadQuestions(); // 갱신된 리스트 새로 불러오기
+        loadQuestions();
     } catch (err) { 
         alert(`등록 실패: ${err.message || "서버 및 권한 상태를 확인하세요."}`); 
     }
