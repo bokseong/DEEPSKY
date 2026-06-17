@@ -23,7 +23,7 @@
         .top-bar { 
             display: flex; justify-content: space-between; align-items: center; 
             padding: 0 30px; background: #070a1d; border-bottom: 1px solid #1b2f80; 
-            height: 65px; flex-shrink: 0; /* 상단바 고정 크기 유지 */
+            height: 65px; flex-shrink: 0;
         }
         .logo-area { display: flex; align-items: center; text-decoration: none; color: white; font-weight: bold; }
         .logo-area img { width: 40px; border-radius: 50%; margin-right: 12px; }
@@ -37,12 +37,12 @@
         }
         .btn-logout { background: #5a7aff !important; }
 
-        /* 컨테이너가 남는 공간을 다 차지하도록 설정 */
+        /* 컨테이너 가용 레이아웃 */
         .container { 
             max-width: 800px; 
             margin: 40px auto; 
-            padding: 0 20px 60px; /* 아래쪽 패딩 조정 */
-            flex: 1; /* 이 부분이 푸터를 바닥으로 밀어냅니다 */
+            padding: 0 20px 60px; 
+            flex: 1; 
             width: 100%;
         }
 
@@ -79,7 +79,7 @@
         footer { 
             background: #070a1d; text-align: center; padding: 35px 20px;
             color: #888; border-top: 1px solid #1b2f80; font-size: 13px;
-            flex-shrink: 0; /* 푸터 높이 유지 */
+            flex-shrink: 0;
         }
 
         @media (max-width: 600px) {
@@ -117,13 +117,13 @@
         <div id="viewContent" class="post-content"></div>
 
         <div id="linkArea" class="link-section hidden">
-            <div style="font-size: 13px; color: #7fc7ff; margin-bottom: 8px; font-weight: bold;">첨부된 파일 확인</div>
-            <a id="viewFileLink" href="#" target="_blank" class="btn-link">파일/링크 열기</a>
+            <div style="font-size: 13px; color: #7fc7ff; margin-bottom: 8px; font-weight: bold;">첨부된 링크</div>
+            <a id="viewFileLink" href="#" target="_blank" class="btn-link">링크 열기</a>
         </div>
         
         <div id="vFileContainer" class="hidden" style="margin-top:15px; padding:12px; background:rgba(255,255,255,0.05); border-radius:8px; border-left:3px solid #3a5aff;">
             <span style="font-size:14px; color:#7fc7ff; font-weight:bold;">첨부 파일 다운로드: </span>
-            <a id="vFileDownloadBtn" href="#" target="_blank" style="color:#fff; font-weight:bold; text-decoration:underline; margin-left:10px;"></a>
+            <button id="vFileDownloadBtn" style="background:none; border:none; color:#fff; font-weight:bold; text-decoration:underline; margin-left:10px; cursor:pointer; font-size:14px;"></button>
         </div>
 
         <div class="comment-section">
@@ -159,7 +159,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-// 1. 파이어베이스 초기화 (오직 세션 제어 목적으로만 사용)
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -184,7 +183,6 @@ let currentUserName = "익명";
 let currentUserRole = "guest";
 let postAuthorUid = "";
 
-// [인증 세션 체크 엔진]
 auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     const commentFormArea = document.getElementById("commentFormArea");
@@ -214,11 +212,10 @@ auth.onAuthStateChanged(async (user) => {
         commentLoginNotice?.classList.remove("hidden");
     }
     
-    // 유저 정의가 끝난 뒤 글 정보 호출
     loadPostDetail();
 });
 
-// 💡 [문제 해결 1 & 2] 데이터 연동 및 버튼 활성화 조건 제어 함수
+// 💡 상세 본문 바인딩 및 파일 처리 최적화 함수
 async function loadPostDetail() {
     if (!postId) return alert("비정상적인 접근 경로입니다.");
     
@@ -233,47 +230,46 @@ async function loadPostDetail() {
         const post = allPosts[postId]; 
 
         if (!post) {
-            alert("존재하지 않거나 이미 삭제된 게시글입니다.");
+            alert("존재하지 않거나 삭제된 게시글입니다.");
             location.href = "board.html";
             return;
         }
 
         postAuthorUid = post.uid;
 
-        // 베이스 컴포넌트 출력
         document.getElementById("postArea")?.classList.remove("hidden");
         document.getElementById("viewTitle").innerText = post.title || "제목 없음";
         document.getElementById("viewAuthor").innerText = `작성자: ${post.author || '익명'}`;
         document.getElementById("viewDate").innerText = `날짜: ${post.date || ''}`;
         document.getElementById("viewContent").innerText = post.content || "";
 
-        const fileContainer = document.getElementById("vFileContainer");
-        const fileBtn = document.getElementById("vFileDownloadBtn");
+        // 💡 [해결 1] '첨부된 링크' 데이터 검증 및 은닉 처리
         const linkArea = document.getElementById("linkArea");
         const viewFileLink = document.getElementById("viewFileLink");
-        
-        // 데이터에 업로드 파일(fileUrl)이 존재하는지 정밀 대조 검증
-        if (post.fileUrl && post.fileUrl.trim() !== "") {
-            // 강제 다운로드 백엔드 API 세팅
-            if (fileBtn) {
-                fileBtn.href = `${API_BASE_URL}/api/download?path=${encodeURIComponent(post.fileUrl)}`;
-                const cleanFileName = post.fileUrl.split('_').slice(1).join('_') || '첨부 파일';
-                fileBtn.innerText = `[ ${cleanFileName} ]`;
-            }
-            fileContainer?.classList.remove("hidden");
-
-            // 새 탭 브라우저 띄우기 주소 바인딩
-            if (viewFileLink) {
-                viewFileLink.href = `${API_BASE_URL}${post.fileUrl}`;
-            }
-            linkArea?.classList.remove("hidden"); 
+        if (post.link && post.link.trim() !== "") {
+            if (viewFileLink) viewFileLink.href = post.link;
+            linkArea?.classList.remove("hidden");
         } else {
-            // 파일이 없다면 두 UI 카드 형태 엘리먼트를 완전히 삭제/은닉 처리
-            fileContainer?.classList.add("hidden");
-            linkArea?.classList.add("hidden");
+            linkArea?.classList.add("hidden"); // 링크 데이터가 없으면 비노출
         }
 
-        // 권한 체크 로직 (작성자 또는 관리자)
+        // 💡 [해결 2] ngrok 연동 문제를 우회하는 순수 JS Blob 즉시 다운로드 엔진
+        const fileContainer = document.getElementById("vFileContainer");
+        const fileBtn = document.getElementById("vFileDownloadBtn");
+        
+        if (post.fileUrl && post.fileUrl.trim() !== "") {
+            const cleanFileName = post.fileUrl.split('_').slice(1).join('_') || '첨부 파일';
+            if (fileBtn) {
+                fileBtn.innerText = `[ ${cleanFileName} ]`;
+                // 버튼 클릭 시 ngrok 브라우저 경고창 우회 및 다이렉트 스트림 다운로드 작동
+                fileBtn.onclick = () => directBlobDownload(`${API_BASE_URL}${post.fileUrl}`, cleanFileName);
+            }
+            fileContainer?.classList.remove("hidden");
+        } else {
+            fileContainer?.classList.add("hidden");
+        }
+
+        // 제어 권한 필터링
         const hasAuth = currentUser && (currentUser.uid === post.uid || currentUserRole === 'admin');
         const editBtn = document.getElementById("editBtn");
         const deleteBtn = document.getElementById("deleteBtn");
@@ -292,11 +288,39 @@ async function loadPostDetail() {
         renderComments(post.comments || {});
     } catch (err) {
         console.error(err);
-        alert("데이터 서버로부터 본문을 수신하지 못했습니다.");
+        alert("데이터 서버 통신 오류가 발생했습니다.");
     }
 }
 
-// 댓글 목록 드로잉
+// ngrok 경고 페이지를 패스하고 바이너리 데이터를 직접 PC에 떨구는 다이렉트 다운로드 로직
+async function directBlobDownload(targetUrl, filename) {
+    try {
+        const response = await fetch(targetUrl, {
+            method: "GET",
+            headers: { "ngrok-skip-browser-warning": "69420" } // ngrok 우회 처리 필수 키
+        });
+        if (!response.ok) throw new Error("서버 파일 접근 실패");
+        
+        const fileBlob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(fileBlob);
+        
+        // 가상 앵커를 활용한 다이렉트 PC 다운로드 수행
+        const tempAnchor = document.createElement("a");
+        tempAnchor.href = blobUrl;
+        tempAnchor.download = filename;
+        document.body.appendChild(tempAnchor);
+        tempAnchor.click();
+        
+        // 사용한 자원 및 엘리먼트 메모리 해제
+        document.body.removeChild(tempAnchor);
+        window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+        console.error(error);
+        alert("파일을 다운로드하는 도중 에러가 발생했습니다.");
+    }
+}
+
+// 댓글 컴포넌트 드로잉
 function renderComments(comments) {
     const listContainer = document.getElementById("commentList");
     if (!listContainer) return;
@@ -332,7 +356,7 @@ function renderComments(comments) {
     });
 }
 
-// 💡 [문제 해결 3] 댓글 업로드 주소 정상 연동
+// 댓글 업로드 연동 안정화 완료
 async function addComment() {
     if (!currentUser) return alert("로그인 후 작성 가능합니다.");
     const input = document.getElementById("commentInput");
@@ -348,7 +372,6 @@ async function addComment() {
             date: new Date().toLocaleDateString('ko-KR')
         };
 
-        // API 라우터 도메인 연동 수정 완료
         const res = await fetch(`${API_BASE_URL}/api/freeboard/${postId}/comment`, {
             method: "POST",
             headers: { 
@@ -365,11 +388,11 @@ async function addComment() {
         await loadPostDetail(); 
     } catch (err) {
         console.error(err);
-        alert("댓글을 저장하지 못했습니다.");
+        alert("댓글 저장 처리에 실패했습니다.");
     }
 }
 
-// 게시글 영구 삭제 연동
+// 게시글 삭제 연동
 async function deletePost() {
     if (!confirm("정말로 이 게시글을 삭제하시겠습니까?")) return;
     try {
@@ -387,7 +410,7 @@ async function deletePost() {
         location.href = "board.html";
     } catch (err) {
         console.error(err);
-        alert("삭제 처리에 실패했습니다.");
+        alert("삭제하지 못했습니다.");
     }
 }
 
@@ -408,7 +431,7 @@ async function deleteComment(cKey) {
         await loadPostDetail();
     } catch (err) {
         console.error(err);
-        alert("댓글 삭제 권한이 없거나 삭제 처리에 실패했습니다.");
+        alert("댓글 삭제 권한이 없거나 처리에 실패했습니다.");
     }
 }
 
