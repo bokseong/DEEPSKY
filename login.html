@@ -88,7 +88,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
+    
 <script>
     // 1. Firebase 설정
     const firebaseConfig = {
@@ -104,11 +105,11 @@
 
     // 2. 초기화 및 App Check 활성화
     firebase.initializeApp(firebaseConfig);
-    // const appCheck = firebase.appCheck();
-    // appCheck.activate(
-    //     '6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', 
-    //     true 
-    // );
+    const appCheck = firebase.appCheck();
+    appCheck.activate(
+        '6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', 
+        true 
+    );
     const auth = firebase.auth();
     const db = firebase.database();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
