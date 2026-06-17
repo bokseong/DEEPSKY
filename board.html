@@ -237,7 +237,7 @@ nav .nav-inner {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-    // 1. 파이어베이스 초기화 및 기본 설정 (회원 인증용 유지)
+    // 1. 파이어베이스 초기화 (오직 '로그인/회원 인증 가드' 목적으로만 사용)
     const firebaseConfig = {
         apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
         authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -251,6 +251,7 @@ nav .nav-inner {
     const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
 
+    // 💡 모든 데이터 요청이 들어갈 자체 백엔드 주소
     const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
     const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
@@ -262,7 +263,7 @@ nav .nav-inner {
     const postsPerPage = 10;
     let isAuthInitialized = false;
 
-    // [인증 세션 감시] 
+    // [인증 세션 상태 감시] 
     auth.onAuthStateChanged(async (user) => {
         const status = document.getElementById("userStatus");
         
@@ -285,7 +286,7 @@ nav .nav-inner {
             document.getElementById("logoutBtn")?.classList.add("hidden");
         }
         
-        // 인증 체크가 끝난 후 자체 서버 게시글 로딩
+        // 인증 절차가 끝난 즉시 자체 서버 DB로부터 게시글을 로드합니다.
         isAuthInitialized = true;
         await loadBoardPosts();
     });
@@ -302,13 +303,14 @@ nav .nav-inner {
         }
     });
 
-    // 💡 자체 서버 DB(Flask 로컬 json 파일)로부터 게시글 로드 및 최신순 정렬 함수
+    // 💡 [자체 서버 DB 전용] 오직 Flask 로컬 json 파일에서만 데이터를 조회하는 함수
     async function loadBoardPosts() {
         if (!isAuthInitialized) return;
 
         try {
             const headers = { "ngrok-skip-browser-warning": "69420" };
             
+            // 로그인되어 있다면 신원 검증용 토큰만 생성하여 헤더에 첨부 (자체 DB 보안 검증용)
             if (currentUser) {
                 try {
                     const token = await currentUser.getIdToken(); 
@@ -318,7 +320,7 @@ nav .nav-inner {
                 }
             }
 
-            // 자체 백엔드 API 서버로 전송
+            // ⚠️ 파이어베이스 RTDB가 아닌, 자체 백엔드 플라스크 라우트로 전송하여 파일 데이터를 가져옴
             const res = await fetch(`${API_BASE_URL}/api/freeboard`, {
                 method: "GET",
                 headers: headers
@@ -333,10 +335,10 @@ nav .nav-inner {
             if (!res.ok) throw new Error("자체 백엔드 서버 응답 오류");
             const data = await res.json();
             
-            // 데이터 오브젝트를 배열 구조로 변환
+            // 가져온 JSON 오브젝트 맵을 가공하여 자바스크립트 배열로 변환
             allPosts = Object.keys(data).map(key => ({ id: key, ...data[key] }));
             
-            // 💡 자체 파일 DB 날짜 포맷을 안전하게 숫자로 변환하여 최신순 역순 정렬
+            //자체 파일 DB의 작성 일자(date) 문자열을 타임스탬프로 파싱하여 완벽한 최신순(내림차순) 정렬
             allPosts.sort((a, b) => {
                 const timeA = a.date ? new Date(a.date).getTime() : 0;
                 const timeB = b.date ? new Date(b.date).getTime() : 0;
@@ -356,7 +358,7 @@ nav .nav-inner {
         }
     }
 
-    // 💡 게시글 렌더링 및 글 번호 역순 부여 매핑 함수
+    // 💡 화면 렌더링 및 역순 글 번호 매핑 처리 함수
     function renderPage() {
         const list = document.getElementById("postList");
         if (!list) return;
@@ -378,7 +380,7 @@ nav .nav-inner {
 
             const fileIcon = p.fileUrl ? " 📎" : "";
             
-            // 💡 최신순 배열에 일치하도록 글 번호(인덱스) 계산 (총 개수 기반 역순 산출)
+            // 전체 글 목록 수에서 현재 페이지 인덱스를 제외하여 유동적인 고유 글 번호 생성
             const postNumber = displayPosts.length - (startIndex + idx);
 
             item.innerHTML = `
@@ -394,6 +396,7 @@ nav .nav-inner {
                 </div>
             `;
 
+            // 삭제 권한 판단 (관리자이거나 본인이 작성한 글인 경우)
             const isDeleteAuth = (currentUserRole === 'admin') || (currentUser && p.uid === currentUser.uid);
 
             if (isDeleteAuth) {
@@ -408,6 +411,8 @@ nav .nav-inner {
                     if (confirm("정말로 이 게시글을 삭제하시겠습니까?")) {
                         try {
                             const token = await currentUser.getIdToken();
+                            
+                            // ⚠️ 삭제 요청 역시 자체 백엔드 API 경로로만 전달하여 로컬 JSON에서 파괴하도록 연동
                             const res = await fetch(`${API_BASE_URL}/api/freeboard/${p.id}`, {
                                 method: "DELETE",
                                 headers: {
@@ -425,7 +430,7 @@ nav .nav-inner {
                             const result = await res.json();
                             if (res.ok && result.success) {
                                 alert("성공적으로 삭제되었습니다.");
-                                await loadBoardPosts(); 
+                                await loadBoardPosts(); // 삭제 후 목록 갱신
                             } else {
                                 alert(`삭제 실패: ${result.error || "알 수 없는 오류"}`);
                             }
