@@ -6,7 +6,7 @@
     <link rel="icon" href="logo.png" type="image/png">
     <title>DEEP SKY</title>
     <style>
-        /* [수정] 바닥 고정을 위한 레이아웃 설정 */
+        /* 바닥 고정을 위한 레이아웃 설정 */
         html, body { height: 100%; margin: 0; }
         body { 
             display: flex; 
@@ -37,7 +37,7 @@
         }
         .btn-logout { background: #5a7aff !important; }
 
-        /* [수정] 컨테이너가 남는 공간을 다 차지하도록 설정 */
+        /* 컨테이너가 남는 공간을 다 차지하도록 설정 */
         .container { 
             max-width: 800px; 
             margin: 40px auto; 
@@ -75,7 +75,7 @@
         .btn-delete { background: #ff4d4d; color: white; }
         .btn-delete:hover { background: #e60000; }
 
-        /* [수정] 푸터 스타일 */
+        /* 푸터 스타일 */
         footer { 
             background: #070a1d; text-align: center; padding: 35px 20px;
             color: #888; border-top: 1px solid #1b2f80; font-size: 13px;
@@ -116,12 +116,14 @@
         
         <div id="viewContent" class="post-content"></div>
 
-        <div id="linkArea" class="hidden">
-            <a id="viewFileLink" href="#" target="_blank" class="btn">링크 열기</a>
+        <div id="linkArea" class="link-section hidden">
+            <div style="font-size: 13px; color: #7fc7ff; margin-bottom: 8px; font-weight: bold;">첨부된 파일 확인</div>
+            <a id="viewFileLink" href="#" target="_blank" class="btn-link">파일/링크 열기</a>
         </div>
-
-        <div id="vFileContainer" class="hidden">
-            <a id="vFileDownloadBtn" href="#">다운로드</a>
+        
+        <div id="vFileContainer" class="hidden" style="margin-top:15px; padding:12px; background:rgba(255,255,255,0.05); border-radius:8px; border-left:3px solid #3a5aff;">
+            <span style="font-size:14px; color:#7fc7ff; font-weight:bold;">첨부 파일 다운로드: </span>
+            <a id="vFileDownloadBtn" href="#" target="_blank" style="color:#fff; font-weight:bold; text-decoration:underline; margin-left:10px;"></a>
         </div>
 
         <div class="comment-section">
@@ -144,7 +146,8 @@
                 <button id="deleteBtn" class="btn btn-delete hidden" onclick="deletePost()">이 글 삭제하기</button>
             </div>
         </div>
-    </div> </div>
+    </div> 
+</div>
 
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
@@ -156,7 +159,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-// 1. 파이어베이스 초기화 (로그인 세션 가드 용도)
+// 1. 파이어베이스 초기화 (오직 세션 제어 목적으로만 사용)
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -181,7 +184,7 @@ let currentUserName = "익명";
 let currentUserRole = "guest";
 let postAuthorUid = "";
 
-// [인증 상태 감시자]
+// [인증 세션 체크 엔진]
 auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     const commentFormArea = document.getElementById("commentFormArea");
@@ -211,11 +214,11 @@ auth.onAuthStateChanged(async (user) => {
         commentLoginNotice?.classList.remove("hidden");
     }
     
-    // 게시글 상세 정보 불러오기
+    // 유저 정의가 끝난 뒤 글 정보 호출
     loadPostDetail();
 });
 
-// 💡 [데이터 로드 및 파일 영역 노출 제어]
+// 💡 [문제 해결 1 & 2] 데이터 연동 및 버튼 활성화 조건 제어 함수
 async function loadPostDetail() {
     if (!postId) return alert("비정상적인 접근 경로입니다.");
     
@@ -237,40 +240,40 @@ async function loadPostDetail() {
 
         postAuthorUid = post.uid;
 
-        // 본문 기본 텍스트 바인딩
+        // 베이스 컴포넌트 출력
         document.getElementById("postArea")?.classList.remove("hidden");
         document.getElementById("viewTitle").innerText = post.title || "제목 없음";
         document.getElementById("viewAuthor").innerText = `작성자: ${post.author || '익명'}`;
         document.getElementById("viewDate").innerText = `날짜: ${post.date || ''}`;
         document.getElementById("viewContent").innerText = post.content || "";
 
-        // 💡 [해결 1 & 2] 파일이 있을 때만 버튼 노출 및 다운로드 경로 정밀 매핑
         const fileContainer = document.getElementById("vFileContainer");
         const fileBtn = document.getElementById("vFileDownloadBtn");
         const linkArea = document.getElementById("linkArea");
         const viewFileLink = document.getElementById("viewFileLink");
         
+        // 데이터에 업로드 파일(fileUrl)이 존재하는지 정밀 대조 검증
         if (post.fileUrl && post.fileUrl.trim() !== "") {
-            // 파일 다운로드 주소 연동
+            // 강제 다운로드 백엔드 API 세팅
             if (fileBtn) {
                 fileBtn.href = `${API_BASE_URL}/api/download?path=${encodeURIComponent(post.fileUrl)}`;
-                const cleanFileName = post.fileUrl.split('_').slice(1).join('_') || '첨부 파일 다운로드';
+                const cleanFileName = post.fileUrl.split('_').slice(1).join('_') || '첨부 파일';
                 fileBtn.innerText = `[ ${cleanFileName} ]`;
             }
             fileContainer?.classList.remove("hidden");
 
-            // 브라우저에서 보기(링크열기) 주소 연동
+            // 새 탭 브라우저 띄우기 주소 바인딩
             if (viewFileLink) {
                 viewFileLink.href = `${API_BASE_URL}${post.fileUrl}`;
             }
-            linkArea?.classList.remove("hidden"); // 파일이 확실히 존재할 때만 링크 영역 활성화
+            linkArea?.classList.remove("hidden"); 
         } else {
-            // 파일이 없다면 두 영역 모두 완전히 숨김 (링크 열기 버그 해결)
+            // 파일이 없다면 두 UI 카드 형태 엘리먼트를 완전히 삭제/은닉 처리
             fileContainer?.classList.add("hidden");
             linkArea?.classList.add("hidden");
         }
 
-        // 수정/삭제 버튼 권한 처리
+        // 권한 체크 로직 (작성자 또는 관리자)
         const hasAuth = currentUser && (currentUser.uid === post.uid || currentUserRole === 'admin');
         const editBtn = document.getElementById("editBtn");
         const deleteBtn = document.getElementById("deleteBtn");
@@ -293,7 +296,7 @@ async function loadPostDetail() {
     }
 }
 
-// 댓글 목록 렌더링
+// 댓글 목록 드로잉
 function renderComments(comments) {
     const listContainer = document.getElementById("commentList");
     if (!listContainer) return;
@@ -329,7 +332,7 @@ function renderComments(comments) {
     });
 }
 
-// 💡 [해결 3] 댓글 작성 API 경로 정상화
+// 💡 [문제 해결 3] 댓글 업로드 주소 정상 연동
 async function addComment() {
     if (!currentUser) return alert("로그인 후 작성 가능합니다.");
     const input = document.getElementById("commentInput");
@@ -345,7 +348,7 @@ async function addComment() {
             date: new Date().toLocaleDateString('ko-KR')
         };
 
-        // Flask API 라우트 주소 규격 매핑 수정
+        // API 라우터 도메인 연동 수정 완료
         const res = await fetch(`${API_BASE_URL}/api/freeboard/${postId}/comment`, {
             method: "POST",
             headers: { 
@@ -362,11 +365,11 @@ async function addComment() {
         await loadPostDetail(); 
     } catch (err) {
         console.error(err);
-        alert("댓글 저장에 실패했습니다. 서버 상태를 확인해주세요.");
+        alert("댓글을 저장하지 못했습니다.");
     }
 }
 
-// 게시글 삭제
+// 게시글 영구 삭제 연동
 async function deletePost() {
     if (!confirm("정말로 이 게시글을 삭제하시겠습니까?")) return;
     try {
@@ -384,11 +387,11 @@ async function deletePost() {
         location.href = "board.html";
     } catch (err) {
         console.error(err);
-        alert("서버 오류로 삭제하지 못했습니다.");
+        alert("삭제 처리에 실패했습니다.");
     }
 }
 
-// 댓글 삭제
+// 댓글 삭제 연동
 async function deleteComment(cKey) {
     if (!confirm("선택한 댓글을 삭제하시겠습니까?")) return;
     try {
@@ -405,7 +408,7 @@ async function deleteComment(cKey) {
         await loadPostDetail();
     } catch (err) {
         console.error(err);
-        alert("댓글 삭제 권한이 없거나 처리에 실패했습니다.");
+        alert("댓글 삭제 권한이 없거나 삭제 처리에 실패했습니다.");
     }
 }
 
