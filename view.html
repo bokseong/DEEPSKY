@@ -155,10 +155,9 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
+// 1. 파이어베이스 초기화 (오직 '로그인 및 토큰 검증' 목적으로만 사용)
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -171,7 +170,6 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
-const db = firebase.database();
 
 const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
@@ -184,113 +182,156 @@ let currentUserName = "익명";
 let currentUserRole = "guest";
 let postAuthorUid = "";
 
+// 인증 세션 상태 감시
 auth.onAuthStateChanged(async (user) => {
-    currentUser = user;
     const status = document.getElementById("userStatus");
+    const commentFormArea = document.getElementById("commentFormArea");
+    const commentLoginNotice = document.getElementById("commentLoginNotice");
+
     if (user) {
-        db.ref('users/' + user.uid).on('value', (snapshot) => {
-            const userData = snapshot.val() || {};
-            currentUserName = userData.name || user.displayName || user.email.split('@')[0];
-            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
-            if (status) status.innerText = `${currentUserName}님 (${currentUserRole==='admin'?'관리자':(currentUserRole==='student'?'부원':'일반')})`;
-            loadPostDetail();
-        });
+        currentUser = user;
+        currentUserName = user.displayName || user.email.split('@')[0];
+        currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : 'member';
+        
+        if (status) status.innerText = `${currentUserName}님 (${currentUserRole==='admin'?'관리자':'회원'})`;
+        
         document.getElementById("loginBtn")?.classList.add("hidden");
         document.getElementById("logoutBtn")?.classList.remove("hidden");
+        
+        // 로그인 상태일 때 댓글 작성 창 활성화
+        commentFormArea?.classList.remove("hidden");
+        commentLoginNotice?.classList.add("hidden");
     } else {
+        currentUser = null;
         currentUserRole = "guest";
         if (status) status.innerText = "로그인 해주세요";
+        
         document.getElementById("loginBtn")?.classList.remove("hidden");
         document.getElementById("logoutBtn")?.classList.add("hidden");
-        loadPostDetail();
+        
+        // 비로그인 상태일 때 안내 문구 노출
+        commentFormArea?.classList.add("hidden");
+        commentLoginNotice?.classList.remove("hidden");
     }
+    
+    // 유저 로드가 끝나면 백엔드(freeboard.json)로부터 글 상세 정보 렌더링
+    loadPostDetail();
 });
 
-// 상세조회 바인딩 및 다운로드 링크 세팅
+// 💡 [자체 로컬 DB 연동] 상세 조회 및 데이터 바인딩 함수
 async function loadPostDetail() {
     if (!postId) return alert("비정상적인 접근 경로입니다.");
+    
     try {
-        const res = await fetch(`${API_BASE_URL}/api/freeboard/${postId}`, {
+        const res = await fetch(`${API_BASE_URL}/api/freeboard`, {
             method: "GET",
             headers: { "ngrok-skip-browser-warning": "69420" }
         });
         if (!res.ok) throw new Error();
-        const post = await res.json();
+        
+        const allPosts = await res.json();
+        const post = allPosts[postId]; // 전체 데이터 맵에서 해당 id를 가진 객체 추출
+
+        if (!post) {
+            alert("존재하지 않거나 삭제된 게시글입니다.");
+            location.href = "board.html";
+            return;
+        }
 
         postAuthorUid = post.uid;
 
-        document.getElementById("vTitle").innerText = post.title || "제목 없음";
-        document.getElementById("vMeta").innerText = `작성자: ${post.author || '익명'} | 날짜: ${post.date || ''}`;
-        document.getElementById("vContent").innerText = post.content || "";
+        // 메인 영역 표시 전환 및 텍스트 맵핑
+        document.getElementById("postArea")?.classList.remove("hidden");
+        document.getElementById("viewTitle").innerText = post.title || "제목 없음";
+        document.getElementById("viewAuthor").innerText = `작성자: ${post.author || '익명'}`;
+        document.getElementById("viewDate").innerText = `날짜: ${post.date || ''}`;
+        document.getElementById("viewContent").innerText = post.content || "";
 
-        // 링크 처리
-        const linkEl = document.getElementById("vLink");
-        if (post.link) {
-            linkEl.innerHTML = `<a href="${post.link}" target="_blank" style="color:#7fc7ff; text-decoration:underline;">첨부 링크 바로가기 🔗</a>`;
-            linkEl.classList.remove("hidden");
-        } else {
-            linkEl.classList.add("hidden");
-        }
-
-        // 자체 업로드 파일 및 다운로드 주소 처리
+        // 첨부파일 / 다운로드 주소 처리 (.fileUrl 기준)
         const fileContainer = document.getElementById("vFileContainer");
         const fileBtn = document.getElementById("vFileDownloadBtn");
-        if (post.file_path && fileContainer && fileBtn) {
-            fileBtn.href = `${API_BASE_URL}/api/download?path=${encodeURIComponent(post.file_path)}`;
-            fileBtn.innerText = `[ ${post.file_name || '파일 다운로드'} ]`;
+        
+        if (post.fileUrl && fileContainer && fileBtn) {
+            fileBtn.href = `${API_BASE_URL}${post.fileUrl}`;
+            // 파일명 추출 (UUID 식별자 제거 후 본래 파일명만 깔끔하게 노출)
+            const cleanFileName = post.fileUrl.split('_').slice(1).join('_') || '첨부 파일';
+            fileBtn.innerText = cleanFileName;
             fileContainer.classList.remove("hidden");
         } else if (fileContainer) {
             fileContainer.classList.add("hidden");
         }
 
-        // 보안 규칙 기준 권한 활성화 (원작자 혹은 관리자 본문 삭제)
-        if (currentUser && (currentUser.uid === post.uid || currentUserRole === 'admin')) {
-            document.getElementById("postDeleteBtn")?.classList.remove("hidden");
+        // 💡 수정 및 삭제 버튼 권한 필터링 (작성자 본인 또는 관리자만 표기)
+        const hasAuth = currentUser && (currentUser.uid === post.uid || currentUserRole === 'admin');
+        const editBtn = document.getElementById("editBtn");
+        const deleteBtn = document.getElementById("deleteBtn");
+
+        if (hasAuth) {
+            if (editBtn) {
+                editBtn.classList.remove("hidden");
+                // 클릭 시 write.html에 수정 타겟 id 파라미터를 넘기도록 설계
+                editBtn.onclick = () => location.href = `write.html?id=${postId}`;
+            }
+            deleteBtn?.classList.remove("hidden");
+        } else {
+            editBtn?.classList.add("hidden");
+            deleteBtn?.classList.add("hidden");
         }
 
-        renderComments(post.comments);
+        // 댓글 배열 목록 출력
+        renderComments(post.comments || {});
     } catch (err) {
-        alert("데이터 수신 오류가 발생했습니다.");
+        console.error(err);
+        alert("데이터를 수신하는 도중 오류가 발생했습니다.");
     }
 }
 
-// 댓글 컴포넌트 렌더링
+// 💡 댓글 컴포넌트 렌더링 함수 (HTML 매핑 정상화)
 function renderComments(comments) {
-    const box = document.getElementById("commentBox");
-    if (!box) return;
-    box.innerHTML = "";
-    if (!comments) return;
+    const listContainer = document.getElementById("commentList");
+    if (!listContainer) return;
+    listContainer.innerHTML = "";
 
-    Object.keys(comments).forEach(cKey => {
+    const keys = Object.keys(comments);
+    if (keys.length === 0) {
+        listContainer.innerHTML = `<p style="color:#888; font-size:14px; text-align:center; padding:10px 0;">첫 댓글을 남겨보세요!</p>`;
+        return;
+    }
+
+    keys.forEach(cKey => {
         const c = comments[cKey];
         const item = document.createElement("div");
         item.className = "comment-item";
-        item.style.borderBottom = "1px solid #1b2f80";
-        item.style.padding = "10px 0";
 
-        // 파이어베이스 보안 가이드라인 일치화 (댓글작성자, 원글작성자, 어드민 삭제 승인)
+        // 댓글작성자 본인, 원본 글쓴이, 총괄 관리자만 파괴 승인 권한 부여
         const isCommentAuthor = currentUser && currentUser.uid === c.uid;
         const isPostAuthor = currentUser && currentUser.uid === postAuthorUid;
         const isAdmin = currentUserRole === 'admin';
         const canDelete = isCommentAuthor || isPostAuthor || isAdmin;
 
         item.innerHTML = `
-            <div style="font-size:12px; color:#7fc7ff;">${c.author} (${c.date || ''})</div>
-            <div style="margin:5px 0; font-size:14px;">${c.text}</div>
-            ${canDelete ? `<button onclick="deleteComment('${cKey}')" style="background:none; border:none; color:#ff4d4d; font-size:11px; cursor:pointer; padding:0;">[삭제]</button>` : ""}
+            <div class="comment-meta">
+                <span class="comment-author">${c.author || '익명'}</span>
+                <span>${c.date || ''}</span>
+            </div>
+            <div class="comment-text">${c.text || ''}</div>
+            <div style="margin-top:5px; text-align:right;">
+                ${canDelete ? `<button class="btn-comment-del" onclick="deleteComment('${cKey}')">[삭제]</button>` : ""}
+            </div>
         `;
-        box.appendChild(item);
+        listContainer.appendChild(item);
     });
 }
 
-// 자체 서버 댓글 등록 연동
+// 💡 자체 서버 댓글 등록 함수 연동
 async function addComment() {
     if (!currentUser) return alert("로그인 후 작성 가능합니다.");
-    const input = document.getElementById("cInput");
+    const input = document.getElementById("commentInput");
     const text = input.value.trim();
-    if (!text) return alert("내용을 채워주세요.");
+    if (!text) return alert("댓글 내용을 입력해 주세요.");
 
     try {
+        const token = await currentUser.getIdToken();
         const commentData = {
             text: text,
             author: currentUserName,
@@ -302,51 +343,70 @@ async function addComment() {
             method: "POST",
             headers: { 
                 "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`,
                 "ngrok-skip-browser-warning": "69420"
             },
             body: JSON.stringify(commentData)
         });
 
-        if (!res.ok) throw new Error();
+        if (!res.ok) throw new Error("댓글 저장 실패");
+        
         input.value = "";
-        loadPostDetail();
+        await loadPostDetail(); // 댓글 목록 리로드
     } catch (err) {
-        alert("댓글 작성 실패");
+        console.error(err);
+        alert("댓글을 등록하지 못했습니다.");
     }
 }
 
-// 자체 서버 본문 제거 연동
+// 💡 자체 서버 글 제거 함수 연동
 async function deletePost() {
-    if (!confirm("정말로 이 글을 삭제하시겠습니까?")) return;
+    if (!confirm("정말로 이 게시글을 삭제하시겠습니까?")) return;
     try {
+        const token = await currentUser.getIdToken();
         const res = await fetch(`${API_BASE_URL}/api/freeboard/${postId}`, {
             method: "DELETE",
-            headers: { "ngrok-skip-browser-warning": "69420" }
+            headers: { 
+                "Authorization": `Bearer ${token}`,
+                "ngrok-skip-browser-warning": "69420" 
+            }
         });
+        
         if (!res.ok) throw new Error();
-        alert("삭제 완료되었습니다.");
+        alert("성공적으로 삭제되었습니다.");
         location.href = "board.html";
     } catch (err) {
-        alert("삭제 권한이 없거나 처리에 실패했습니다.");
+        console.error(err);
+        alert("삭제 처리에 실패했거나 권한이 없습니다.");
     }
 }
 
-// 자체 서버 댓글 삭제 연동
+// 💡 자체 서버 댓글 삭제 함수 연동
 async function deleteComment(cKey) {
-    if (!confirm("댓글을 제거하시겠습니까?")) return;
+    if (!confirm("선택한 댓글을 삭제하시겠습니까?")) return;
     try {
+        const token = await currentUser.getIdToken();
         const res = await fetch(`${API_BASE_URL}/api/freeboard/${postId}/comment/${cKey}`, {
             method: "DELETE",
-            headers: { "ngrok-skip-browser-warning": "69420" }
+            headers: { 
+                "Authorization": `Bearer ${token}`,
+                "ngrok-skip-browser-warning": "69420" 
+            }
         });
+        
         if (!res.ok) throw new Error();
-        loadPostDetail();
+        await loadPostDetail();
     } catch (err) {
-        alert("삭제 처리에 실패했습니다.");
+        console.error(err);
+        alert("댓글 삭제 권한이 없거나 처리에 실패했습니다.");
     }
 }
 
-function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
+function logout() { 
+    if(confirm("로그아웃 하시겠습니까?")) {
+        auth.signOut().then(() => location.reload()); 
+    } 
+}
 </script>
 </body>
 </html>
