@@ -267,9 +267,9 @@ const postsPerPage = 10;
 // 💡 2. 인증 감지 상태를 보다 안전하게 처리하기 위한 초기화 플래그 변경
 let isAuthInitialized = false;
 
+// [인증 세션 감시] 
 auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
-    isAuthInitialized = true; // 인증 프로세스가 한 번이라도 돌았음을 증명
     
     if (user) {
         currentUser = user;
@@ -290,10 +290,12 @@ auth.onAuthStateChanged(async (user) => {
         document.getElementById("logoutBtn")?.classList.add("hidden");
     }
     
-    // 인증이 확인되었으므로 즉시 게시글 로드
+    // 💡 중요: 인증 체크가 완전히 끝난 지점(user 상태가 확정된 후)에서만 딱 한 번 글을 불러옵니다.
+    isAuthInitialized = true;
     await loadBoardPosts();
 });
 
+// DOMContentLoaded 시점에는 loadBoardPosts를 호출하지 않고 이벤트 바인딩만 합니다.
 document.addEventListener("DOMContentLoaded", () => {
     const writeBtn = document.getElementById("topWriteBtn");
     if (writeBtn) {
@@ -304,25 +306,23 @@ document.addEventListener("DOMContentLoaded", () => {
             checkWriteAuth();
         };
     }
-    // 혹시라도 Firebase 로딩이 지연될 경우를 대비해 1.5초 후 강제 로딩 시도 (방어 코드)
-    setTimeout(() => {
-        if(!isAuthInitialized) {
-            isAuthInitialized = true;
-            loadBoardPosts();
-        }
-    }, 1500);
 });
 
 async function loadBoardPosts() {
-    // 초기화가 안 끝났다면 대기
+    // 💡 Firebase 인증 상태가 완전히 결정되기 전(복구 중)이라면 호출을 대기시킵니다.
     if (!isAuthInitialized) return;
 
     try {
-        // 💡 3. 안정성을 위해 GET 요청 시에도 현재 로그인되어 있다면 토큰을 헤더에 탑재
         const headers = { "ngrok-skip-browser-warning": "69420" };
+        
+        // 💡 로그인 상태라면 토큰이 완전히 강제 갱신(force refresh)된 유효한 토큰을 가져오도록 설정
         if (currentUser) {
-            const token = await currentUser.getIdToken();
-            headers["Authorization"] = `Bearer ${token}`;
+            try {
+                const token = await currentUser.getIdToken(true); // true를 주어 만료된 토큰을 강제 갱신
+                headers["Authorization"] = `Bearer ${token}`;
+            } catch (tokenErr) {
+                console.error("토큰 갱신 실패:", tokenErr);
+            }
         }
 
         const res = await fetch(`${API_BASE_URL}/api/freeboard`, {
@@ -330,7 +330,7 @@ async function loadBoardPosts() {
             headers: headers
         });
         
-        // 401 인증 에러 처리 리디렉션 보호막
+        // 백엔드에서 인증 만료(401) 신호를 주면 안전하게 로그인 페이지로 리다이렉트
         if (res.status === 401) {
             alert("보안을 위해 다시 로그인 해주세요.");
             location.href = "login.html";
@@ -353,7 +353,7 @@ async function loadBoardPosts() {
     } catch (err) {
         console.error("자체 서버 게시판 로드 실패:", err);
         const list = document.getElementById("postList");
-        if (list) list.innerHTML = `<p style="text-align:center; padding:50px; color:#ff4d4d;">서ber 연결에 실패했습니다.</p>`;
+        if (list) list.innerHTML = `<p style="text-align:center; padding:50px; color:#ff4d4d;">서버 연결에 실패했습니다.</p>`;
     }
 }
 
