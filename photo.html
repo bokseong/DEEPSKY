@@ -215,9 +215,8 @@ const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
 let currentUser = null;
 let currentUserRole = "guest";
-let cachedPhotos = {}; // 실시간 필터 검색 대응용 로컬 캐시 스토리지
+let cachedPhotos = {};
 
-// [인증 및 등급 제어 가드]
 auth.onAuthStateChanged((user) => {
     const status = document.getElementById("userStatus");
     const lockMsg = document.getElementById("lockMessage");
@@ -231,22 +230,21 @@ auth.onAuthStateChanged((user) => {
         document.getElementById("loginBtn")?.classList.add("hidden");
         document.getElementById("logoutBtn")?.classList.remove("hidden");
 
-        // Realtime DB의 역할을 조회하여 가드 적용
         db.ref('users/' + user.uid).on('value', (snapshot) => {
             const userData = snapshot.val() || {};
-            // 이메일이 마스터 계정이거나, DB 상 권한이 'admin'인 경우만 등급인정
+            
             currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
             
-            if (status) status.innerText = `${userName}님 (${currentUserRole === 'admin' ? '관리자' : '회원'})`;
+            if (status) {
+                status.innerText = `${userName}님 (${currentUserRole === 'admin' ? '관리자' : '회원'})`;
+            }
             
-            // 💡 [해결 1] 오직 admin 관리자 등급에게만 업로드 컴포넌트 폼 완전 개방
             if (currentUserRole === 'admin') {
                 uploadSection?.classList.remove("hidden");
             } else {
                 uploadSection?.classList.add("hidden");
             }
 
-            // 💡 [해결 2] 로그인 상태이므로 락 해제 및 갤러리 메인 활성화
             lockMsg?.classList.add("hidden");
             mainContent?.classList.remove("hidden");
             
@@ -260,8 +258,8 @@ auth.onAuthStateChanged((user) => {
         document.getElementById("loginBtn")?.classList.remove("hidden");
         document.getElementById("logoutBtn")?.classList.add("hidden");
 
-        // 💡 [해결 2] 로그아웃 상태일 시 데이터 영역을 강제 격리 은닉하고 경고 카드 출력
         mainContent?.classList.add("hidden");
+        uploadSection?.classList.add("hidden");
         lockMsg?.classList.remove("hidden");
     }
 });
