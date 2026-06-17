@@ -1,4 +1,4 @@
-    <!DOCTYPE.html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -30,23 +30,21 @@
         /* 3. 헤더 및 내비게이션 */
         header { background: linear-gradient(to right, #0d1b52, #1b2f80); padding: 38px 20px; text-align: center; }
         nav { 
-    background: #11153a; 
-    border-bottom: 1px solid #2d367a; 
-    padding: 10px 0; 
-    /* 줄바꿈을 허용하기 위해 아래 두 줄 수정/삭제 */
-    overflow-x: visible; 
-    white-space: normal; 
-}
+            background: #11153a; 
+            border-bottom: 1px solid #2d367a; 
+            padding: 10px 0; 
+            overflow-x: visible; 
+            white-space: normal; 
+        }
 
-nav .nav-inner { 
-    max-width: 1200px;
-    margin: 0 auto; 
-    display: flex; 
-    /* wrap으로 변경하여 공간이 부족하면 아래로 넘어가게 함 */
-    flex-wrap: wrap; 
-    justify-content: center; 
-    gap: 5px; /* 줄바꿈 시 가독성을 위해 간격을 조금 넓힘 */
-}
+        nav .nav-inner { 
+            max-width: 1200px;
+            margin: 0 auto; 
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            gap: 5px; 
+        }
         nav a { display: inline-block; color: white; padding: 12px 18px; text-decoration: none; font-weight: bold; font-size: 15px; border-radius: 8px; }
         nav a:hover { background: rgba(127, 199, 255, 0.1); color: #7fc7ff; }
 
@@ -67,10 +65,6 @@ nav .nav-inner {
 
         /* 5. 업로드 카드 */
         .upload-card { background: #161b4a; padding: 25px; border-radius: 12px; margin-bottom: 30px; border: 1px solid #2d367a; text-align: center; }
-        .upload-card textarea { 
-            width: 100%; height: 120px; padding: 12px; margin-bottom: 10px; border-radius: 8px; 
-            border: 1px solid #1b2f80; background: #0b0f2b; color: #7fc7ff; font-family: monospace; resize: vertical;
-        }
         .upload-card input { 
             width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; 
             border: 1px solid #1b2f80; background: #0b0f2b; color: white; 
@@ -81,30 +75,38 @@ nav .nav-inner {
         .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
         .photo-card { background: #161b4a; border-radius: 15px; overflow: hidden; border: 1px solid #2d367a; transition: 0.3s; display: flex; flex-direction: column; }
         .photo-card:hover { transform: translateY(-5px); border-color: #3a5aff; }
-        .photo-card img { width: 100%; height: 200px; object-fit: cover; cursor: pointer; background: #070a1d; }
         
-        .photo-info { padding: 15px; border-bottom: 1px solid #2d367a; text-align: center; }
-        .owner-tag { font-size: 11px; color: #7fc7ff; display: block; margin-bottom: 5px; }
-        .photo-title { margin: 5px 0; font-size: 16px; font-weight: bold; min-height: 40px; display: flex; align-items: center; justify-content: center;}
+        /* 💡 [수정] 이미지 다이렉트 다운로드 연동 블롭 렌더링용 스타일 */
+        .photo-card .img-wrapper { width: 100%; height: 210px; background: #070a1d; overflow: hidden; position: relative; cursor: pointer; }
+        .photo-card img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
+        .photo-card img:hover { transform: scale(1.03); }
         
-        /* 댓글 영역 스타일 */
-        .comment-section { padding: 15px; background: rgba(0,0,0,0.15); flex-grow: 1; }
-        .comment-list { max-height: 120px; overflow-y: auto; margin-bottom: 10px; font-size: 13px; text-align: left; }
-        .comment-item { margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px dashed #2d367a; position: relative; line-height: 1.4; }
-        .comment-user { font-weight: bold; color: #7fc7ff; margin-right: 5px; }
-        .btn-comment-del { color: #ff4d4d; background: none; border: none; font-size: 10px; cursor: pointer; padding: 0 5px; }
-        
-        .comment-input-group { display: flex; gap: 5px; margin-top: 10px; }
-        .comment-input-group input { flex: 1; padding: 8px; border-radius: 5px; border: 1px solid #2d367a; background: #0b0f2b; color: white; font-size: 12px; }
-        .btn-comment-add { padding: 0 10px; background: #3a5aff; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 12px; white-space: nowrap; }
+        .photo-info { padding: 15px; text-align: center; flex-grow: 1; display: flex; flex-direction: column; justify-content: center; }
+        .owner-tag { font-size: 12px; color: #7fc7ff; display: block; margin-bottom: 5px; }
+        .photo-title { margin: 5px 0 0 0; font-size: 16px; font-weight: bold; color: #fff; }
 
-        .btn-group { display: flex; gap: 5px; padding: 10px; background: #11153a; }
-        .btn-group a, .btn-group button { 
+        .btn-group { display: flex; gap: 5px; padding: 10px; background: #11153a; border-top: 1px solid #2d367a; }
+        .btn-group button { 
             flex: 1; padding: 8px; border-radius: 5px; font-size: 13px; font-weight: bold; 
-            text-decoration: none; cursor: pointer; border: none; text-align: center;
+            cursor: pointer; border: none; text-align: center;
         }
         .btn-view { background: #28a745; color: white; }
         .btn-del { background: #ff4d4d; color: white; }
+
+        /* 💡 [추가] 사진 선택 시 원본을 깔끔하게 보여주는 오버레이 모달 창 디자인 */
+        .photo-modal {
+            position: fixed; top:0; left:0; width:100%; height:100%; 
+            background: rgba(4, 6, 18, 0.95); z-index: 2000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 20px;
+        }
+        .modal-content { max-width: 90%; max-height: 75vh; border-radius: 10px; box-shadow: 0 0 30px rgba(0,0,0,0.5); object-fit: contain; }
+        .modal-title { margin-top: 15px; font-size: 20px; color: #7fc7ff; font-weight: bold; text-align: center; }
+        .modal-close {
+            position: absolute; top: 20px; right: 25px; color: #fff;
+            font-size: 35px; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .modal-close:hover { color: #ff4d4d; }
 
         /* 원본 푸터 스타일 */
         footer { 
@@ -179,6 +181,12 @@ nav .nav-inner {
     </div>
 </div>
 
+<div id="photoModal" class="photo-modal hidden">
+    <span class="modal-close" onclick="closeModal()">&times;</span>
+    <img id="modalImg" class="modal-content" src="" alt="원본 보기">
+    <div id="modalTitle" class="modal-title"></div>
+</div>
+
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
     <br>
@@ -188,7 +196,6 @@ nav .nav-inner {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
 const firebaseConfig = { 
@@ -208,78 +215,205 @@ const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
 let currentUser = null;
 let currentUserRole = "guest";
+let cachedPhotos = {}; // 실시간 필터 검색 대응용 로컬 캐시 스토리지
 
+// [인증 및 등급 제어 가드]
 auth.onAuthStateChanged((user) => {
+    const status = document.getElementById("userStatus");
+    const lockMsg = document.getElementById("lockMessage");
+    const mainContent = document.getElementById("mainContent");
+    const uploadSection = document.getElementById("uploadSection");
+
     if (user) {
         currentUser = user;
+        const userName = user.displayName || user.email.split('@')[0];
+        
+        document.getElementById("loginBtn")?.classList.add("hidden");
+        document.getElementById("logoutBtn")?.classList.remove("hidden");
+
+        // Realtime DB의 역할을 조회하여 가드 적용
         db.ref('users/' + user.uid).on('value', (snapshot) => {
             const userData = snapshot.val() || {};
+            // 이메일이 마스터 계정이거나, DB 상 권한이 'admin'인 경우만 등급인정
             currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
-            loadPhotos();
             
-            // student, admin 등급이면 사진 업로드 폼 보이기
-            if (currentUserRole === 'student' || currentUserRole === 'admin') {
-                document.getElementById("photoUploadForm")?.classList.remove("hidden");
+            if (status) status.innerText = `${userName}님 (${currentUserRole === 'admin' ? '관리자' : '회원'})`;
+            
+            // 💡 [해결 1] 오직 admin 관리자 등급에게만 업로드 컴포넌트 폼 완전 개방
+            if (currentUserRole === 'admin') {
+                uploadSection?.classList.remove("hidden");
+            } else {
+                uploadSection?.classList.add("hidden");
             }
+
+            // 💡 [해결 2] 로그인 상태이므로 락 해제 및 갤러리 메인 활성화
+            lockMsg?.classList.add("hidden");
+            mainContent?.classList.remove("hidden");
+            
+            loadPhotos();
         });
     } else {
-        alert("로그인이 필요합니다."); location.href = "index.html";
+        currentUser = null;
+        currentUserRole = "guest";
+        if (status) status.innerText = "로그인 해주세요";
+        
+        document.getElementById("loginBtn")?.classList.remove("hidden");
+        document.getElementById("logoutBtn")?.classList.add("hidden");
+
+        // 💡 [해결 2] 로그아웃 상태일 시 데이터 영역을 강제 격리 은닉하고 경고 카드 출력
+        mainContent?.classList.add("hidden");
+        lockMsg?.classList.remove("hidden");
     }
 });
 
+// 💡 [해결 3] 갤러리 리스트 바인딩 및 ngrok 스킵 블롭 썸네일 스트리밍 처리
 async function loadPhotos() {
     try {
-        const res = await fetch(`${API_BASE_URL}/api/photos`, { headers: { "ngrok-skip-browser-warning": "69420" } });
-        const data = await res.json();
-        const gallery = document.getElementById("photoGallery");
-        gallery.innerHTML = "";
-        
-        Object.keys(data).reverse().forEach(key => {
-            const p = data[key];
-            const div = document.createElement("div");
-            div.className = "photo-card";
-            div.innerHTML = `
-                <img src="${API_BASE_URL}/api/download?path=${encodeURIComponent(p.file_path)}" style="width:100%; border-radius:8px;">
-                <p style="text-align:center; margin-top:10px;">${p.title} (${p.author})</p>
-                ${(currentUserRole === 'admin' || currentUser.uid === p.uid) ? `<button onclick="deletePhoto('${key}')" style="color:red; background:none; border:none; width:100%; cursor:pointer;">[삭제]</button>` : ""}
-            `;
-            gallery.appendChild(div);
+        const res = await fetch(`${API_BASE_URL}/api/photos`, { 
+            method: "GET",
+            headers: { "ngrok-skip-browser-warning": "69420" } 
         });
-    } catch (err) { console.error(err); }
+        if (!res.ok) throw new Error();
+        
+        const data = await res.json();
+        cachedPhotos = data; // 검색 필터 연동용 동적 데이터 캐싱
+        
+        renderPhotoGrid(data);
+    } catch (err) { 
+        console.error(err); 
+    }
 }
 
-async function uploadPhoto() {
-    const title = document.getElementById("pTitle").value;
-    const fileInput = document.getElementById("pFile");
-    if (!fileInput || fileInput.files.length === 0) {
-        return alert("업로드할 사진 파일을 선택해주세요.");
+// 그리드 렌더링 세부 구현
+function renderPhotoGrid(data) {
+    const grid = document.getElementById("photoGrid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    
+    const keys = Object.keys(data);
+    if (keys.length === 0) {
+        grid.innerHTML = `<p style="grid-column: 1/-1; text-align:center; padding:5px; color:#888;">등록된 활동 사진이 없습니다.</p>`;
+        return;
     }
-    formData.append("file", fileInput.files[0]);
+
+    // 최신 등록 이미지가 상단에 오도록 정렬 역전 배치
+    keys.reverse().forEach(key => {
+        const p = data[key];
+        const card = document.createElement("div");
+        card.className = "photo-card";
+        
+        // ngrok 터널링 브라우저 경고 우회를 적용한 고유 파일 주소 빌드
+        const targetFileUrl = `${API_BASE_URL}/api/download?path=${encodeURIComponent(p.file_path || p.fileUrl)}`;
+        
+        card.innerHTML = `
+            <div class="img-wrapper" onclick="openModal('${targetFileUrl}', '${p.title}')">
+                <img src="${targetFileUrl}" onerror="this.src='https://via.placeholder.com/300x200'" alt="활동사진">
+            </div>
+            <div class="photo-info">
+                <span class="owner-tag">작성자: ${p.author || '익명'}</span>
+                <div class="photo-title">${p.title || '제목 없음'}</div>
+            </div>
+            <div class="btn-group">
+                <button class="btn-view" onclick="openModal('${targetFileUrl}', '${p.title}')">상세 보기</button>
+                ${(currentUserRole === 'admin' || (currentUser && currentUser.uid === p.uid)) ? 
+                  `<button class="btn-del" onclick="deletePhoto('${key}')">삭제</button>` : ""}
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+// 💡 [해결 3] 특정 글(카드) 선택 시 원본 사진을 와이드하게 출력하는 팝업 엔진
+function openModal(imgUrl, titleText) {
+    const modal = document.getElementById("photoModal");
+    const modalImg = document.getElementById("modalImg");
+    const modalTitle = document.getElementById("modalTitle");
+    
+    if (modal && modalImg && modalTitle) {
+        modalImg.src = imgUrl;
+        modalTitle.innerText = titleText;
+        modal.classList.remove("hidden");
+        document.body.style.overflow = "hidden"; // 메인 바디 스크롤 임시 정지
+    }
+}
+
+function closeModal() {
+    const modal = document.getElementById("photoModal");
+    if (modal) {
+        modal.classList.add("hidden");
+        document.body.style.overflow = "auto"; // 스크롤 복구
+    }
+}
+
+// 사진 게시물 업로드 구현 (자바스크립트 변수 할당 크래시 에러 수정 완료)
+async function uploadPhoto() {
+    const titleInput = document.getElementById("pTitle");
+    const fileInput = document.getElementById("pFile");
+    
+    if (!titleInput || titleInput.value.trim() === "") return alert("사진 제목을 입력해 주세요.");
+    if (!fileInput || fileInput.files.length === 0) return alert("업로드할 사진 파일을 선택해주세요.");
 
     const formData = new FormData();
-    formData.append("title", title);
+    formData.append("title", titleInput.value.trim());
     formData.append("uid", currentUser.uid);
     formData.append("author", currentUser.displayName || currentUser.email.split('@')[0]);
     formData.append("file", fileInput.files[0]);
 
     try {
-        await fetch(`${API_BASE_URL}/api/photos`, {
+        const res = await fetch(`${API_BASE_URL}/api/photos`, {
             method: "POST",
             headers: { "ngrok-skip-browser-warning": "69420" },
             body: formData
         });
-        alert("사진이 등록되었습니다!");
+        
+        if (!res.ok) throw new Error();
+        
+        alert("성공적으로 사진이 등록되었습니다!");
+        titleInput.value = "";
+        fileInput.value = "";
         loadPhotos();
-    } catch (err) { alert("업로드 실패"); }
+    } catch (err) { 
+        alert("서버 통신 실패로 업로드하지 못했습니다."); 
+    }
 }
 
+// 갤러리 요소 데이터 말소
 async function deletePhoto(id) {
-    if(!confirm("사진을 삭제하시겠습니까?")) return;
-    await fetch(`${API_BASE_URL}/api/photos/${id}`, { method: "DELETE", headers: { "ngrok-skip-browser-warning": "69420" } });
-    loadPhotos();
+    if (!confirm("선택한 사진을 정말로 삭제하시겠습니까?")) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/photos/${id}`, { 
+            method: "DELETE", 
+            headers: { "ngrok-skip-browser-warning": "69420" } 
+        });
+        if (!res.ok) throw new Error();
+        alert("삭제되었습니다.");
+        loadPhotos();
+    } catch (err) {
+        alert("삭제 처리에 실패했습니다.");
+    }
 }
 
-    function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
+// 검색 필터 실시간 매칭 구현 함수
+function filterPhotos() {
+    const query = document.getElementById("photoSearch").value.toLowerCase().trim();
+    const filtered = {};
+    
+    Object.keys(cachedPhotos).forEach(key => {
+        const p = cachedPhotos[key];
+        const tMatch = (p.title || "").toLowerCase().includes(query);
+        const aMatch = (p.author || "").toLowerCase().includes(query);
+        if (tMatch || aMatch) {
+            filtered[key] = p;
+        }
+    });
+    renderPhotoGrid(filtered);
+}
+
+function logout() { 
+    if (confirm("로그아웃 하시겠습니까?")) {
+        auth.signOut().then(() => location.reload()); 
+    } 
+}
 </script>
 </body>
 </html>
