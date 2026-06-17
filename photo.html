@@ -285,21 +285,18 @@ auth.onAuthStateChanged(async (user) => {
 // 갤러리 리스트 바인딩 및 ngrok 스킵 처리
 async function loadPhotos() {
     try {
-        // 1. 현재 로그인된 유저가 없다면 토큰을 가져올 수 없으므로 실행 중단
         if (!auth.currentUser) {
             console.warn("로그인된 유저 정보가 없어 사진 요청을 보낼 수 없습니다.");
             return;
         }
 
-        // 2. Firebase 인증 서버로부터 현재 유저의 고유 세션 토큰(JWT)을 발급받습니다.
         const token = await auth.currentUser.getIdToken(true);
 
-        // 3. 백엔드가 요구하는 대로 Authorization 헤더에 토큰을 실어서 보냅니다.
         const res = await fetch(`${API_BASE_URL}/api/photos`, { 
             method: "GET",
             headers: { 
                 "ngrok-skip-browser-warning": "69420",
-                "Authorization": `Bearer ${token}` // 👈 [이 부분이 핵심] 백엔드 401 차단을 푸는 열쇠
+                "Authorization": `Bearer ${token}` // 백엔드 401 차단을 푸는 열쇠
             } 
         });
         
@@ -321,7 +318,6 @@ async function loadPhotos() {
             grid.innerHTML = `<p style="grid-column: 1/-1; text-align:center; padding:5px; color:#ff4d4d;">사진을 불러오는 중 권한 에러가 발생했습니다.</p>`;
         }
     }
-}
 }
 
 // 그리드 렌더링 세부 구현
