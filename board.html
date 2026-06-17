@@ -237,259 +237,254 @@ nav .nav-inner {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-const firebaseConfig = {
-    apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
-    authDomain: "bokseong-deep-sky.firebaseapp.com",
-    databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "bokseong-deep-sky",
-    storageBucket: "bokseong-deep-sky.firebasestorage.app",
-    messagingSenderId: "800777151311",
-    appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
-};
+    // 1. 파이어베이스 초기화 및 기본 설정
+    const firebaseConfig = {
+        apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
+        authDomain: "bokseong-deep-sky.firebaseapp.com",
+        databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "bokseong-deep-sky",
+        storageBucket: "bokseong-deep-sky.firebasestorage.app",
+        messagingSenderId: "800777151311",
+        appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
+    };
 
-const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-
-// 💡 1. 브라우저를 닫아도 로그인이 완전히 유지되도록 영구성(LOCAL) 설정 강제 지정
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-    .catch(err => console.error("세션 유지 설정 실패:", err));
-
-const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
-const ADMIN_EMAIL = "leader.deepsky@gmail.com";
-
-let currentUser = null;
-let currentUserRole = "guest";
-let allPosts = [];
-let displayPosts = [];
-let currentPage = 1;
-const postsPerPage = 10;
-
-// 💡 2. 인증 감지 상태를 보다 안전하게 처리하기 위한 초기화 플래그 변경
-let isAuthInitialized = false;
-
-// [인증 세션 감시] 
-auth.onAuthStateChanged(async (user) => {
-    const status = document.getElementById("userStatus");
+    const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
     
-    if (user) {
-        currentUser = user;
-        document.getElementById("loginBtn")?.classList.add("hidden");
-        document.getElementById("logoutBtn")?.classList.remove("hidden");
-        
-        const currentUserName = user.displayName || user.email.split('@')[0];
-        currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : 'member';
-        
-        if (status) {
-            status.innerText = `${currentUserName}님 (${currentUserRole === 'admin' ? '관리자' : '회원'})`;
-        }
-    } else {
-        currentUser = null;
-        currentUserRole = "guest";
-        if (status) status.innerText = "로그인 해주세요";
-        document.getElementById("loginBtn")?.classList.remove("hidden");
-        document.getElementById("logoutBtn")?.classList.add("hidden");
-    }
-    
-    // 💡 중요: 인증 체크가 완전히 끝난 지점(user 상태가 확정된 후)에서만 딱 한 번 글을 불러옵니다.
-    isAuthInitialized = true;
-    await loadBoardPosts();
-});
+    // 💡 [수정] 여기 있던 auth.setPersistence(...) 코드는 삭제했습니다. (login.html에서 이미 처리됨)
 
-// DOMContentLoaded 시점에는 loadBoardPosts를 호출하지 않고 이벤트 바인딩만 합니다.
-document.addEventListener("DOMContentLoaded", () => {
-    const writeBtn = document.getElementById("topWriteBtn");
-    if (writeBtn) {
-        writeBtn.removeAttribute("href"); 
-        writeBtn.style.cursor = "pointer";
-        writeBtn.onclick = (e) => {
-            e.preventDefault();
-            checkWriteAuth();
-        };
-    }
-});
+    const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
+    const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-async function loadBoardPosts() {
-    // 💡 Firebase 인증 상태가 완전히 결정되기 전(복구 중)이라면 호출을 대기시킵니다.
-    if (!isAuthInitialized) return;
+    let currentUser = null;
+    let currentUserRole = "guest";
+    let allPosts = [];
+    let displayPosts = [];
+    let currentPage = 1;
+    const postsPerPage = 10;
+    let isAuthInitialized = false;
 
-    try {
-        const headers = { "ngrok-skip-browser-warning": "69420" };
+    // [인증 세션 감시] 
+    auth.onAuthStateChanged(async (user) => {
+        const status = document.getElementById("userStatus");
         
-        // 💡 로그인 상태라면 토큰이 완전히 강제 갱신(force refresh)된 유효한 토큰을 가져오도록 설정
-        if (currentUser) {
-            try {
-                const token = await currentUser.getIdToken(true); // true를 주어 만료된 토큰을 강제 갱신
-                headers["Authorization"] = `Bearer ${token}`;
-            } catch (tokenErr) {
-                console.error("토큰 갱신 실패:", tokenErr);
+        if (user) {
+            currentUser = user;
+            document.getElementById("loginBtn")?.classList.add("hidden");
+            document.getElementById("logoutBtn")?.classList.remove("hidden");
+            
+            const currentUserName = user.displayName || user.email.split('@')[0];
+            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : 'member';
+            
+            if (status) {
+                status.innerText = `${currentUserName}님 (${currentUserRole === 'admin' ? '관리자' : '회원'})`;
             }
+        } else {
+            currentUser = null;
+            currentUserRole = "guest";
+            if (status) status.innerText = "로그인 해주세요";
+            document.getElementById("loginBtn")?.classList.remove("hidden");
+            document.getElementById("logoutBtn")?.classList.add("hidden");
         }
-
-        const res = await fetch(`${API_BASE_URL}/api/freeboard`, {
-            method: "GET",
-            headers: headers
-        });
         
-        // 백엔드에서 인증 만료(401) 신호를 주면 안전하게 로그인 페이지로 리다이렉트
-        if (res.status === 401) {
-            alert("보안을 위해 다시 로그인 해주세요.");
-            location.href = "login.html";
+        // 인증 체크가 끝난 후 게시글 로딩
+        isAuthInitialized = true;
+        await loadBoardPosts();
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const writeBtn = document.getElementById("topWriteBtn");
+        if (writeBtn) {
+            writeBtn.removeAttribute("href"); 
+            writeBtn.style.cursor = "pointer";
+            writeBtn.onclick = (e) => {
+                e.preventDefault();
+                checkWriteAuth();
+            };
+        }
+    });
+
+    async function loadBoardPosts() {
+        if (!isAuthInitialized) return;
+
+        try {
+            const headers = { "ngrok-skip-browser-warning": "69420" };
+            
+            if (currentUser) {
+                try {
+                    // 💡 [핵심 수정] true를 빼서 강제 갱신으로 인한 구글 서버 에러 및 강제 로그아웃 현상 방지!
+                    // 파이어베이스가 알아서 로컬에 있는 유효한 캐시 토큰을 가져옵니다.
+                    const token = await currentUser.getIdToken(); 
+                    headers["Authorization"] = `Bearer ${token}`;
+                } catch (tokenErr) {
+                    console.error("토큰 로드 실패:", tokenErr);
+                }
+            }
+
+            const res = await fetch(`${API_BASE_URL}/api/freeboard`, {
+                method: "GET",
+                headers: headers
+            });
+            
+            if (res.status === 401) {
+                alert("보안을 위해 다시 로그인 해주세요.");
+                location.href = "login.html";
+                return;
+            }
+
+            if (!res.ok) throw new Error("자체 백엔드 서버 응답 오류");
+            const data = await res.json();
+            
+            allPosts = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+            
+            allPosts.sort((a, b) => {
+                const dateA = a.date || "";
+                const dateB = b.date || "";
+                return dateB.localeCompare(dateA); 
+            });
+            
+            displayPosts = [...allPosts];
+            renderPage();
+        } catch (err) {
+            console.error("자체 서버 게시판 로드 실패:", err);
+            const list = document.getElementById("postList");
+            if (list) list.innerHTML = `<p style="text-align:center; padding:50px; color:#ff4d4d;">서버 연결에 실패했습니다.</p>`;
+        }
+    }
+
+    function renderPage() {
+        const list = document.getElementById("postList");
+        if (!list) return;
+        list.innerHTML = "";
+
+        const startIndex = (currentPage - 1) * postsPerPage;
+        const endIndex = startIndex + postsPerPage;
+        const paginatedPosts = displayPosts.slice(startIndex, endIndex);
+
+        if (paginatedPosts.length === 0) {
+            list.innerHTML = `<p style="text-align:center; padding:50px; color:#888;">등록된 게시글이 없습니다.</p>`;
             return;
         }
 
-        if (!res.ok) throw new Error("자체 백엔드 서버 응답 오류");
-        const data = await res.json();
-        
-        allPosts = Object.keys(data).map(key => ({ id: key, ...data[key] }));
-        
-        allPosts.sort((a, b) => {
-            const dateA = a.date || "";
-            const dateB = b.date || "";
-            return dateB.localeCompare(dateA); 
-        });
-        
-        displayPosts = [...allPosts];
-        renderPage();
-    } catch (err) {
-        console.error("자체 서버 게시판 로드 실패:", err);
-        const list = document.getElementById("postList");
-        if (list) list.innerHTML = `<p style="text-align:center; padding:50px; color:#ff4d4d;">서버 연결에 실패했습니다.</p>`;
-    }
-}
+        paginatedPosts.forEach((p, idx) => {
+            const item = document.createElement("div");
+            item.className = "post-item";
+            item.onclick = () => location.href = `view.html?id=${p.id}`;
 
-function renderPage() {
-    const list = document.getElementById("postList");
-    if (!list) return;
-    list.innerHTML = "";
+            const fileIcon = p.fileUrl ? " 📎" : "";
 
-    const startIndex = (currentPage - 1) * postsPerPage;
-    const endIndex = startIndex + postsPerPage;
-    const paginatedPosts = displayPosts.slice(startIndex, endIndex);
+            item.innerHTML = `
+                <div class="post-header-row">
+                    <span class="post-title">
+                        <span class="post-index"></span>${p.title || '제목 없음'}${fileIcon}
+                    </span>
+                    <div class="post-action-area"></div>
+                </div>
+                <div class="post-meta-row">
+                    <span>작성자: <strong>${p.author || '익명'}</strong></span>
+                    <span class="post-time">${p.date || '시간 미지정'}</span>
+                </div>
+            `;
 
-    if (paginatedPosts.length === 0) {
-        list.innerHTML = `<p style="text-align:center; padding:50px; color:#888;">등록된 게시글이 없습니다.</p>`;
-        return;
-    }
+            const isDeleteAuth = (currentUserRole === 'admin') || (currentUser && p.uid === currentUser.uid);
 
-    paginatedPosts.forEach((p, idx) => {
-        const item = document.createElement("div");
-        item.className = "post-item";
-        item.onclick = () => location.href = `view.html?id=${p.id}`;
-
-        const fileIcon = p.fileUrl ? " 📎" : "";
-
-        item.innerHTML = `
-            <div class="post-header-row">
-                <span class="post-title">
-                    <span class="post-index"></span>${p.title || '제목 없음'}${fileIcon}
-                </span>
-                <div class="post-action-area"></div>
-            </div>
-            <div class="post-meta-row">
-                <span>작성자: <strong>${p.author || '익명'}</strong></span>
-                <span class="post-time">${p.date || '시간 미지정'}</span>
-            </div>
-        `;
-
-        const isDeleteAuth = (currentUserRole === 'admin') || (currentUser && p.uid === currentUser.uid);
-
-        if (isDeleteAuth) {
-            const actionArea = item.querySelector(".post-action-area");
-            const delBtn = document.createElement("button");
-            delBtn.innerText = "삭제";
-            delBtn.className = "del-btn";
-            
-            delBtn.onclick = async (e) => {
-                e.stopPropagation(); 
+            if (isDeleteAuth) {
+                const actionArea = item.querySelector(".post-action-area");
+                const delBtn = document.createElement("button");
+                delBtn.innerText = "삭제";
+                delBtn.className = "del-btn";
                 
-                if (confirm("정말로 이 게시글을 삭제하시겠습니까?")) {
-                    try {
-                        const token = await currentUser.getIdToken();
-                        const res = await fetch(`${API_BASE_URL}/api/freeboard/${p.id}`, {
-                            method: "DELETE",
-                            headers: {
-                                "Authorization": `Bearer ${token}`,
-                                "ngrok-skip-browser-warning": "69420"
+                delBtn.onclick = async (e) => {
+                    e.stopPropagation(); 
+                    
+                    if (confirm("정말로 이 게시글을 삭제하시겠습니까?")) {
+                        try {
+                            const token = await currentUser.getIdToken();
+                            const res = await fetch(`${API_BASE_URL}/api/freeboard/${p.id}`, {
+                                method: "DELETE",
+                                headers: {
+                                    "Authorization": `Bearer ${token}`,
+                                    "ngrok-skip-browser-warning": "69420"
+                                }
+                            });
+                            
+                            if (res.status === 401) {
+                                alert("인증이 만료되었습니다. 다시 로그인 해주세요.");
+                                location.href = "login.html";
+                                return;
                             }
-                        });
-                        
-                        if (res.status === 401) {
-                            alert("인증이 만료되었습니다. 다시 로그인 해주세요.");
-                            location.href = "login.html";
-                            return;
-                        }
 
-                        const result = await res.json();
-                        if (res.ok && result.success) {
-                            alert("성공적으로 삭제되었습니다.");
-                            await loadBoardPosts(); 
-                        } else {
-                            alert(`삭제 실패: ${result.error || "알 수 없는 오류"}`);
+                            const result = await res.json();
+                            if (res.ok && result.success) {
+                                alert("성공적으로 삭제되었습니다.");
+                                await loadBoardPosts(); 
+                            } else {
+                                alert(`삭제 실패: ${result.error || "알 수 없는 오류"}`);
+                            }
+                        } catch (err) {
+                            console.error("삭제 요청 중 에러 발생:", err);
+                            alert("서버 통신 실패로 삭제하지 못했습니다.");
                         }
-                    } catch (err) {
-                        console.error("삭제 요청 중 에러 발생:", err);
-                        alert("서버 통신 실패로 삭제하지 못했습니다.");
                     }
-                }
+                };
+                actionArea.appendChild(delBtn);
+            }
+            list.appendChild(item);
+        });
+
+        renderPagination();
+    }
+
+    function renderPagination() {
+        const paginArea = document.getElementById("pagination");
+        if (!paginArea) return;
+        paginArea.innerHTML = "";
+        
+        const totalPages = Math.ceil(displayPosts.length / postsPerPage);
+        if (totalPages <= 1) return;
+
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement("button");
+            btn.innerText = i;
+            btn.className = `page-num ${i === currentPage ? 'active' : ''}`;
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                currentPage = i;
+                renderPage();
+                window.scrollTo(0, 0);
             };
-            actionArea.appendChild(delBtn);
+            paginArea.appendChild(btn);
         }
-        list.appendChild(item);
-    });
-
-    renderPagination();
-}
-
-function renderPagination() {
-    const paginArea = document.getElementById("pagination");
-    if (!paginArea) return;
-    paginArea.innerHTML = "";
-    
-    const totalPages = Math.ceil(displayPosts.length / postsPerPage);
-    if (totalPages <= 1) return;
-
-    for (let i = 1; i <= totalPages; i++) {
-        const btn = document.createElement("button");
-        btn.innerText = i;
-        btn.className = `page-num ${i === currentPage ? 'active' : ''}`;
-        btn.onclick = (e) => {
-            e.stopPropagation();
-            currentPage = i;
-            renderPage();
-            window.scrollTo(0, 0);
-        };
-        paginArea.appendChild(btn);
     }
-}
 
-function checkWriteAuth() {
-    if (!currentUser) {
-        alert("보안을 위해 로그인 해주세요.");
-        location.href = "login.html";
-        return;
+    function checkWriteAuth() {
+        if (!currentUser) {
+            alert("보안을 위해 로그인 해주세요.");
+            location.href = "login.html";
+            return;
+        }
+        location.href = "write.html";
     }
-    location.href = "write.html";
-}
 
-function filterPosts() {
-    const term = document.getElementById("searchInput").value.toLowerCase().trim();
-    if (!term) {
-        displayPosts = [...allPosts];
-    } else {
-        displayPosts = allPosts.filter(p => 
-            (p.title && p.title.toLowerCase().includes(term)) || 
-            (p.author && p.author.toLowerCase().includes(term))
-        );
+    function filterPosts() {
+        const term = document.getElementById("searchInput").value.toLowerCase().trim();
+        if (!term) {
+            displayPosts = [...allPosts];
+        } else {
+            displayPosts = allPosts.filter(p => 
+                (p.title && p.title.toLowerCase().includes(term)) || 
+                (p.author && p.author.toLowerCase().includes(term))
+            );
+        }
+        currentPage = 1;
+        renderPage();
     }
-    currentPage = 1;
-    renderPage();
-}
 
-function logout() { 
-    if(confirm("로그아웃 하시겠습니까?")) {
-        auth.signOut().then(() => location.reload()); 
-    } 
-}
+    function logout() { 
+        if(confirm("로그아웃 하시겠습니까?")) {
+            auth.signOut().then(() => location.reload()); 
+        } 
+    }
 </script>
 </body>
 </html>
