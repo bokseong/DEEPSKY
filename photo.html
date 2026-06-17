@@ -217,7 +217,7 @@ let currentUser = null;
 let currentUserRole = "guest";
 let cachedPhotos = {};
 
-// 💡 [핵심 교정] 비동기 체인을 원천적으로 일렬화(async/await)하여 순서 꼬임과 무한 부팅을 차단합니다.
+// [인증 및 가드 제어] 무한 루프 차단 및 안전 진입 보장
 auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     const lockMsg = document.getElementById("lockMessage");
@@ -234,31 +234,33 @@ auth.onAuthStateChanged(async (user) => {
         document.getElementById("logoutBtn")?.classList.remove("hidden");
 
         try {
-            // 💡 실시간 연결(.on)을 완벽히 배제하고 단발성 데이터 패치 진행
-            const snapshot = await db.ref('users/' + user.uid).get();
+            // AppCheck 및 .get() 누락 대기 현상을 원천 방어하기 위해 .once 사용
+            const snapshot = await new Promise((resolve, reject) => {
+                db.ref('users/' + user.uid).once('value', resolve, reject);
+            });
             const userData = snapshot.val() || {};
             
-            // 최고 관리자 이메일 검증 우선 적용
+            // 등급 판정 (백엔드 admin 조건과 완벽 일치)
             currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
             
             status.innerText = `${userName}님 (${currentUserRole === 'admin' ? '관리자' : '회원'})`;
             
+            // 관리자 등급에게만 업로드 폼 열기
             if (currentUserRole === 'admin') {
                 uploadSection.classList.remove("hidden");
             } else {
                 uploadSection.classList.add("hidden");
             }
 
-            // UI 락 풀기
+            // 가드 해제 및 화면 활성화
             lockMsg.classList.add("hidden");
             mainContent.classList.remove("hidden");
             
-            // 데이터 로드 호출 안정화
+            // 로그인 완료 후 안전하게 사진 목록 요청
             await loadPhotos();
 
         } catch (err) {
-            console.error("등급 데이터 취득 중 예외 발생:", err);
-            // 에러가 나더라도 무한 재시도를 막기 위해 일반 부원 등급으로 강제 진입 처리
+            console.error("Firebase 등급 조회 건너믐 (일반 회원으로 강제 진입):", err);
             currentUserRole = 'member';
             status.innerText = `${userName}님 (회원)`;
             uploadSection.classList.add("hidden");
@@ -266,9 +268,7 @@ auth.onAuthStateChanged(async (user) => {
             mainContent.classList.remove("hidden");
             await loadPhotos();
         }
-
     } else {
-        // 비로그인 상태 가드 작동
         currentUser = null;
         currentUserRole = "guest";
         status.innerText = "로그인 해주세요";
@@ -282,45 +282,41 @@ auth.onAuthStateChanged(async (user) => {
     }
 });
 
-// 갤러리 리스트 바인딩 및 ngrok 스킵 처리
+// 갤러리 리스트 불러오기 (Authorization Bearer 토큰 탑재)
 async function loadPhotos() {
     try {
         if (!auth.currentUser) {
-            console.warn("로그인된 유저 정보가 없어 사진 요청을 보낼 수 없습니다.");
+            console.warn("로그인 정보가 아직 로드되지 않았습니다.");
             return;
         }
 
+        // Firebase 세션 토큰 취득
         const token = await auth.currentUser.getIdToken(true);
 
         const res = await fetch(`${API_BASE_URL}/api/photos`, { 
             method: "GET",
             headers: { 
                 "ngrok-skip-browser-warning": "69420",
-                "Authorization": `Bearer ${token}` // 백엔드 401 차단을 푸는 열쇠
+                "Authorization": `Bearer ${token}`
             } 
         });
         
-        if (!res.ok) {
-            if (res.status === 401) {
-                throw new Error("인증 실패 (백엔드 토큰 검증 오류 또는 만료)");
-            }
-            throw new Error(`서버 응답 오류 (상태코드: ${res.status})`);
-        }
+        if (!res.ok) throw new Error(`서버 응답 오류: ${res.status}`);
         
         const data = await res.json();
         cachedPhotos = data; 
         
         renderPhotoGrid(data);
     } catch (err) { 
-        console.error("사진 로딩 중 서버 연결 실패:", err); 
+        console.error("사진 로딩 중 오류 발생:", err); 
         const grid = document.getElementById("photoGrid");
         if (grid) {
-            grid.innerHTML = `<p style="grid-column: 1/-1; text-align:center; padding:5px; color:#ff4d4d;">사진을 불러오는 중 권한 에러가 발생했습니다.</p>`;
+            grid.innerHTML = `<p style="grid-column: 1/-1; text-align:center; padding:5px; color:#ff4d4d;">사진을 불러오지 못했습니다. (서버 연결 또는 권한 오류)</p>`;
         }
     }
 }
 
-// 그리드 렌더링 세부 구현
+// 그리드 렌더링 세부 구현 (★ 백엔드 데이터 필드명 매칭 수정)
 function renderPhotoGrid(data) {
     const grid = document.getElementById("photoGrid");
     if (!grid) return;
@@ -337,11 +333,15 @@ function renderPhotoGrid(data) {
         const card = document.createElement("div");
         card.className = "photo-card";
         
-        const targetFileUrl = `${API_BASE_URL}/api/download?path=${encodeURIComponent(p.file_path || p.fileUrl || '')}`;
+        // 💡 [핵심 교정] 백엔드 app.txt의 22번째 줄 형식을 보면 주소가 'url' 키로 저장됩니다.
+        // 백엔드 다운로드 규칙(/uploads/ 검증)을 통과하기 위한 경로 조합 생성
+        const rawUrl = p.url || p.file_path || p.fileUrl || '';
+        const targetFileUrl = `${API_BASE_URL}/api/download?path=${encodeURIComponent(rawUrl)}`;
         
+        // 💡 placeholder 차단 에러를 막기 위해 대체 이미지 주소를 부러지지 않는 타 사이트로 변경
         card.innerHTML = `
             <div class="img-wrapper" onclick="openModal('${targetFileUrl}', '${p.title || '사진'}')">
-                <img src="${targetFileUrl}" onerror="this.src='https://via.placeholder.com/300x200'" alt="활동사진">
+                <img src="${targetFileUrl}" onerror="this.src='https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?w=300'" alt="활동사진">
             </div>
             <div class="photo-info">
                 <span class="owner-tag">작성자: ${p.author || '익명'}</span>
@@ -378,25 +378,28 @@ function closeModal() {
     }
 }
 
-// 사진 게시물 업로드 구현
+// 사진 게시물 업로드 구현 (★ 백엔드 'file' 키 요구사항 매칭)
 async function uploadPhoto() {
     const titleInput = document.getElementById("pTitle");
     const fileInput = document.getElementById("pFile");
     
     if (!titleInput || titleInput.value.trim() === "") return alert("사진 제목을 입력해 주세요.");
     if (!fileInput || fileInput.files.length === 0) return alert("업로드할 사진 파일을 선택해주세요.");
-    if (!currentUser) return alert("로그인 정보가 유실되었습니다. 다시 로그인 해주세요.");
+    if (!currentUser) return alert("로그인 정보가 없습니다.");
 
+    const token = await auth.currentUser.getIdToken(true);
     const formData = new FormData();
     formData.append("title", titleInput.value.trim());
-    formData.append("uid", currentUser.uid);
     formData.append("author", currentUser.displayName || currentUser.email.split('@')[0]);
-    formData.append("file", fileInput.files[0]);
+    formData.append("file", fileInput.files[0]); // 백엔드 request.files['file'] 매칭 완료
 
     try {
         const res = await fetch(`${API_BASE_URL}/api/photos`, {
             method: "POST",
-            headers: { "ngrok-skip-browser-warning": "69420" },
+            headers: { 
+                "ngrok-skip-browser-warning": "69420",
+                "Authorization": `Bearer ${token}`
+            },
             body: formData
         });
         
@@ -407,17 +410,21 @@ async function uploadPhoto() {
         fileInput.value = "";
         await loadPhotos();
     } catch (err) { 
-        alert("서버 통신 실패로 업로드하지 못했습니다."); 
+        alert("서버 통신 실패 또는 권한(부원 등급 이상)이 부족하여 업로드하지 못했습니다."); 
     }
 }
 
-// 갤러리 요소 데이터 말소
+// 사진 삭제
 async function deletePhoto(id) {
     if (!confirm("선택한 사진을 정말로 삭제하시겠습니까?")) return;
     try {
+        const token = await auth.currentUser.getIdToken(true);
         const res = await fetch(`${API_BASE_URL}/api/photos/${id}`, { 
             method: "DELETE", 
-            headers: { "ngrok-skip-browser-warning": "69420" } 
+            headers: { 
+                "ngrok-skip-browser-warning": "69420",
+                "Authorization": `Bearer ${token}`
+            } 
         });
         if (!res.ok) throw new Error();
         alert("삭제되었습니다.");
@@ -427,7 +434,7 @@ async function deletePhoto(id) {
     }
 }
 
-// 검색 필터 실시간 매칭 구현 함수
+// 검색 필터
 function filterPhotos() {
     const query = document.getElementById("photoSearch").value.toLowerCase().trim();
     const filtered = {};
@@ -446,7 +453,6 @@ function filterPhotos() {
 function logout() { 
     if (confirm("로그아웃 하시겠습니까?")) {
         auth.signOut().then(() => {
-            // 무한 재부팅 루프를 끊기 위해 location.reload() 대신 안전하게 메인 페이지로 튕겨냅니다.
             location.href = "index.html";
         }); 
     } 
