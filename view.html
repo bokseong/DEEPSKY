@@ -157,7 +157,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-// 1. 파이어베이스 초기화 (오직 '로그인 및 토큰 검증' 목적으로만 사용)
+// 1. 파이어베이스 초기화 (오직 로그인 세션 및 토큰 가드 용도로만 제한)
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -182,7 +182,7 @@ let currentUserName = "익명";
 let currentUserRole = "guest";
 let postAuthorUid = "";
 
-// 인증 세션 상태 감시
+// [인증 상태 감시자]
 auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     const commentFormArea = document.getElementById("commentFormArea");
@@ -193,12 +193,11 @@ auth.onAuthStateChanged(async (user) => {
         currentUserName = user.displayName || user.email.split('@')[0];
         currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : 'member';
         
-        if (status) status.innerText = `${currentUserName}님 (${currentUserRole==='admin'?'관리자':'회원'})`;
+        if (status) status.innerText = `${currentUserName}님 (${currentUserRole === 'admin' ? '관리자' : '회원'})`;
         
         document.getElementById("loginBtn")?.classList.add("hidden");
         document.getElementById("logoutBtn")?.classList.remove("hidden");
         
-        // 로그인 상태일 때 댓글 작성 창 활성화
         commentFormArea?.classList.remove("hidden");
         commentLoginNotice?.classList.add("hidden");
     } else {
@@ -209,16 +208,15 @@ auth.onAuthStateChanged(async (user) => {
         document.getElementById("loginBtn")?.classList.remove("hidden");
         document.getElementById("logoutBtn")?.classList.add("hidden");
         
-        // 비로그인 상태일 때 안내 문구 노출
         commentFormArea?.classList.add("hidden");
         commentLoginNotice?.classList.remove("hidden");
     }
     
-    // 유저 로드가 끝나면 백엔드(freeboard.json)로부터 글 상세 정보 렌더링
+    // 유저 신원 파악 즉시 자체 서버 DB에서 게시글 디테일을 받아옵니다.
     loadPostDetail();
 });
 
-// 💡 [자체 로컬 DB 연동] 상세 조회 및 데이터 바인딩 함수
+// 💡 [자체 로컬 DB 연동] 상세 정보 데이터 바인딩 및 파일 처리 함수
 async function loadPostDetail() {
     if (!postId) return alert("비정상적인 접근 경로입니다.");
     
@@ -230,38 +228,49 @@ async function loadPostDetail() {
         if (!res.ok) throw new Error();
         
         const allPosts = await res.json();
-        const post = allPosts[postId]; // 전체 데이터 맵에서 해당 id를 가진 객체 추출
+        const post = allPosts[postId]; 
 
         if (!post) {
-            alert("존재하지 않거나 삭제된 게시글입니다.");
+            alert("존재하지 않거나 이미 삭제된 게시글입니다.");
             location.href = "board.html";
             return;
         }
 
         postAuthorUid = post.uid;
 
-        // 메인 영역 표시 전환 및 텍스트 맵핑
+        // 메인 영역 노출 및 기본 텍스트 바인딩
         document.getElementById("postArea")?.classList.remove("hidden");
         document.getElementById("viewTitle").innerText = post.title || "제목 없음";
         document.getElementById("viewAuthor").innerText = `작성자: ${post.author || '익명'}`;
         document.getElementById("viewDate").innerText = `날짜: ${post.date || ''}`;
         document.getElementById("viewContent").innerText = post.content || "";
 
-        // 첨부파일 / 다운로드 주소 처리 (.fileUrl 기준)
+        // 💡 [핵심 수정] 첨부파일 다운로드 & 보기 기능 정상화 연동 처리
         const fileContainer = document.getElementById("vFileContainer");
         const fileBtn = document.getElementById("vFileDownloadBtn");
+        const linkArea = document.getElementById("linkArea");
+        const viewFileLink = document.getElementById("viewFileLink");
         
-        if (post.fileUrl && fileContainer && fileBtn) {
-            fileBtn.href = `${API_BASE_URL}${post.fileUrl}`;
-            // 파일명 추출 (UUID 식별자 제거 후 본래 파일명만 깔끔하게 노출)
-            const cleanFileName = post.fileUrl.split('_').slice(1).join('_') || '첨부 파일';
-            fileBtn.innerText = cleanFileName;
-            fileContainer.classList.remove("hidden");
-        } else if (fileContainer) {
-            fileContainer.classList.add("hidden");
+        if (post.fileUrl) {
+            // 1. 강제 다운로드 라우트 주소 주입
+            if (fileBtn) {
+                fileBtn.href = `${API_BASE_URL}/api/download?path=${encodeURIComponent(post.fileUrl)}`;
+                const cleanFileName = post.fileUrl.split('_').slice(1).join('_') || '첨부 파일 다운로드';
+                fileBtn.innerText = `[ ${cleanFileName} ]`;
+            }
+            fileContainer?.classList.remove("hidden");
+
+            // 2. 브라우저에서 바로 새 창으로 열어서 보기 주소 주입
+            if (viewFileLink) {
+                viewFileLink.href = `${API_BASE_URL}${post.fileUrl}`;
+            }
+            linkArea?.classList.remove("hidden");
+        } else {
+            fileContainer?.classList.add("hidden");
+            linkArea?.classList.add("hidden");
         }
 
-        // 💡 수정 및 삭제 버튼 권한 필터링 (작성자 본인 또는 관리자만 표기)
+        // 수정 및 삭제 제어 단추 권한 필터링 (원글 작성자 혹은 관리자 전용)
         const hasAuth = currentUser && (currentUser.uid === post.uid || currentUserRole === 'admin');
         const editBtn = document.getElementById("editBtn");
         const deleteBtn = document.getElementById("deleteBtn");
@@ -269,7 +278,6 @@ async function loadPostDetail() {
         if (hasAuth) {
             if (editBtn) {
                 editBtn.classList.remove("hidden");
-                // 클릭 시 write.html에 수정 타겟 id 파라미터를 넘기도록 설계
                 editBtn.onclick = () => location.href = `write.html?id=${postId}`;
             }
             deleteBtn?.classList.remove("hidden");
@@ -278,15 +286,14 @@ async function loadPostDetail() {
             deleteBtn?.classList.add("hidden");
         }
 
-        // 댓글 배열 목록 출력
         renderComments(post.comments || {});
     } catch (err) {
         console.error(err);
-        alert("데이터를 수신하는 도중 오류가 발생했습니다.");
+        alert("자체 데이터 서버로부터 본문을 수신하지 못했습니다.");
     }
 }
 
-// 💡 댓글 컴포넌트 렌더링 함수 (HTML 매핑 정상화)
+// 댓글 목록 컴포넌트 출력 함수
 function renderComments(comments) {
     const listContainer = document.getElementById("commentList");
     if (!listContainer) return;
@@ -294,7 +301,7 @@ function renderComments(comments) {
 
     const keys = Object.keys(comments);
     if (keys.length === 0) {
-        listContainer.innerHTML = `<p style="color:#888; font-size:14px; text-align:center; padding:10px 0;">첫 댓글을 남겨보세요!</p>`;
+        listContainer.innerHTML = `<p style="color:#888; font-size:14px; text-align:center; padding:15px 0;">첫 댓글을 남겨보세요!</p>`;
         return;
     }
 
@@ -303,7 +310,6 @@ function renderComments(comments) {
         const item = document.createElement("div");
         item.className = "comment-item";
 
-        // 댓글작성자 본인, 원본 글쓴이, 총괄 관리자만 파괴 승인 권한 부여
         const isCommentAuthor = currentUser && currentUser.uid === c.uid;
         const isPostAuthor = currentUser && currentUser.uid === postAuthorUid;
         const isAdmin = currentUserRole === 'admin';
@@ -323,12 +329,12 @@ function renderComments(comments) {
     });
 }
 
-// 💡 자체 서버 댓글 등록 함수 연동
+// 댓글 업로드 연동
 async function addComment() {
     if (!currentUser) return alert("로그인 후 작성 가능합니다.");
     const input = document.getElementById("commentInput");
     const text = input.value.trim();
-    if (!text) return alert("댓글 내용을 입력해 주세요.");
+    if (!text) return alert("내용을 입력해 주세요.");
 
     try {
         const token = await currentUser.getIdToken();
@@ -349,17 +355,17 @@ async function addComment() {
             body: JSON.stringify(commentData)
         });
 
-        if (!res.ok) throw new Error("댓글 저장 실패");
+        if (!res.ok) throw new Error();
         
         input.value = "";
-        await loadPostDetail(); // 댓글 목록 리로드
+        await loadPostDetail(); 
     } catch (err) {
         console.error(err);
-        alert("댓글을 등록하지 못했습니다.");
+        alert("댓글 저장에 실패했습니다.");
     }
 }
 
-// 💡 자체 서버 글 제거 함수 연동
+// 본문 파괴 제거 연동
 async function deletePost() {
     if (!confirm("정말로 이 게시글을 삭제하시겠습니까?")) return;
     try {
@@ -377,11 +383,11 @@ async function deletePost() {
         location.href = "board.html";
     } catch (err) {
         console.error(err);
-        alert("삭제 처리에 실패했거나 권한이 없습니다.");
+        alert("서버 오류로 삭제하지 못했습니다.");
     }
 }
 
-// 💡 자체 서버 댓글 삭제 함수 연동
+// 댓글 삭제 연동
 async function deleteComment(cKey) {
     if (!confirm("선택한 댓글을 삭제하시겠습니까?")) return;
     try {
