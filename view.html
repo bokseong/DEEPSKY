@@ -157,7 +157,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-// 1. 파이어베이스 초기화 (오직 로그인 세션 및 토큰 가드 용도로만 제한)
+// 1. 파이어베이스 초기화 (로그인 세션 가드 용도)
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -212,11 +212,11 @@ auth.onAuthStateChanged(async (user) => {
         commentLoginNotice?.classList.remove("hidden");
     }
     
-    // 유저 신원 파악 즉시 자체 서버 DB에서 게시글 디테일을 받아옵니다.
+    // 게시글 상세 정보 불러오기
     loadPostDetail();
 });
 
-// 💡 [자체 로컬 DB 연동] 상세 정보 데이터 바인딩 및 파일 처리 함수
+// 💡 [데이터 로드 및 파일 영역 노출 제어]
 async function loadPostDetail() {
     if (!postId) return alert("비정상적인 접근 경로입니다.");
     
@@ -238,21 +238,21 @@ async function loadPostDetail() {
 
         postAuthorUid = post.uid;
 
-        // 메인 영역 노출 및 기본 텍스트 바인딩
+        // 본문 기본 텍스트 바인딩
         document.getElementById("postArea")?.classList.remove("hidden");
         document.getElementById("viewTitle").innerText = post.title || "제목 없음";
         document.getElementById("viewAuthor").innerText = `작성자: ${post.author || '익명'}`;
         document.getElementById("viewDate").innerText = `날짜: ${post.date || ''}`;
         document.getElementById("viewContent").innerText = post.content || "";
 
-        // 💡 [핵심 수정] 첨부파일 다운로드 & 보기 기능 정상화 연동 처리
+        // 💡 [해결 1 & 2] 파일이 있을 때만 버튼 노출 및 다운로드 경로 정밀 매핑
         const fileContainer = document.getElementById("vFileContainer");
         const fileBtn = document.getElementById("vFileDownloadBtn");
         const linkArea = document.getElementById("linkArea");
         const viewFileLink = document.getElementById("viewFileLink");
         
-        if (post.fileUrl) {
-            // 1. 강제 다운로드 라우트 주소 주입
+        if (post.fileUrl && post.fileUrl.trim() !== "") {
+            // 파일 다운로드 주소 연동
             if (fileBtn) {
                 fileBtn.href = `${API_BASE_URL}/api/download?path=${encodeURIComponent(post.fileUrl)}`;
                 const cleanFileName = post.fileUrl.split('_').slice(1).join('_') || '첨부 파일 다운로드';
@@ -260,17 +260,18 @@ async function loadPostDetail() {
             }
             fileContainer?.classList.remove("hidden");
 
-            // 2. 브라우저에서 바로 새 창으로 열어서 보기 주소 주입
+            // 브라우저에서 보기(링크열기) 주소 연동
             if (viewFileLink) {
                 viewFileLink.href = `${API_BASE_URL}${post.fileUrl}`;
             }
-            linkArea?.classList.remove("hidden");
+            linkArea?.classList.remove("hidden"); // 파일이 확실히 존재할 때만 링크 영역 활성화
         } else {
+            // 파일이 없다면 두 영역 모두 완전히 숨김 (링크 열기 버그 해결)
             fileContainer?.classList.add("hidden");
             linkArea?.classList.add("hidden");
         }
 
-        // 수정 및 삭제 제어 단추 권한 필터링 (원글 작성자 혹은 관리자 전용)
+        // 수정/삭제 버튼 권한 처리
         const hasAuth = currentUser && (currentUser.uid === post.uid || currentUserRole === 'admin');
         const editBtn = document.getElementById("editBtn");
         const deleteBtn = document.getElementById("deleteBtn");
@@ -289,11 +290,11 @@ async function loadPostDetail() {
         renderComments(post.comments || {});
     } catch (err) {
         console.error(err);
-        alert("자체 데이터 서버로부터 본문을 수신하지 못했습니다.");
+        alert("데이터 서버로부터 본문을 수신하지 못했습니다.");
     }
 }
 
-// 댓글 목록 컴포넌트 출력 함수
+// 댓글 목록 렌더링
 function renderComments(comments) {
     const listContainer = document.getElementById("commentList");
     if (!listContainer) return;
@@ -329,7 +330,7 @@ function renderComments(comments) {
     });
 }
 
-// 댓글 업로드 연동
+// 💡 [해결 3] 댓글 작성 API 경로 정상화
 async function addComment() {
     if (!currentUser) return alert("로그인 후 작성 가능합니다.");
     const input = document.getElementById("commentInput");
@@ -345,6 +346,7 @@ async function addComment() {
             date: new Date().toLocaleDateString('ko-KR')
         };
 
+        // Flask API 라우트 주소 규격 매핑 수정
         const res = await fetch(`${API_BASE_URL}/api/freeboard/${postId}/comment`, {
             method: "POST",
             headers: { 
@@ -361,11 +363,11 @@ async function addComment() {
         await loadPostDetail(); 
     } catch (err) {
         console.error(err);
-        alert("댓글 저장에 실패했습니다.");
+        alert("댓글 저장에 실패했습니다. 서버 상태를 확인해주세요.");
     }
 }
 
-// 본문 파괴 제거 연동
+// 게시글 삭제
 async function deletePost() {
     if (!confirm("정말로 이 게시글을 삭제하시겠습니까?")) return;
     try {
@@ -387,7 +389,7 @@ async function deletePost() {
     }
 }
 
-// 댓글 삭제 연동
+// 댓글 삭제
 async function deleteComment(cKey) {
     if (!confirm("선택한 댓글을 삭제하시겠습니까?")) return;
     try {
