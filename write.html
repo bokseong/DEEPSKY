@@ -97,8 +97,6 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -113,76 +111,152 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
-const db = firebase.database();
 
 const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
+// URL 파라미터 분석을 통해 '작성 모드'인지 '수정 모드'인지 판단
+const urlParams = new URLSearchParams(window.location.search);
+const editPostId = urlParams.get('id'); // 수정할 글 ID가 담김 (ex: ?id=xxxxxx)
+const isEditMode = !!editPostId;
+
 let currentUser = null;
 let currentUserName = "익명";
 let currentUserRole = "guest";
+let isAuthInitialized = false;
 
+// 인증 세션 상태 감시
 auth.onAuthStateChanged(async (user) => {
-    currentUser = user;
     const status = document.getElementById("userStatus");
     if (user) {
-        db.ref('users/' + user.uid).on('value', (snapshot) => {
-            const userData = snapshot.val() || {};
-            currentUserName = userData.name || user.displayName || user.email.split('@')[0];
-            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
-            if (status) status.innerText = `${currentUserName}님 (${currentUserRole==='admin'?'관리자':(currentUserRole==='student'?'부원':'일반')})`;
-        });
+        currentUser = user;
+        currentUserName = user.displayName || user.email.split('@')[0];
+        currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : 'member';
+        
+        if (status) {
+            status.innerText = `${currentUserName}님 (${currentUserRole === 'admin' ? '관리자' : '회원'})`;
+        }
         document.getElementById("loginBtn")?.classList.add("hidden");
         document.getElementById("logoutBtn")?.classList.remove("hidden");
+        
+        // 💡 인증 완료 후 수정 모드라면 기존 글 내용을 서버에서 받아옵니다.
+        if (!isAuthInitialized) {
+            isAuthInitialized = true;
+            if (isEditMode) {
+                initEditPage();
+            }
+        }
     } else {
         alert("로그인 세션이 만료되었습니다. 목록으로 복귀합니다.");
         location.href = "board.html";
     }
 });
 
-// 데이터 + 파일바이너리를 FormData 객체에 취합하여 전송
-async function savePost() {
-    const title = document.getElementById("pTitle").value.trim();
-    const content = document.getElementById("pContent").value.trim();
-    const link = document.getElementById("pLink").value.trim();
+// 💡 수정 모드 전용 : 기존 글 데이터 로드 및 폼 매핑
+async function initEditPage() {
+    document.getElementById("pageTitle").innerText = "게시글 수정하기";
+    document.getElementById("submitBtn").innerText = "게시글 수정 완료";
+
+    try {
+        // 자체 로컬 파일 DB 목록 조회 API 호출
+        const res = await fetch(`${API_BASE_URL}/api/freeboard`, {
+            method: "GET",
+            headers: { "ngrok-skip-browser-warning": "69420" }
+        });
+        if (!res.ok) throw new Error("서버에서 데이터를 읽어오지 못했습니다.");
+        
+        const data = await res.json();
+        const post = data[editPostId];
+
+        if (!post) {
+            alert("존재하지 않거나 삭제된 게시글입니다.");
+            history.back();
+            return;
+        }
+
+        // 본인 글 또는 관리자인지 체크
+        if (post.uid !== currentUser.uid && currentUserRole !== 'admin') {
+            alert("수정 권한이 없습니다.");
+            history.back();
+            return;
+        }
+
+        // 기존 데이터 채워 넣기
+        document.getElementById("postTitle").value = post.title || "";
+        document.getElementById("postContent").value = post.content || "";
+        
+        if (post.fileUrl) {
+            const oldFileDiv = document.getElementById("oldFileInfo");
+            oldFileDiv.classList.remove("hidden");
+            oldFileDiv.innerText = `현재 등록된 파일: ${post.fileUrl.split('_').slice(1).join('_') || '파일 존재'}`;
+        }
+
+    } catch (err) {
+        console.error(err);
+        alert("게시글 정보를 불러오는 중 에러가 발생했습니다.");
+    }
+}
+
+// 💡 작성 및 수정을 분기 처리하는 핵심 전송 함수
+async function submitPost() {
+    const title = document.getElementById("postTitle").value.trim();
+    const content = document.getElementById("postContent").value.trim();
     const fileInput = document.getElementById("pFile");
 
     if (!title || !content) return alert("제목과 내용을 입력해주세요.");
-    if (!currentUser) return alert("인증 오류가 발생했습니다.");
+    if (!currentUser) return alert("인증 오류가 발생했습니다. 다시 로그인해주세요.");
 
     try {
         const formData = new FormData();
         formData.append("title", title);
         formData.append("content", content);
-        formData.append("link", link);
         formData.append("author", currentUserName);
-        formData.append("email", currentUser.email);
-        formData.append("uid", currentUser.uid);
-        formData.append("date", new Date().toLocaleDateString('ko-KR'));
-        formData.append("timestamp", Date.now());
+        
+        // 작성할 때 날짜 생성 (수정 모드일 때는 기존 날짜 보존을 위해 백엔드 구조에 일임하거나 신규 세팅)
+        if (!isEditMode) {
+            formData.append("date", new Date().toLocaleDateString('ko-KR'));
+        }
 
-        // 선택 파일 바인딩
+        // 파일 첨부 처리
         if (fileInput && fileInput.files.length > 0) {
             formData.append("file", fileInput.files[0]);
         }
 
-        const res = await fetch(`${API_BASE_URL}/api/freeboard`, {
-            method: "POST",
-            headers: { "ngrok-skip-browser-warning": "69420" },
+        // 자체 DB 보안 통신용 Firebase ID 토큰 추출
+        const token = await currentUser.getIdToken();
+
+        // 💡 분기 구간: 수정 모드면 PUT 요청, 신규 작성이면 POST 요청을 보냅니다.
+        const url = isEditMode ? `${API_BASE_URL}/api/freeboard/${editPostId}` : `${API_BASE_URL}/api/freeboard`;
+        const method = isEditMode ? "PUT" : "POST";
+
+        const res = await fetch(url, {
+            method: method,
+            headers: { 
+                "Authorization": `Bearer ${token}`,
+                "ngrok-skip-browser-warning": "69420" 
+            },
             body: formData
         });
 
-        if (!res.ok) throw new Error("서버 저장 처리 실패");
+        const result = await res.json();
+
+        if (!res.ok) {
+            throw new Error(result.error || "서버 통신 실패");
+        }
         
-        alert("게시글이 성공적으로 등록되었습니다.");
-        location.href = "board.html";
+        alert(isEditMode ? "게시글이 성공적으로 수정되었습니다." : "게시글이 성공적으로 등록되었습니다.");
+        location.href = "board.html"; // 완료 후 목록 페이지로 복귀
     } catch (err) {
         console.error(err);
-        alert("글 등록 중 통신 오류가 발생했습니다.");
+        alert(`처리 중 통신 오류가 발생했습니다.\n요인: ${err.message}`);
     }
 }
 
-function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.href="board.html"); }
+function logout() { 
+    if(confirm("로그아웃 하시겠습니까?")) {
+        auth.signOut().then(() => location.href="board.html"); 
+    } 
+}
 </script>
 </body>
 </html>
