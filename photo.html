@@ -76,7 +76,6 @@
         .photo-card { background: #161b4a; border-radius: 15px; overflow: hidden; border: 1px solid #2d367a; transition: 0.3s; display: flex; flex-direction: column; }
         .photo-card:hover { transform: translateY(-5px); border-color: #3a5aff; }
         
-        /* 💡 [수정] 이미지 다이렉트 다운로드 연동 블롭 렌더링용 스타일 */
         .photo-card .img-wrapper { width: 100%; height: 210px; background: #070a1d; overflow: hidden; position: relative; cursor: pointer; }
         .photo-card img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
         .photo-card img:hover { transform: scale(1.03); }
@@ -93,7 +92,7 @@
         .btn-view { background: #28a745; color: white; }
         .btn-del { background: #ff4d4d; color: white; }
 
-        /* 💡 [추가] 사진 선택 시 원본을 깔끔하게 보여주는 오버레이 모달 창 디자인 */
+        /* 사진 선택 시 원본을 깔끔하게 보여주는 오버레이 모달 창 디자인 */
         .photo-modal {
             position: fixed; top:0; left:0; width:100%; height:100%; 
             background: rgba(4, 6, 18, 0.95); z-index: 2000;
@@ -166,9 +165,12 @@
     <div id="mainContent" class="hidden">
         <div id="uploadSection" class="upload-card hidden">
             <h3 style="margin-top:0; color:#7fc7ff;">사진 등록</h3>
-            <p style="font-size:14px; color:#ccc; margin-bottom:15px;">서버에 사진을 바로 업로드합니다.</p>
+            <p style="font-size:14px; color:#ccc; margin-bottom:15px;">서버에 사진을 여러 장 바로 업로드합니다.</p>
             <input type="text" id="pTitle" placeholder="사진 제목">
-            <input type="file" id="pFile" accept="image/*" style="width: 100%; padding: 12px; margin-bottom: 10px; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px;">
+            
+            <input type="file" id="pFile" accept="image/*" multiple="multiple" onchange="updateFileCountDisplay()" style="width: 100%; padding: 12px; margin-bottom: 5px; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px;">
+            <div id="fileCountDisplay" style="font-size: 13px; color: #7fc7ff; text-align: left; margin-bottom: 12px; padding-left: 5px;">선택된 파일: 없음</div>
+            
             <button class="btn-upload" onclick="uploadPhoto()">갤러리에 올리기</button>
         </div>
 
@@ -190,7 +192,7 @@
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
     <br>
-    Email : leader.deepsky@gmail.com &nbsp; &nbsp; &nbsp; &nbsp; | &nbsp; &nbsp; &nbsp; &nbsp; Designed by jw-astro09
+    Email : leader.deepsky@gmail.com &nbsp; |  &nbsp; Designed by jw-astro09
 </footer>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -234,29 +236,24 @@ auth.onAuthStateChanged(async (user) => {
         document.getElementById("logoutBtn")?.classList.remove("hidden");
 
         try {
-            // AppCheck 및 .get() 누락 대기 현상을 원천 방어하기 위해 .once 사용
             const snapshot = await new Promise((resolve, reject) => {
                 db.ref('users/' + user.uid).once('value', resolve, reject);
             });
             const userData = snapshot.val() || {};
             
-            // 등급 판정 (백엔드 admin 조건과 완벽 일치)
             currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
             
             status.innerText = `${userName}님 (${currentUserRole === 'admin' ? '관리자' : '회원'})`;
             
-            // 관리자 등급에게만 업로드 폼 열기
             if (currentUserRole === 'admin') {
                 uploadSection.classList.remove("hidden");
             } else {
                 uploadSection.classList.add("hidden");
             }
 
-            // 가드 해제 및 화면 활성화
             lockMsg.classList.add("hidden");
             mainContent.classList.remove("hidden");
             
-            // 로그인 완료 후 안전하게 사진 목록 요청
             await loadPhotos();
 
         } catch (err) {
@@ -290,7 +287,6 @@ async function loadPhotos() {
             return;
         }
 
-        // Firebase 세션 토큰 취득
         const token = await auth.currentUser.getIdToken(true);
 
         const res = await fetch(`${API_BASE_URL}/api/photos`, { 
@@ -316,7 +312,7 @@ async function loadPhotos() {
     }
 }
 
-// 그리드 렌더링 세부 구현 (★ 백엔드 데이터 필드명 매칭 수정)
+// 그리드 렌더링 세부 구현
 function renderPhotoGrid(data) {
     const grid = document.getElementById("photoGrid");
     if (!grid) return;
@@ -333,12 +329,9 @@ function renderPhotoGrid(data) {
         const card = document.createElement("div");
         card.className = "photo-card";
         
-        // 💡 [핵심 교정] 백엔드 app.txt의 22번째 줄 형식을 보면 주소가 'url' 키로 저장됩니다.
-        // 백엔드 다운로드 규칙(/uploads/ 검증)을 통과하기 위한 경로 조합 생성
         const rawUrl = p.url || p.file_path || p.fileUrl || '';
         const targetFileUrl = `${API_BASE_URL}/api/download?path=${encodeURIComponent(rawUrl)}`;
         
-        // 💡 placeholder 차단 에러를 막기 위해 대체 이미지 주소를 부러지지 않는 타 사이트로 변경
         card.innerHTML = `
             <div class="img-wrapper" onclick="openModal('${targetFileUrl}', '${p.title || '사진'}')">
                 <img src="${targetFileUrl}" onerror="this.src='https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?w=300'" alt="활동사진">
@@ -370,6 +363,16 @@ function openModal(imgUrl, titleText) {
     }
 }
 
+// 파일 선택 시 몇 장이 선택되었는지 실시간으로 UI 텍스트에 출력해 주는 보조 함수
+function updateFileCountDisplay() {
+    const fileInput = document.getElementById("pFile");
+    const display = document.getElementById("fileCountDisplay");
+    if (!fileInput || !display) return;
+    
+    const count = fileInput.files.length;
+    display.innerText = count > 0 ? `선택된 파일: ${count}개의 이미지` : "선택된 파일: 없음";
+}
+
 function closeModal() {
     const modal = document.getElementById("photoModal");
     if (modal) {
@@ -378,10 +381,11 @@ function closeModal() {
     }
 }
 
-// 💡 다중 파일 업로드를 지원하는 수정된 함수
+// 다중 파일 업로드를 지원하는 자바스크립트 최종 연동 기능
 async function uploadPhoto() {
     const titleInput = document.getElementById("pTitle");
     const fileInput = document.getElementById("pFile");
+    const display = document.getElementById("fileCountDisplay");
     
     if (!titleInput || titleInput.value.trim() === "") return alert("사진 제목을 입력해 주세요.");
     if (!fileInput || fileInput.files.length === 0) return alert("업로드할 사진 파일을 선택해주세요.");
@@ -392,7 +396,7 @@ async function uploadPhoto() {
     formData.append("title", titleInput.value.trim());
     formData.append("author", currentUser.displayName || currentUser.email.split('@')[0]);
     
-    // 💡 [핵심] 선택된 모든 파일을 반복문을 통해 'file'이라는 동일한 키로 formData에 전부 주입합니다.
+    // 선택된 모든 이미지를 하나의 폼 묶음('file')에 전부 담아 백엔드로 일괄 전송
     for (let i = 0; i < fileInput.files.length; i++) {
         formData.append("file", fileInput.files[i]);
     }
@@ -414,6 +418,7 @@ async function uploadPhoto() {
         
         titleInput.value = "";
         fileInput.value = "";
+        if (display) display.innerText = "선택된 파일: 없음";
         await loadPhotos();
     } catch (err) { 
         alert("서버 통신 실패 또는 권한(관리자 등급 이상)이 부족하여 업로드하지 못했습니다."); 
