@@ -217,6 +217,7 @@ let currentUser = null;
 let currentUserRole = "guest";
 let cachedPhotos = {};
 
+// [인증 및 등급 제어 가드 - 무한 루프 수정본]
 auth.onAuthStateChanged((user) => {
     const status = document.getElementById("userStatus");
     const lockMsg = document.getElementById("lockMessage");
@@ -230,27 +231,41 @@ auth.onAuthStateChanged((user) => {
         document.getElementById("loginBtn")?.classList.add("hidden");
         document.getElementById("logoutBtn")?.classList.remove("hidden");
 
-        db.ref('users/' + user.uid).on('value', (snapshot) => {
+        // 💡 [수정] 무한 부팅 루프를 해결하기 위해 .on('value') 대신 .once('value')를 사용하여 단 한 번만 조회합니다.
+        db.ref('users/' + user.uid).once('value').then((snapshot) => {
             const userData = snapshot.val() || {};
             
+            // 최고 관리자 이메일이거나 DB 등급이 'admin'인 경우 권한 인정
             currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
             
             if (status) {
                 status.innerText = `${userName}님 (${currentUserRole === 'admin' ? '관리자' : '회원'})`;
             }
             
+            // 관리자 등급에게만 업로드 폼 노출
             if (currentUserRole === 'admin') {
                 uploadSection?.classList.remove("hidden");
             } else {
                 uploadSection?.classList.add("hidden");
             }
 
+            // 가드 해제 및 콘텐츠 그리드 활성화
             lockMsg?.classList.add("hidden");
             mainContent?.classList.remove("hidden");
             
+            // 무한 루프가 끊어진 상태에서 안전하게 사진을 로드합니다.
+            loadPhotos();
+        }).catch(err => {
+            console.error("등급 정보 로드 실패:", err);
+            // 에러 발생 시 예외 처리로 기본 권한 부여 후 로드
+            currentUserRole = 'member';
+            lockMsg?.classList.add("hidden");
+            mainContent?.classList.remove("hidden");
             loadPhotos();
         });
+
     } else {
+        // 비로그인 유저 진입 시 즉시 차단 및 안내 전환
         currentUser = null;
         currentUserRole = "guest";
         if (status) status.innerText = "로그인 해주세요";
@@ -263,7 +278,6 @@ auth.onAuthStateChanged((user) => {
         lockMsg?.classList.remove("hidden");
     }
 });
-
 // 💡 [해결 3] 갤러리 리스트 바인딩 및 ngrok 스킵 블롭 썸네일 스트리밍 처리
 async function loadPhotos() {
     try {
