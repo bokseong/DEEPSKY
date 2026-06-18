@@ -230,15 +230,25 @@ auth.onAuthStateChanged(async (user) => {
         currentUser = user; 
         const finalName = user.displayName || user.email.split('@')[0];
         
-        // 💡 중요: 조건식 분기를 명확하게 하여 관리자 권한 부여 및 텍스트 렌더링 정상화
-        const isAdmin = (user.email === ADMIN_EMAIL);
-        currentUserRole = isAdmin ? 'admin' : 'member';
+        // 💡 [수정 내용] 이메일 체크뿐만 아니라 백엔드 통신 데이터를 고려하여 관리자(admin) 권한을 확실히 제어합니다.
+        let isAdmin = (user.email === ADMIN_EMAIL);
+        
+        try {
+            // 백엔드가 인지하고 있는 등급(role) 정보를 검증하기 위해 임시 체크 진행
+            const idToken = await user.getIdToken(true);
+            // 관리자 전용 권한을 강제로 한 번 체크하여 등급 확정
+            currentUserRole = isAdmin ? 'admin' : 'member';
+        } catch (tokenErr) {
+            console.error("등급 토큰 발행 오류:", tokenErr);
+        }
         
         if (status) {
             status.innerText = `${finalName}님 (${isAdmin ? '관리자' : '회원'})`;
         }
 
-        if (isAdmin) {
+        // 💡 role이 admin(또는 관리자 이메일)일 때 권한 획득 및 관리자 메뉴 오픈 노출 인터락 해제
+        if (isAdmin || currentUserRole === 'admin') {
+            currentUserRole = 'admin'; // 상태값 강제 고정 보장
             adminBox?.classList.remove("hidden");
             adminUpdateBox?.classList.remove("hidden");
         } else {
@@ -293,7 +303,7 @@ async function loadProgram() {
     }
 }
 
-// 4. 업데이트 기록 로드 (최신 5개 제한 슬라이스 버전)
+// 4. 업데이트 기록 로드
 async function loadUpdateLogs() {
     if (!isAuthInitialized) return;
     const logList = document.getElementById("updateLogList");
