@@ -194,7 +194,9 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
-// 1. Firebase 설정
+// ====================================================
+// 1. Firebase 구성 및 초기화
+// ====================================================
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -208,17 +210,22 @@ const firebaseConfig = {
 const app = firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 
+// App Check 활성화
 const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
+// 백엔드 연동 서버 주소 및 마스터 관리자 이메일
 const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
+// 전역 상태 변수
 let currentUser = null;
 let currentUserRole = "guest";
 let isAuthInitialized = false;
 
-// 2. 인증 및 사용자 세션 상태 추적 실시간 리스너
+// ====================================================
+// 2. 인증 및 사용자 세션 추적 리스너 (실시간 DB 연동 포함)
+// ====================================================
 auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
@@ -230,25 +237,34 @@ auth.onAuthStateChanged(async (user) => {
         currentUser = user; 
         const finalName = user.displayName || user.email.split('@')[0];
         
-        // 💡 [수정 내용] 이메일 체크뿐만 아니라 백엔드 통신 데이터를 고려하여 관리자(admin) 권한을 확실히 제어합니다.
+        // 마스터 이메일 기본 체크
         let isAdmin = (user.email === ADMIN_EMAIL);
         
         try {
-            // 백엔드가 인지하고 있는 등급(role) 정보를 검증하기 위해 임시 체크 진행
-            const idToken = await user.getIdToken(true);
-            // 관리자 전용 권한을 강제로 한 번 체크하여 등급 확정
-            currentUserRole = isAdmin ? 'admin' : 'member';
-        } catch (tokenErr) {
-            console.error("등급 토큰 발행 오류:", tokenErr);
+            // 💡 [핵심 구현]: Firebase Realtime Database에서 유저의 실제 role을 직접 조회
+            const snapshot = await firebase.database().ref(`users/${user.uid}`).once('value');
+            const userData = snapshot.val();
+            
+            if (userData && userData.role) {
+                // DB의 role 값이 '관리자' 또는 'admin'인 경우 true 설정
+                if (userData.role === '관리자' || userData.role === 'admin') {
+                    isAdmin = true;
+                }
+            }
+        } catch (e) {
+            console.error("Firebase Realtime Database role 조회 실패 (백엔드 검증에 위임):", e);
         }
+
+        // 전역 역할 변수 설정
+        currentUserRole = isAdmin ? 'admin' : 'member';
         
+        // 상단 바 UI 변경
         if (status) {
             status.innerText = `${finalName}님 (${isAdmin ? '관리자' : '회원'})`;
         }
 
-        // 💡 role이 admin(또는 관리자 이메일)일 때 권한 획득 및 관리자 메뉴 오픈 노출 인터락 해제
-        if (isAdmin || currentUserRole === 'admin') {
-            currentUserRole = 'admin'; // 상태값 강제 고정 보장
+        // 관리자 메뉴 상자 노출 제어
+        if (isAdmin) {
             adminBox?.classList.remove("hidden");
             adminUpdateBox?.classList.remove("hidden");
         } else {
@@ -259,6 +275,7 @@ auth.onAuthStateChanged(async (user) => {
         loginBtn?.classList.add("hidden");
         logoutBtn?.classList.remove("hidden");
     } else {
+        // 로그아웃 상태 처리
         currentUser = null;
         currentUserRole = "guest";
         if (status) status.innerText = "로그인 해주세요";
@@ -269,13 +286,15 @@ auth.onAuthStateChanged(async (user) => {
         adminUpdateBox?.classList.add("hidden");
     }
     
+    // 세션 동기화 인터락 완료 후 데이터 로드 실행
     isAuthInitialized = true;
-    // 인증 세션 동기화 완료 후 비동기 데이터 획득 호출
     await loadProgram(); 
     await loadUpdateLogs(); 
 });
 
-// 3. 이번 주 프로그램 로드
+// ====================================================
+// 3. 이번 주 프로그램(공지사항) 로드 API 호출
+// ====================================================
 async function loadProgram() {
     if (!isAuthInitialized) return;
     const el = document.getElementById("weekProgramText");
@@ -303,7 +322,9 @@ async function loadProgram() {
     }
 }
 
-// 4. 업데이트 기록 로드
+// ====================================================
+// 4. 업데이트 기록 로드 API 호출 (최신 5개 제한)
+// ====================================================
 async function loadUpdateLogs() {
     if (!isAuthInitialized) return;
     const logList = document.getElementById("updateLogList");
@@ -340,6 +361,7 @@ async function loadUpdateLogs() {
             return;
         }
 
+        // 최신 5개 데이터 슬라이스 후 렌더링
         const displayLogs = logsArray.slice(0, 5);
         displayLogs.forEach(log => {
             const box = document.createElement("div");
@@ -360,7 +382,9 @@ async function loadUpdateLogs() {
     }
 }
 
+// ====================================================
 // 5. 관리자 전용: 공지 수정 요청 전송
+// ====================================================
 async function saveProgram() {
     const text = document.getElementById("weekProgramInput").value;
     if (!text) return alert("내용을 입력하세요.");
@@ -391,7 +415,9 @@ async function saveProgram() {
     }
 }
 
+// ====================================================
 // 6. 관리자 전용: 업데이트 로그 추가 요청 전송
+// ====================================================
 async function addUpdateLog() {
     const version = document.getElementById("updateVersion").value.trim();
     const content = document.getElementById("updateContent").value.trim();
@@ -430,7 +456,7 @@ async function addUpdateLog() {
     }
 }
 
-// 단축키 이벤트 리스너 마운트
+// 단축키 이벤트 리스너 설정
 document.getElementById("weekProgramInput")?.addEventListener("keydown", function(e) {
     if (e.ctrlKey && e.key === 'Enter') saveProgram();
 });
@@ -441,7 +467,9 @@ document.getElementById("updateContent")?.addEventListener("keydown", function(e
     if (e.ctrlKey && e.key === 'Enter') addUpdateLog();
 });
 
-// 7. 관측 기록 슬라이더 컨트롤러
+// ====================================================
+// 7. 순수 프론트엔드 관측 기록 슬라이더 컨트롤러
+// ====================================================
 let slideIndex = 0;
 function setupSlides() {
     const slides = document.querySelectorAll(".slide-item");
@@ -455,7 +483,9 @@ function setupSlides() {
 }
 setupSlides();
 
-// 8. 안전 세션 로그아웃
+// ====================================================
+// 8. 세션 로그아웃 처리
+// ====================================================
 window.logout = () => { 
     if (confirm("정말로 로그아웃 하시겠습니까?")) {
         auth.signOut().then(() => location.reload()); 
