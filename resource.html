@@ -104,15 +104,25 @@
         }
         .resource-item:hover { transform: translateY(-3px); border-color: #3a5aff; }
         
-        /* 💡 가독성을 높이기 위해 제목 및 본문 디자인 고정 수치 반영 */
         .file-name { font-weight: bold; color: #7fc7ff; font-size: 18px; margin-bottom: 8px; }
         .file-desc { font-size: 14px; color: #ccc; margin-bottom: 15px; min-height: 42px; }
         
+        /* 💡 분리된 버튼들을 배치하기 위한 컨테이너와 스타일 고정 수치 */
+        .action-container { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+        .file-list-box { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+
         .btn-download { 
-            display: inline-block; text-align: center; background: #3a5aff; color: white; 
+            display: inline-block; text-align: center; background: #22379b; color: #7fc7ff; 
+            border: 1px solid #3a5aff; text-decoration: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 14px;
+        }
+        .btn-download:hover { background: #2d49cc; color: white; }
+        
+        .btn-link-out {
+            display: inline-block; text-align: center; background: #3a5aff; color: white;
             text-decoration: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 14px;
         }
-        .btn-download:hover { background: #5a7aff; }
+        .btn-link-out:hover { background: #5a7aff; }
+
         .btn-delete { 
             background: none; color: #ff4d4d; border: none; cursor: pointer; 
             font-size: 12px; margin-top: 12px; text-decoration: underline; text-align: left; padding: 0;
@@ -177,8 +187,8 @@
             <h3>새로운 자료 등록 (관리자)</h3>
             <input type="text" id="fileTitle" placeholder="자료 제목">
             <input type="text" id="fileDesc" placeholder="자료 설명">
-            <input type="text" id="fileLink" placeholder="다운로드/보기 (외부 링크가 있을 경우 입력)">
-            <input type="file" id="fileData">
+            <input type="text" id="fileLink" placeholder="참고 외부 링크 주소 (있을 경우에만 입력)">
+            <input type="file" id="fileData" multiple>
             <button class="btn-main" onclick="uploadResource()">자료 게시하기</button>
         </div>
 
@@ -197,7 +207,7 @@
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
     <br>
-    Email : leader.deepsky@gmail.com &nbsp;	&nbsp; &nbsp; &nbsp;|	&nbsp; &nbsp; &nbsp; &nbsp;Designed by jw-astro09
+    Email : leader.deepsky@gmail.com &nbsp;|    &nbsp;Designed by jw-astro09
 </footer>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -225,7 +235,7 @@ const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 let currentUser = null;
 let currentUserName = "익명";
 let currentUserRole = "guest";
-let allResources = {}; // 검색(필터링)용 로컬 저장 캐시
+let allResources = {};
 
 auth.onAuthStateChanged((user) => {
     currentUser = user;
@@ -247,7 +257,6 @@ auth.onAuthStateChanged((user) => {
             
             if (status) status.innerText = `${currentUserName}님 (${currentUserRole})`;
             
-            // 💡 [수정] 파이어베이스 RTDB 데이터를 직접 쓰지 않고 검증 인터페이스를 통과시켜 무조건 자체 서버로부터 동기화
             if (currentUserRole === 'admin' || currentUserRole === 'student') {
                 lockMessage.classList.add("hidden");
                 mainContent.classList.remove("hidden");
@@ -259,7 +268,6 @@ auth.onAuthStateChanged((user) => {
                 }
                 loadResources();
             } else {
-                // 부원 등급 미달자 잠금 처리
                 mainContent.classList.add("hidden");
                 document.getElementById("lockText").innerText = "자료실 열람 권한이 없습니다 (student 등급 이상 전용).";
                 lockMessage.classList.remove("hidden");
@@ -276,7 +284,6 @@ auth.onAuthStateChanged((user) => {
     }
 });
 
-// 💡 [수정] 자체 서버 보관함 연동 및 가변 링크/서버 하드 링크 데이터 동적 추적 렌더링
 async function loadResources() {
     try {
         const token = currentUser ? await currentUser.getIdToken(true) : "";
@@ -299,7 +306,7 @@ async function loadResources() {
     }
 }
 
-// 데이터를 기반으로 UI 그리기 공통 함수
+// 💡 [수정] 여러 개 파일 목록 버튼과 외부 링크 이동 버튼을 독립적으로 분리 렌더링하도록 돔 구성 변경
 function renderResourceDOM(data) {
     const list = document.getElementById("resourceList");
     list.innerHTML = "";
@@ -315,10 +322,32 @@ function renderResourceDOM(data) {
         const div = document.createElement("div");
         div.className = "resource-item";
         
-        // 다운로드 우선순위 판별 (자체 백엔드 업로드 파일링크가 존재하면 해당 주소, 없을 시 관리자가 기입한 외부 수동링크 사용)
-        let downloadPath = item.link || "";
-        if (item.file_path) {
-            downloadPath = `${API_BASE_URL}/api/download?path=${encodeURIComponent(item.file_path)}`;
+        // 1. 외부 링크 버튼 생성 유무 판별
+        let linkBtnHtml = "";
+        if (item.link && item.link.trim() !== "") {
+            linkBtnHtml = `<a href="${item.link}" class="btn-link-out" target="_blank">🔗 외부 링크 이동</a>`;
+        }
+
+        // 2. 다중 파일 다운로드 버튼 목록 자동 동적 구성
+        let fileButtonsHtml = "";
+        const filePaths = item.file_paths || [];
+        
+        // 하위 호환성 유지용 처리 (기존 file_path 단수 데이터가 유실되지 않고 보이도록 설정)
+        if (item.file_path && filePaths.length === 0) {
+            filePaths.push(item.file_path);
+        }
+
+        if (filePaths.length > 0) {
+            fileButtonsHtml = `<div class="file-list-box">`;
+            filePaths.forEach((path, idx) => {
+                // 저장된 고유 파일명 규칙에서 UUID를 자르고 원래 순수 업로드 원본 파일명만 파싱
+                const parts = path.split('_');
+                const cleanName = parts.length > 2 ? parts.slice(2).join('_') : `첨부 파일 ${idx + 1}`;
+                const downloadUrl = `${API_BASE_URL}/api/download?path=${encodeURIComponent(path)}`;
+                
+                fileButtonsHtml += `<a href="${downloadUrl}" class="btn-download" target="_blank">📄 ${cleanName} 다운로드</a>`;
+            });
+            fileButtonsHtml += `</div>`;
         }
 
         div.innerHTML = `
@@ -327,8 +356,10 @@ function renderResourceDOM(data) {
                 <div style="font-size:12px; color:#888; margin-bottom:10px;">작성자: ${item.author || '관리자'} | 등록일: ${item.date || ''}</div>
                 <div class="file-desc">${item.content || '설명이 없습니다.'}</div>
             </div>
-            <div>
-                ${downloadPath ? `<a href="${downloadPath}" class="btn-main btn-download" target="_blank">자료 받아오기 / 링크 이동</a>` : `<span style="color:#aaa; font-size:13px;">다운로드 링크 없음</span>`}
+            <div class="action-container">
+                ${fileButtonsHtml}
+                ${linkBtnHtml}
+                ${(!fileButtonsHtml && !linkBtnHtml) ? `<span style="color:#aaa; font-size:13px; text-align:center;">다운로드 및 링크 없음</span>` : ""}
                 ${currentUserRole === 'admin' ? `<button class="btn-delete" onclick="deleteResource('${key}')">[이 자료 완전 삭제]</button>` : ""}
             </div>
         `;
@@ -336,7 +367,6 @@ function renderResourceDOM(data) {
     });
 }
 
-// 💡 [수정] 프론트엔드 자체 실시간 검색 필터링 매핑 완벽 복구
 function filterResources() {
     const query = document.getElementById("searchInput").value.toLowerCase().trim();
     const filtered = {};
@@ -353,14 +383,14 @@ function filterResources() {
     renderResourceDOM(filtered);
 }
 
-// 💡 [수정] FormData 변수 참조 오류 해결 및 multipart/form-data 일괄 바인딩 전송
+// 💡 [수정] 여러 개 멀티 파일을 FormData 루프를 돌며 일괄 바인딩하도록 업로드 루틴 확장
 async function uploadResource() {
     if (currentUserRole !== 'admin') return alert("관리자만 업로드할 수 있습니다.");
 
     const title = document.getElementById("fileTitle").value.trim();
     const desc = document.getElementById("fileDesc").value.trim();
     const link = document.getElementById("fileLink").value.trim();
-    const fileInput = document.getElementById("fileData"); // ID 매핑 교정
+    const fileInput = document.getElementById("fileData");
 
     if (!title) return alert("제목을 입력하세요.");
 
@@ -372,8 +402,11 @@ async function uploadResource() {
     formData.append("author", currentUserName);
     formData.append("date", new Date().toLocaleDateString('ko-KR'));
     
+    // 💡 선택된 다중 파일을 동일한 'file' 키값 배열 형태로 바인딩 처리
     if (fileInput && fileInput.files.length > 0) {
-        formData.append("file", fileInput.files[0]);
+        for (let i = 0; i < fileInput.files.length; i++) {
+            formData.append("file", fileInput.files[i]);
+        }
     }
 
     try {
@@ -383,11 +416,11 @@ async function uploadResource() {
                 "Authorization": `Bearer ${token}`,
                 "ngrok-skip-browser-warning": "69420" 
             },
-            body: formData // Content-Type 헤더를 쓰지 않아야 브라우저가 boundary를 오토매핑합니다.
+            body: formData
         });
 
         if(response.ok) {
-            alert("자료가 격리 디렉토리에 정상 등록 완료되었습니다.");
+            alert("자료가 다중 파일 격리 저장소에 정상 등록 완료되었습니다.");
             document.getElementById("fileTitle").value = "";
             document.getElementById("fileDesc").value = "";
             document.getElementById("fileLink").value = "";
@@ -403,7 +436,7 @@ async function uploadResource() {
 }
 
 async function deleteResource(id) {
-    if(!confirm("해당 자료물과 서버 하드 내에 실존하는 파일을 삭제하시겠습니까?")) return;
+    if(!confirm("해당 자료물과 서버 하드 내에 실존하는 파일들을 일괄 삭제하시겠습니까?")) return;
     try {
         const token = currentUser ? await currentUser.getIdToken(true) : "";
         const response = await fetch(`${API_BASE_URL}/api/resources/${id}`, { 
