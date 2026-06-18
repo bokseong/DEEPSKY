@@ -503,22 +503,27 @@ async function uploadPhoto() {
 }
 
 // 사진 삭제
-async function deletePhoto(id) {
-    if (!confirm("선택한 사진을 정말로 삭제하시겠습니까?")) return;
-    try {
-        const token = await auth.currentUser.getIdToken(true);
-        const res = await fetch(`${API_BASE_URL}/api/photos/${id}`, { 
-            method: "DELETE", 
-            headers: { 
-                "ngrok-skip-browser-warning": "69420",
-                "Authorization": `Bearer ${token}`
-            } 
-        });
-        if (!res.ok) throw new Error();
+// 프론트엔드(자바스크립트) 삭제 호출 예시
+async function deletePost(Id) {
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+    
+    // 💡 로그인된 유저의 토큰을 가져와야 합니다.
+    const token = await firebase.auth().currentUser.getIdToken(true);
+    
+    const res = await fetch(`${API_BASE_URL}/api/freeboard/${postId}`, {
+        method: "DELETE",
+        headers: {
+            "Authorization": `Bearer ${token}`, // 👈 필수!
+            "ngrok-skip-browser-warning": "69420"
+        }
+    });
+    
+    if (res.ok) {
         alert("삭제되었습니다.");
-        await loadPhotos();
-    } catch (err) {
-        alert("삭제 처리에 실패했습니다.");
+        location.reload();
+    } else {
+        const err = await res.json();
+        alert("삭제 실패: " + err.error);
     }
 }
 
