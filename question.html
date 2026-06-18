@@ -17,23 +17,20 @@
         .auth-bar button { padding: 5px 12px; border-radius: 5px; border: none; background: #3a5aff; color: white; cursor: pointer; font-weight: bold; }
         header { background: linear-gradient(to right, #0d1b52, #1b2f80); padding: 38px 20px; text-align: center; }
         nav { 
-    background: #11153a; 
-    border-bottom: 1px solid #2d367a; 
-    padding: 10px 0; 
-    /* 줄바꿈을 허용하기 위해 아래 두 줄 수정/삭제 */
-    overflow-x: visible; 
-    white-space: normal; 
-}
-
-nav .nav-inner { 
-    max-width: 1200px;
-    margin: 0 auto; 
-    display: flex; 
-    /* wrap으로 변경하여 공간이 부족하면 아래로 넘어가게 함 */
-    flex-wrap: wrap; 
-    justify-content: center; 
-    gap: 5px; /* 줄바꿈 시 가독성을 위해 간격을 조금 넓힘 */
-}
+            background: #11153a; 
+            border-bottom: 1px solid #2d367a; 
+            padding: 10px 0; 
+            overflow-x: visible; 
+            white-space: normal; 
+        }
+        nav .nav-inner { 
+            max-width: 1200px;
+            margin: 0 auto; 
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            gap: 5px; 
+        }
         nav a { display: inline-block; color: white; padding: 12px 18px; text-decoration: none; font-weight: bold; font-size: 15px; border-radius: 8px; }
         nav a:hover { background: rgba(127, 199, 255, 0.1); color: #7fc7ff; }
         .container { max-width: 900px; margin: 30px auto; padding: 0 20px 100px; }
@@ -129,7 +126,6 @@ const db = firebase.database();
 const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
-// 💡 5001번 우분투 ngrok 백엔드 서버 연동용 기본 설정 주소
 const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxds-gEKufN1Bh_XwWiuHTynprR5VfP0IB6_OYVCaAzcZo5xQsKg6MG-OwQqdbzXQWiRg/exec";
@@ -139,7 +135,6 @@ let currentUserName = "익명";
 let currentUserRole = "guest";
 let cachedData = null;
 
-// 공통 알림 함수 (GAS 연동 - 기존 코드 유지)
 async function sendMail(payload) {
     const formData = new URLSearchParams();
     for (let key in payload) formData.append(key, payload[key]);
@@ -158,8 +153,20 @@ auth.onAuthStateChanged(async (user) => {
         db.ref('users/' + user.uid).on('value', (snapshot) => {
             const userData = snapshot.val() || {};
             currentUserName = userData.name || user.displayName || user.email.split('@')[0];
-            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
-            if (status) status.innerText = `${currentUserName}님 (${currentUserRole==='admin'?'관리자':(currentUserRole==='student'?'부원':'일반')})`;
+            
+            // 실시간 DB의 role이 '관리자' 혹은 'admin'이거나 마스터 이메일이면 admin 지정
+            if (user.email === ADMIN_EMAIL || userData.role === '관리자' || userData.role === 'admin') {
+                currentUserRole = 'admin';
+            } else {
+                currentUserRole = userData.role || 'member';
+            }
+            
+            if (status) {
+                let roleDisplay = '일반';
+                if (currentUserRole === 'admin') roleDisplay = '관리자';
+                else if (currentUserRole === 'student') roleDisplay = '부원';
+                status.innerText = `${currentUserName}님 (${roleDisplay})`;
+            }
             renderList(cachedData);
         });
         document.getElementById("loginBtn")?.classList.add("hidden");
@@ -175,7 +182,6 @@ auth.onAuthStateChanged(async (user) => {
     loadQuestions();
 });
 
-// 💡 질문 리스트 로드 (엔드포인트 복수형 규칙 매칭 /api/questions)
 async function loadQuestions() {
     try {
         const response = await fetch(`${API_BASE_URL}/api/questions`, {
@@ -200,15 +206,13 @@ async function addQuestion() {
     const text = textInput.value.trim();
     if(!text) return alert("질문을 입력해주세요.");
     
-    // 프론트엔드 1차 검증: 로그인 상태가 아니면 즉시 차단
     if(!currentUser) {
         alert("보안을 위해 로그인 해주세요.");
-        location.href = 'login.html'; // 로그인 페이지명에 맞게 수정 가능
+        location.href = 'login.html';
         return;
     }
 
     try {
-        // 백엔드 위조 인증 차단용 JWT ID 토큰 추출 발행
         const idToken = await currentUser.getIdToken(true);
 
         const newPost = {
@@ -228,10 +232,9 @@ async function addQuestion() {
             body: JSON.stringify(newPost)
         });
 
-        // 💡 백엔드에서 401 에러(인증 실패)를 반환한 경우 처리
         if (response.status === 401) {
             alert("보안을 위해 로그인 해주세요.");
-            location.href = 'login.html'; // 로그인 페이지로 이동
+            location.href = 'login.html';
             return;
         }
 
@@ -252,9 +255,12 @@ async function addQuestion() {
     }
 }
 
-// 💡 답변 등록 (주소 규칙 /api/questions/<qid>/replies, 필드명 content 수정, 토큰 탑재)
 async function saveAnswer(qKey) {
-    if(currentUserRole !== 'admin' && currentUserRole !== 'student') return alert("답변 권한이 없습니다.");
+    // 💡 답변 작성은 오직 관리자(admin)와 부원(student)만 가능하게 명확히 격리 차단
+    if(currentUserRole !== 'admin' && currentUserRole !== 'student') {
+        return alert("답변 권한이 없습니다. (부원 및 관리자 전용)");
+    }
+    
     const ansInput = document.getElementById("ans_"+qKey);
     const ansText = ansInput.value.trim();
     if(!ansText) return alert("내용을 입력하세요.");
@@ -268,7 +274,6 @@ async function saveAnswer(qKey) {
             author: currentUserName
         };
 
-        // 백엔드 엔드포인트 규칙 매칭 (/api/questions/질문ID/replies)
         const response = await fetch(`${API_BASE_URL}/api/questions/${qKey}/replies`, {
             method: "POST",
             headers: {
@@ -282,7 +287,6 @@ async function saveAnswer(qKey) {
         const result = await response.json();
         if(!response.ok) throw new Error(result.error || "서버에 답변을 추가하지 못했습니다.");
 
-        // 질문자가 로그인 사용자였을 때만 알림 발송 (기존 GAS 연동 유지, 방어 코드 포함)
         if (qData && qData.email && qData.email !== "anonymous") {
             sendMail({
                 type: "new_answer",
@@ -294,13 +298,12 @@ async function saveAnswer(qKey) {
         }
 
         ansInput.value = "";
-        loadQuestions(); // 등록 완료 후 갱신
+        loadQuestions();
     } catch (err) { 
         alert(`등록 실패: ${err.message}`); 
     }
 }
 
-// 💡 화면 렌더링 로직 (구버전 text 데이터와 신버전 content 데이터 통합 방어 바인딩)
 function renderList(data) {
     const list = document.getElementById("questionList");
     const searchTerm = document.getElementById("qSearch").value.toLowerCase();
@@ -310,25 +313,30 @@ function renderList(data) {
         return;
     }
     
+    // 💡 답변 입력 권한 식별자
     const canReply = (currentUserRole === 'admin' || currentUserRole === 'student');
-    const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+    const isAdmin = (currentUserRole === 'admin');
 
-    // 파이어베이스 기존 실시간 내림차순 정렬 로직 보존하며 렌더링
     Object.keys(data).reverse().forEach(qKey => {
         const q = data[qKey];
-        const isQAuthor = currentUser && q.email !== "anonymous" && currentUser.email === q.email;
         
-        // 데이터 필드명 유연성 확보 (content 또는 구형 text 대응)
+        // 💡 질문 삭제 권한 체크: 관리자이거나, 로그인 유저가 질문 작성자인 경우에만 권한 허용
+        const isQAuthor = currentUser && q.email && currentUser.email === q.email;
+        const canDeleteQuestion = isAdmin || isQAuthor;
+        
         const questionBody = q.content || q.text || "";
 
-        // 검색 필터 검증 (질문 본문, 작성자 명칭 포함 여부 검사)
         if (searchTerm && !questionBody.toLowerCase().includes(searchTerm) && !q.author.toLowerCase().includes(searchTerm)) return;
 
         let repliesHtml = '<div class="replies-container">';
         if (q.replies) {
             Object.keys(q.replies).forEach(rKey => {
                 const r = q.replies[rKey];
-                const canDeleteReply = isAdmin || (currentUser && currentUser.email === r.email) || isQAuthor;
+                
+                // 💡 답변 단일 삭제 권한 체크: 관리자이거나, 로그인 유저가 답변 작성자인 경우 허용
+                const isRAuthor = currentUser && r.email && currentUser.email === r.email;
+                const canDeleteReply = isAdmin || isRAuthor;
+                
                 const replyBody = r.content || r.text || "";
                 
                 repliesHtml += `
@@ -342,14 +350,22 @@ function renderList(data) {
 
         const card = document.createElement("div");
         card.className = "q-card";
-        const canDeleteQuestion = isAdmin || isQAuthor;
 
-        let controlsHtml = canReply ? `
-            <div class="answer-controls">
-                <input type="text" id="ans_${qKey}" placeholder="답글 입력..." onkeypress="if(event.key==='Enter') saveAnswer('${qKey}')">
-                <button class="btn-ans" onclick="saveAnswer('${qKey}')">등록</button>
-                ${canDeleteQuestion ? `<button class="btn-del" onclick="deleteQuestion('${qKey}')">삭제</button>` : ""}
-            </div>` : (canDeleteQuestion ? `<div class="answer-controls" style="justify-content: flex-end;"><button class="btn-del" onclick="deleteQuestion('${qKey}')">삭제</button></div>` : "");
+        // 답변 창 컨트롤 구성 제어 (부원/관리자만 입력 필드 제공, 삭제 버튼은 조건부 노출)
+        let controlsHtml = '';
+        if (canReply) {
+            controlsHtml = `
+                <div class="answer-controls">
+                    <input type="text" id="ans_${qKey}" placeholder="답글 입력..." onkeypress="if(event.key==='Enter') saveAnswer('${qKey}')">
+                    <button class="btn-ans" onclick="saveAnswer('${qKey}')">등록</button>
+                    ${canDeleteQuestion ? `<button class="btn-del" onclick="deleteQuestion('${qKey}')">삭제</button>` : ""}
+                </div>`;
+        } else if (canDeleteQuestion) {
+            controlsHtml = `
+                <div class="answer-controls" style="justify-content: flex-end;">
+                    <button class="btn-del" onclick="deleteQuestion('${qKey}')">삭제</button>
+                </div>`;
+        }
 
         card.innerHTML = `<div class="q-meta">${q.author}</div><span class="q-text">Q. ${questionBody}</span>${repliesHtml}${controlsHtml}`;
         list.appendChild(card);
@@ -358,9 +374,8 @@ function renderList(data) {
 
 function filterQuestions() { renderList(cachedData); }
 
-// 💡 질문 삭제 함수 (주소 규칙 /api/questions/<qid>, 토큰 연동 추가)
 async function deleteQuestion(qKey) { 
-    if(!confirm("삭제하시겠습니까?")) return;
+    if(!confirm("질문을 삭제하시겠습니까? (삭제 시 하위 답변이 모두 함께 제거됩니다.)")) return;
     try {
         const idToken = await currentUser.getIdToken(true);
         const response = await fetch(`${API_BASE_URL}/api/questions/${qKey}`, {
@@ -372,16 +387,15 @@ async function deleteQuestion(qKey) {
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error);
-        alert("삭제되었습니다.");
+        alert("질문과 답변 세트가 안전하게 삭제되었습니다.");
         loadQuestions();
     } catch(e) {
         alert(`삭제 실패: ${e.message || "삭제 권한이 없거나 서버 에러가 발생했습니다."}`);
     }
 }
 
-// 💡 답글 단일 삭제 함수 (주소 규칙 /api/questions/<qid>/replies/<rid>, 토큰 연동 추가)
 async function deleteAnswer(qKey, rKey) { 
-    if(!confirm("삭제하시겠습니까?")) return;
+    if(!confirm("선택한 답변을 삭제하시겠습니까?")) return;
     try {
         const idToken = await currentUser.getIdToken(true);
         const response = await fetch(`${API_BASE_URL}/api/questions/${qKey}/replies/${rKey}`, {
@@ -393,7 +407,7 @@ async function deleteAnswer(qKey, rKey) {
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error);
-        alert("삭제되었습니다.");
+        alert("답변이 삭제되었습니다.");
         loadQuestions();
     } catch(e) {
         alert(`답변 삭제 실패: ${e.message || "권한이 없습니다."}`);
