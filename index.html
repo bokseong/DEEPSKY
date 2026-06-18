@@ -249,7 +249,7 @@ auth.onAuthStateChanged(async (user) => {
         const isAdmin = (user.email === ADMIN_EMAIL);
         currentUserRole = isAdmin ? 'admin' : 'member';
         
-        if (status) status.innerText = `${finalName}님 (${isAdmin ? '관리자' : '회원'})`;
+        if (status) status.innerText = `${finalName}님 (${isAdmin ? '관리자'})`;
 
         if (isAdmin) {
             adminBox?.classList.remove("hidden");
