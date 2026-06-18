@@ -66,7 +66,6 @@
         select { background: #0b0f2b; color: white; border: 1px solid #3a5aff; padding: 6px 10px; border-radius: 5px; outline: none; }
         .btn-update { background: #3a5aff; color: white; border: none; padding: 6px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-update:hover { background: #2643df; }
-        .btn-danger { background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; }
 
         .manage-section { margin-top: 45px; }
         #authMsg { text-align: center; margin-top: 100px; font-size: 1.2rem; color: #7fc7ff; font-weight: bold; }
@@ -114,7 +113,7 @@
 
 <div id="adminContent" class="container hidden">
     <div class="card">
-        <h3 style="color: #7fc7ff; margin-top: 0; margin-bottom: 5px;">전체 가입 회원 목록</h3>
+        <h3 style="color: #7fc7ff; margin-top: 0; margin-bottom: 5px;">전체 가입 회원 목록 (Firebase RTDB)</h3>
         <p style="font-size: 0.85rem; color: #aaa; margin-bottom: 20px;">* 회원의 등급을 선택한 후 우측의 '변경' 버튼을 눌러주세요.</p>
         
         <div class="table-wrapper">
@@ -129,7 +128,8 @@
                     </tr>
                 </thead>
                 <tbody id="userList">
-                    </tbody>
+                    <tr><td colspan="5" style="color:#888;">회원 목록을 불러오는 중입니다...</td></tr>
+                </tbody>
             </table>
         </div>
 
@@ -180,7 +180,7 @@ const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 let currentUser = null;
 let currentUserRole = "guest";
 
-// 인증 처리 및 화면 전환 분기 가드 장치
+// 인증 상태 감시 및 가드 설정
 auth.onAuthStateChanged((user) => {
     const authMsg = document.getElementById("authMsg");
     const adminContent = document.getElementById("adminContent");
@@ -192,6 +192,7 @@ auth.onAuthStateChanged((user) => {
         loginBtn.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
 
+        // 접속 사용자 권한 조사
         db.ref('users/' + user.uid).once('value').then(snap => {
             const userData = snap.val() || {};
             currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
@@ -202,12 +203,11 @@ auth.onAuthStateChanged((user) => {
                 alert("관리자 전용 페이지입니다.");
                 location.href = "index.html";
             } else {
-                // 검증 완료 시 초기 메시지 숨기고 메인 레이아웃 활성화
+                // 권한이 정상일 때만 레이아웃 열고 바인딩 시작
                 authMsg.classList.add("hidden");
                 adminContent.classList.remove("hidden");
                 
-                // 데이터 실시간 패치 동기화
-                loadAllUsers();
+                loadAllUsers(); // 💡 RTDB 회원목록 로드 실행
                 loadRoleRequests();
                 loadServerSuggestions();
             }
@@ -219,9 +219,10 @@ auth.onAuthStateChanged((user) => {
 });
 
 // ==========================================
-// [기능 1] 전체 회원 목록 및 등급 관리 (Firebase RTDB)
+// [기능 1] 전체 회원 목록 및 등급 관리 (Firebase RTDB 연동)
 // ==========================================
 function loadAllUsers() {
+    // Realtime Database의 'users' 노드를 실시간 감시
     db.ref('users').on('value', snapshot => {
         const list = document.getElementById("userList");
         if (!list) return;
@@ -232,12 +233,12 @@ function loadAllUsers() {
             return;
         }
 
+        // 스냅샷 순회하며 테이블 행 생성
         snapshot.forEach(child => {
             const uid = child.key;
             const data = child.val();
             const currentRole = data.role || 'member';
             
-            // 💡 <div> 구조로 깨지던 테이블을 정석적인 <tr><td> 요소 매핑 구조로 수정
             const tr = document.createElement("tr");
             tr.innerHTML = `
                 <td><b>${data.name || '이름없음'}</b></td>
@@ -259,6 +260,7 @@ function loadAllUsers() {
     });
 }
 
+// 등급 변경 클릭 시 RTDB 값 업데이트
 function updateUserRole(uid) {
     const newRole = document.getElementById("role_" + uid).value;
     if(!confirm("해당 회원의 권한 등급을 변경하시겠습니까?")) return;
@@ -291,7 +293,6 @@ function loadRoleRequests() {
             div.style.background = "rgba(58, 90, 255, 0.04)";
             div.style.border = "1px solid #1b2f80";
             div.style.borderRadius = "8px";
-            
             div.style.display = "flex";
             div.style.justifyContent = "space-between";
             div.style.alignItems = "center";
@@ -335,20 +336,19 @@ async function rejectRoleRequest(reqId) {
 }
 
 // ==========================================
-// [기능 3] 자체 백엔드 서버 건의함 종합 관리 (보안 토큰 전송 수정)
+// [기능 3] 자체 백엔드 서버 건의함 종합 관리 (보안 토큰 전송)
 // ==========================================
 async function loadServerSuggestions() {
     const list = document.getElementById("suggestManagerList");
     if (!list) return;
     
     try {
-        // 💡 백엔드 verify_firebase_token 디코딩 및 관리자 여부를 판별하기 위해 ID 토큰 추출 주입
         const token = await currentUser.getIdToken(true);
 
         const res = await fetch(`${API_BASE_URL}/api/suggests`, {
             method: "GET",
             headers: { 
-                "Authorization": `Bearer ${token}`, // 💡 보안 검증 필수 컴포넌트 추가
+                "Authorization": `Bearer ${token}`,
                 "ngrok-skip-browser-warning": "69420" 
             }
         });
@@ -357,7 +357,7 @@ async function loadServerSuggestions() {
         const data = await res.json();
         
         list.innerHTML = "";
-        const keys = Object.keys(data).reverse(); // 최신순 정렬
+        const keys = Object.keys(data).reverse(); 
         
         if (keys.length === 0) {
             list.innerHTML = "<p style='color:#888; text-align:center; padding: 20px 0;'>등록된 건의사항이 없습니다.</p>";
@@ -390,7 +390,6 @@ async function loadServerSuggestions() {
 async function deleteServerSuggest(id) {
     if (!confirm("이 건의글을 자체 데이터베이스에서 영구 삭제하시겠습니까?")) return;
     try {
-        // 💡 DELETE 통신 역시 관리자 토큰 헤더 검증 처리 필수
         const token = await currentUser.getIdToken(true);
 
         const res = await fetch(`${API_BASE_URL}/api/suggests/${id}`, {
