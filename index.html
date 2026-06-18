@@ -25,69 +25,61 @@
         .header-text { text-align: left; }
         .header-text h1 { margin: 0; font-size: 2.8rem; font-weight: bold; color: white; letter-spacing: 2px; }
         .header-text p { margin: 5px 0 0; font-size: 1.1rem; color: #7fc7ff; font-weight: bold; }
-        /* 4. 내비게이션 (한번에 다 나오도록 수정됨) */
-       nav { 
-    background: #11153a; 
-    border-bottom: 1px solid #2d367a; 
-    padding: 10px 0; 
-    /* 줄바꿈을 허용하기 위해 아래 두 줄 수정/삭제 */
-    overflow-x: visible; 
-    white-space: normal; 
-}
-
-nav .nav-inner { 
-    max-width: 1200px;
-    margin: 0 auto; 
-    display: flex; 
-    /* wrap으로 변경하여 공간이 부족하면 아래로 넘어가게 함 */
-    flex-wrap: wrap; 
-    justify-content: center; 
-    gap: 5px; /* 줄바꿈 시 가독성을 위해 간격을 조금 넓힘 */
-}
+        /* 4. 내비게이션 */
+        nav { 
+            background: #11153a; 
+            border-bottom: 1px solid #2d367a; 
+            padding: 10px 0; 
+            overflow-x: visible; 
+            white-space: normal; 
+        }
+        nav .nav-inner { 
+            max-width: 1200px;
+            margin: 0 auto; 
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            gap: 5px; 
+        }
         nav a { display: inline-block; color: white; padding: 12px 18px; text-decoration: none; font-weight: bold; font-size: 15px; transition: 0.2s;border-radius: 8px; }
         nav a:hover { background: rgba(127, 199, 255, 0.1); color: #7fc7ff; }
         /* 업데이트 로그 개별 박스 디자인 스타일 */
-.log-box {
-    background: rgba(27, 47, 128, 0.25);
-    border: 1px solid #1b2f80;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 12px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    transition: transform 0.2s, background 0.2s;
-}
-
-.log-box:hover {
-    transform: translateY(-2px);
-    background: rgba(27, 47, 128, 0.4);
-}
-
-.log-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 6px;
-    margin-bottom: 8px;
-}
-
-.log-version {
-    color: #4fc3f7;
-    font-weight: bold;
-    font-size: 15px;
-}
-
-.log-date {
-    color: #888;
-    font-size: 12px;
-}
-
-.log-content {
-    font-size: 14px;
-    color: #e0e0e0;
-    line-height: 1.5;
-    white-space: pre-line; /* 줄바꿈 기호(\n)가 있으면 그대로 표현 */
-}
+        .log-box {
+            background: rgba(27, 47, 128, 0.25);
+            border: 1px solid #1b2f80;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s, background 0.2s;
+        }
+        .log-box:hover {
+            transform: translateY(-2px);
+            background: rgba(27, 47, 128, 0.4);
+        }
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+        }
+        .log-version {
+            color: #4fc3f7;
+            font-weight: bold;
+            font-size: 15px;
+        }
+        .log-date {
+            color: #888;
+            font-size: 12px;
+        }
+        .log-content {
+            font-size: 14px;
+            color: #e0e0e0;
+            line-height: 1.5;
+            white-space: pre-line;
+        }
         /* 5. 메인 컨텐츠 & 카드 */
         .container { max-width: 1000px; margin: 35px auto; padding: 0 20px; }
         .card { background: #161b4a; padding: 25px; border-radius: 15px; border: 1px solid #2d367a; margin-bottom: 25px; }
@@ -161,17 +153,17 @@ nav .nav-inner {
         <button onclick="saveProgram()" style="margin-top:10px; padding:10px 20px; background:#ff4d4d; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">수정하기</button>
     </div>
     <div class="card">
-    <h3 style="color: #7fc7ff; margin-top: 0;">업데이트 기록</h3>
-    <div id="updateLogList" style="max-height: 300px; overflow-y: auto; font-size: 0.95rem;">
-        <p>기록을 불러오는 중입니다...</p>
+        <h3 style="color: #7fc7ff; margin-top: 0;">업데이트 기록</h3>
+        <div id="updateLogList" style="max-height: 300px; overflow-y: auto; font-size: 0.95rem;">
+            <p>기록을 불러오는 중입니다...</p>
+        </div>
     </div>
-</div>
-<div id="adminUpdateBox" class="card hidden" style="border: 1px solid #4a9eff; background: rgba(74, 158, 255, 0.05);">
-    <h3 style="color: #4a9eff; margin-top: 0;">관리자 메뉴 (업데이트 기록 추가)</h3>
-    <input type="text" id="updateVersion" placeholder="버전 (규칙: 첫번째 자리에는 대규모 개편, 두번째 자리는 기능 추가, 세번째 자리는 버그나 문구 수정 -> 예:v 1.0.1)" style="width: 100%; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
-    <textarea id="updateContent" placeholder="업데이트 내용"></textarea>
-    <button onclick="addUpdateLog()" style="margin-top:10px; padding:10px 20px; background:#4a9eff; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">기록하기</button>
-</div>
+    <div id="adminUpdateBox" class="card hidden" style="border: 1px solid #4a9eff; background: rgba(74, 158, 255, 0.05);">
+        <h3 style="color: #4a9eff; margin-top: 0;">관리자 메뉴 (업데이트 기록 추가)</h3>
+        <input type="text" id="updateVersion" placeholder="버전 (예: 1.0.1)" style="width: 100%; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+        <textarea id="updateContent" placeholder="업데이트 내용"></textarea>
+        <button onclick="addUpdateLog()" style="margin-top:10px; padding:10px 20px; background:#4a9eff; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">기록하기</button>
+    </div>
 </div>
 <div class="slide-container">
     <div class="slide-header">
@@ -194,14 +186,15 @@ nav .nav-inner {
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
     <br>
-    Email : leader.deepsky@gmail.com &nbsp;	&nbsp; &nbsp; &nbsp;|	&nbsp; &nbsp; &nbsp; &nbsp;Designed by jw-astro09
+    Email : leader.deepsky@gmail.com &nbsp;    &nbsp; &nbsp; &nbsp;|    &nbsp; &nbsp; &nbsp; &nbsp;Designed by jw-astro09
 </footer>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
-// 1. Firebase 설정 (타 페이지와 100% 일치)
+// 1. Firebase 설정
 const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
@@ -212,24 +205,20 @@ const firebaseConfig = {
     appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
 };
 
-// 2. 초기화 (데이터베이스 db 객체 전면 삭제)
 const app = firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 
-// App Check 활성화
 const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
-// 🚀 자체 서버(우분투 파이썬 백엔드) 연동 주소 및 관리자 계정 정보
 const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-// 전역 변수 설정
 let currentUser = null;
 let currentUserRole = "guest";
-let isAuthInitialized = false; // 인증 동기화 인터락 플래그
+let isAuthInitialized = false;
 
-// 3. 인증 및 사용자 세션 로직 (Firebase 데이터베이스 전면 배제)
+// 2. 인증 및 사용자 세션 상태 추적 실시간 리스너
 auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     const loginBtn = document.getElementById("loginBtn");
@@ -237,19 +226,17 @@ auth.onAuthStateChanged(async (user) => {
     const adminBox = document.getElementById("adminBox");
     const adminUpdateBox = document.getElementById("adminUpdateBox");
     
-    // 업데이트 로그 카드는 기본적으로 무조건 노출
-    const logCard = document.getElementById("updateLogList")?.closest('.card');
-    logCard?.classList.remove("hidden");
-
     if (user) {
         currentUser = user; 
-        
-        // Firedb 연동을 전면 끊고 구글 토큰 프로필 및 이메일 교차 대조만으로 등급 식별
         const finalName = user.displayName || user.email.split('@')[0];
+        
+        // 💡 중요: 조건식 분기를 명확하게 하여 관리자 권한 부여 및 텍스트 렌더링 정상화
         const isAdmin = (user.email === ADMIN_EMAIL);
         currentUserRole = isAdmin ? 'admin' : 'member';
         
-        if (status) status.innerText = `${finalName}님 (${isAdmin ? '관리자'})`;
+        if (status) {
+            status.innerText = `${finalName}님 (${isAdmin ? '관리자' : '회원'})`;
+        }
 
         if (isAdmin) {
             adminBox?.classList.remove("hidden");
@@ -272,13 +259,13 @@ auth.onAuthStateChanged(async (user) => {
         adminUpdateBox?.classList.add("hidden");
     }
     
-    // 인증 절차가 완료되었음을 선언하고 자체 서버 DB 연동 함수들 가동
     isAuthInitialized = true;
+    // 인증 세션 동기화 완료 후 비동기 데이터 획득 호출
     await loadProgram(); 
     await loadUpdateLogs(); 
 });
 
-// 5. 이번 주 프로그램 로드 (예외 처리 강화 버전)
+// 3. 이번 주 프로그램 로드
 async function loadProgram() {
     if (!isAuthInitialized) return;
     const el = document.getElementById("weekProgramText");
@@ -295,12 +282,10 @@ async function loadProgram() {
         if (!response.ok) throw new Error("데이터 로드 실패");
         
         const data = await response.json();
-        
-        // 데이터나 내부 text 필드가 비어있을 때의 방어 코드
         if (data && data.text && data.text.trim() !== "") {
             el.innerText = data.text;
         } else {
-            el.innerText = "현재 등록된 예정 프로그램(공지사항)이 없습니다. 관리자 메뉴에서 등록해 주세요.";
+            el.innerText = "현재 등록된 예정 프로그램(공지사항)이 없습니다.";
         }
     } catch (error) {
         console.error("주간 프로그램 로드 에러:", error);
@@ -308,8 +293,7 @@ async function loadProgram() {
     }
 }
 
-// index.html 내부의 loadUpdateLogs 함수를 이 코드로 교체합니다.
-// index.html 내부의 loadUpdateLogs 함수를 이 최신 5개 제한 슬라이스 버전으로 교체합니다.
+// 4. 업데이트 기록 로드 (최신 5개 제한 슬라이스 버전)
 async function loadUpdateLogs() {
     if (!isAuthInitialized) return;
     const logList = document.getElementById("updateLogList");
@@ -327,28 +311,17 @@ async function loadUpdateLogs() {
         let data = await response.json();
         logList.innerHTML = "";
 
-        // 💡 방어 코드: 만약 들어온 데이터가 Object가 아니라 String(문자열) 형태라면 강제로 JSON 파싱
         if (typeof data === 'string') {
-            try {
-                data = JSON.parse(data);
-            } catch(pErr) {
-                console.error("문자열 강제 JSON 파싱 실패:", pErr);
-            }
+            try { data = JSON.parse(data); } catch(pErr) { console.error(pErr); }
         }
 
         let logsArray = [];
-
-        // 데이터 형태 가공 (배열/객체 통합 처리)
         if (Array.isArray(data)) {
             logsArray = data;
         } else if (data && typeof data === 'object') {
-            logsArray = Object.keys(data).map(key => ({
-                id: key,
-                ...data[key]
-            }));
+            logsArray = Object.keys(data).map(key => ({ id: key, ...data[key] }));
         }
 
-        // 유효한 로그만 필터링 후 최신순 정렬
         logsArray = logsArray.filter(log => log && (log.version || log.content));
         logsArray.sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -357,16 +330,10 @@ async function loadUpdateLogs() {
             return;
         }
 
-        // ====================================================
-        // 💡 [핵심 수정] 화면 표시 전, 정확히 최신 5개만 슬라이스(자르기) 합니다.
-        // ====================================================
         const displayLogs = logsArray.slice(0, 5);
-
-        // 자른 5개의 데이터만 화면에 박스로 그려주기
         displayLogs.forEach(log => {
             const box = document.createElement("div");
             box.className = "log-box"; 
-            
             box.innerHTML = `
                 <div class="log-header">
                     <span class="log-version">v${log.version || '0.0.0'}</span>
@@ -383,21 +350,19 @@ async function loadUpdateLogs() {
     }
 }
 
-// 7. 관리자 전용: 공지 수정 요청 전송 (자체 백엔드 API 라우터 호출)
+// 5. 관리자 전용: 공지 수정 요청 전송
 async function saveProgram() {
     const text = document.getElementById("weekProgramInput").value;
     if (!text) return alert("내용을 입력하세요.");
     if (!currentUser) return alert("로그인이 필요합니다.");
 
     try {
-        // 백엔드 위조 차단 검증용 구글 OAuth JWT ID 토큰 강제 추출 발행
         const idToken = await currentUser.getIdToken(true);
-
         const response = await fetch(`${API_BASE_URL}/api/program`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${idToken}` // Bearer 인증 체계 탑재
+                "Authorization": `Bearer ${idToken}`
             },
             body: JSON.stringify({ text: text })
         });
@@ -406,21 +371,21 @@ async function saveProgram() {
         if (response.ok) {
             alert("공지사항이 정상적으로 수정되었습니다.");
             document.getElementById("weekProgramInput").value = "";
-            await loadProgram(); // 변경 데이터 실시간 동기화 리로드
+            await loadProgram();
         } else {
-            alert(`수정 실패: ${result.message || "권한이 없거나 요청이 거절되었습니다."}`);
+            alert(`수정 실패: ${result.error || "권한이 없거나 요청이 거절되었습니다."}`);
         }
     } catch (e) { 
         console.error(e);
-        alert("자체 서버 통신 처리 중 치명적인 에러가 발생했습니다."); 
+        alert("자체 서버 통신 처리 중 에러가 발생했습니다."); 
     }
 }
 
-// 8. 관리자 전용: 업데이트 로그 추가 요청 전송 (자체 백엔드 API 라우터 호출)
+// 6. 관리자 전용: 업데이트 로그 추가 요청 전송
 async function addUpdateLog() {
     const version = document.getElementById("updateVersion").value.trim();
     const content = document.getElementById("updateContent").value.trim();
-    if (!version || !content) return alert("버전명과 내용을 빠짐없이 기입해 주세요.");
+    if (!version || !content) return alert("버전명과 내용을 기입해 주세요.");
     if (!currentUser) return alert("로그인이 만료되었거나 권한이 없습니다.");
     
     try {
@@ -445,13 +410,13 @@ async function addUpdateLog() {
             alert("업데이트 로그가 신규 추가되었습니다.");
             document.getElementById("updateVersion").value = "";
             document.getElementById("updateContent").value = "";
-            await loadUpdateLogs(); // 추가 데이터 리스트 갱신 동기화 리로드
+            await loadUpdateLogs();
         } else {
-            alert(`로그 등록 실패: ${result.message || "서버 응답 오류가 발생했습니다."}`); 
+            alert(`로그 등록 실패: ${result.error || "서버 응답 오류가 발생했습니다."}`); 
         }
     } catch (e) { 
         console.error(e);
-        alert("자체 서버 통신 오류로 업데이트 데이터를 수신하지 못했습니다."); 
+        alert("자체 서버 통신 오류가 발생했습니다."); 
     }
 }
 
@@ -459,16 +424,14 @@ async function addUpdateLog() {
 document.getElementById("weekProgramInput")?.addEventListener("keydown", function(e) {
     if (e.ctrlKey && e.key === 'Enter') saveProgram();
 });
-
 document.getElementById("updateVersion")?.addEventListener("keypress", function(e) {
     if (e.key === 'Enter') addUpdateLog();
 });
-
 document.getElementById("updateContent")?.addEventListener("keydown", function(e) {
     if (e.ctrlKey && e.key === 'Enter') addUpdateLog();
 });
 
-// 9. 관측 기록 슬라이더 컨트롤러 (순수 프론트엔드 구동 브릿지)
+// 7. 관측 기록 슬라이더 컨트롤러
 let slideIndex = 0;
 function setupSlides() {
     const slides = document.querySelectorAll(".slide-item");
@@ -482,7 +445,7 @@ function setupSlides() {
 }
 setupSlides();
 
-// 10. 안전 세션 로그아웃
+// 8. 안전 세션 로그아웃
 window.logout = () => { 
     if (confirm("정말로 로그아웃 하시겠습니까?")) {
         auth.signOut().then(() => location.reload()); 
