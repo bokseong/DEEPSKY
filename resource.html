@@ -34,23 +34,21 @@
         header { background: linear-gradient(to right, #0d1b52, #1b2f80); padding: 38px 20px; text-align: center; }
 
         nav { 
-    background: #11153a; 
-    border-bottom: 1px solid #2d367a; 
-    padding: 10px 0; 
-    /* 줄바꿈을 허용하기 위해 아래 두 줄 수정/삭제 */
-    overflow-x: visible; 
-    white-space: normal; 
-}
+            background: #11153a; 
+            border-bottom: 1px solid #2d367a; 
+            padding: 10px 0; 
+            overflow-x: visible; 
+            white-space: normal; 
+        }
 
-nav .nav-inner { 
-    max-width: 1200px;
-    margin: 0 auto; 
-    display: flex; 
-    /* wrap으로 변경하여 공간이 부족하면 아래로 넘어가게 함 */
-    flex-wrap: wrap; 
-    justify-content: center; 
-    gap: 5px; /* 줄바꿈 시 가독성을 위해 간격을 조금 넓힘 */
-}
+        nav .nav-inner { 
+            max-width: 1200px;
+            margin: 0 auto; 
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            gap: 5px; 
+        }
         nav a { 
             display: inline-block; color: white; padding: 12px 18px; 
             text-decoration: none; font-weight: bold; font-size: 15px; border-radius: 8px;
@@ -75,7 +73,7 @@ nav .nav-inner {
             display: flex; gap: 10px; margin-bottom: 20px;
         }
         .search-box input {
-            flex: 1; padding: 12px 15px; background: #0b0f2b; 
+            width: 100%; padding: 12px 15px; background: #0b0f2b; 
             border: 1px solid #2d367a; color: white; border-radius: 10px;
             font-size: 14px; outline: none; transition: 0.2s;
         }
@@ -105,25 +103,30 @@ nav .nav-inner {
             transition: 0.2s;
         }
         .resource-item:hover { transform: translateY(-3px); border-color: #3a5aff; }
+        
+        /* 💡 가독성을 높이기 위해 제목 및 본문 디자인 고정 수치 반영 */
         .file-name { font-weight: bold; color: #7fc7ff; font-size: 18px; margin-bottom: 8px; }
-        .file-desc { font-size: 14px; color: #ccc; margin-bottom: 20px; min-height: 42px; }
+        .file-desc { font-size: 14px; color: #ccc; margin-bottom: 15px; min-height: 42px; }
         
         .btn-download { 
-            display: block; text-align: center; background: #3a5aff; color: white; 
+            display: inline-block; text-align: center; background: #3a5aff; color: white; 
             text-decoration: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 14px;
         }
+        .btn-download:hover { background: #5a7aff; }
         .btn-delete { 
             background: none; color: #ff4d4d; border: none; cursor: pointer; 
-            font-size: 12px; margin-top: 12px; text-decoration: underline; text-align: center;
+            font-size: 12px; margin-top: 12px; text-decoration: underline; text-align: left; padding: 0;
         }
 
         footer { background: #070a1d; text-align: center; padding: 30px 20px; font-size: 12px; color: #888; border-top: 1px solid #1b2f80; margin-top: 50px; }
         
+        @media (max-width: 768px) {
+            .resource-grid { grid-template-columns: 1fr; }
+        }
         @media (max-width: 600px) {
             .logo-area span { font-size: 16px; }
             nav a { padding: 10px 12px; font-size: 13px; }
             header h1 { font-size: 22px; }
-            .header-logo { width: 100px; height: 100px; }
         }
     </style>
 </head>
@@ -165,7 +168,7 @@ nav .nav-inner {
 <div class="container">
     <div id="lockMessage" class="intro-card hidden" style="text-align: center;">
         <h2 style="border:none; padding:0; text-align:center;">회원 전용 공간</h2>
-        <p>자료실은 DEEP SKY 회원만 접근할 수 있습니다.</p>
+        <p id="lockText">자료실은 DEEP SKY 회원만 접근할 수 있습니다.</p>
         <button class="btn-main" onclick="location.href='login.html'" style="width: auto; padding: 12px 40px; margin-top: 20px;">로그인하러 가기</button>
     </div>
 
@@ -174,8 +177,8 @@ nav .nav-inner {
             <h3>새로운 자료 등록 (관리자)</h3>
             <input type="text" id="fileTitle" placeholder="자료 제목">
             <input type="text" id="fileDesc" placeholder="자료 설명">
-            <input type="text" id="fileLink" placeholder="다운로드/보기 (외부 링크)">
-            <input type="file" id="fileData" style="width: 100%; padding: 12px; margin-bottom: 10px; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px;">
+            <input type="text" id="fileLink" placeholder="다운로드/보기 (외부 링크가 있을 경우 입력)">
+            <input type="file" id="fileData">
             <button class="btn-main" onclick="uploadResource()">자료 게시하기</button>
         </div>
 
@@ -186,8 +189,7 @@ nav .nav-inner {
                 <input type="text" id="searchInput" placeholder="찾으시는 자료의 제목이나 설명을 입력하세요..." onkeyup="filterResources()">
             </div>
 
-            <div class="resource-grid" id="resourceList">
-                </div>
+            <div class="resource-grid" id="resourceList"></div>
         </div>
     </div>
 </div>
@@ -201,7 +203,6 @@ nav .nav-inner {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -224,104 +225,207 @@ const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 let currentUser = null;
 let currentUserName = "익명";
 let currentUserRole = "guest";
+let allResources = {}; // 검색(필터링)용 로컬 저장 캐시
 
 auth.onAuthStateChanged((user) => {
     currentUser = user;
     const status = document.getElementById("userStatus");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const lockMessage = document.getElementById("lockMessage");
+    const mainContent = document.getElementById("mainContent");
+    const adminUpload = document.getElementById("adminUpload");
+
     if (user) {
+        if(loginBtn) loginBtn.classList.add("hidden");
+        if(logoutBtn) logoutBtn.classList.remove("hidden");
+
         db.ref('users/' + user.uid).on('value', (snapshot) => {
             const userData = snapshot.val() || {};
             currentUserName = userData.name || user.displayName || user.email.split('@')[0];
             currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+            
             if (status) status.innerText = `${currentUserName}님 (${currentUserRole})`;
             
-            // 학생 등급 이상만 열람 가능
-            if(currentUserRole === 'admin' || currentUserRole === 'student') {
+            // 💡 [수정] 파이어베이스 RTDB 데이터를 직접 쓰지 않고 검증 인터페이스를 통과시켜 무조건 자체 서버로부터 동기화
+            if (currentUserRole === 'admin' || currentUserRole === 'student') {
+                lockMessage.classList.add("hidden");
+                mainContent.classList.remove("hidden");
+                
+                if (currentUserRole === 'admin') {
+                    adminUpload.classList.remove("hidden");
+                } else {
+                    adminUpload.classList.add("hidden");
+                }
                 loadResources();
-                // 관리자만 업로드 폼 노출 (UI에 id="uploadForm"이 있다고 가정)
-                if (currentUserRole === 'admin') document.getElementById("uploadForm")?.classList.remove("hidden");
             } else {
-                document.getElementById("resourceList").innerHTML = "<p style='text-align:center;'>자료실 열람 권한이 없습니다 (student 이상).</p>";
+                // 부원 등급 미달자 잠금 처리
+                mainContent.classList.add("hidden");
+                document.getElementById("lockText").innerText = "자료실 열람 권한이 없습니다 (student 등급 이상 전용).";
+                lockMessage.classList.remove("hidden");
             }
         });
     } else {
-        location.href = "index.html";
+        if(loginBtn) loginBtn.classList.remove("hidden");
+        if(logoutBtn) logoutBtn.classList.add("hidden");
+        if(status) status.innerText = "로그인 필요";
+        
+        mainContent.classList.add("hidden");
+        document.getElementById("lockText").innerText = "자료실은 DEEP SKY 회원만 접근할 수 있습니다.";
+        lockMessage.classList.remove("hidden");
     }
 });
 
+// 💡 [수정] 자체 서버 보관함 연동 및 가변 링크/서버 하드 링크 데이터 동적 추적 렌더링
 async function loadResources() {
     try {
+        const token = currentUser ? await currentUser.getIdToken(true) : "";
         const res = await fetch(`${API_BASE_URL}/api/resources`, {
-            headers: { "ngrok-skip-browser-warning": "69420" }
+            headers: { 
+                "Authorization": `Bearer ${token}`,
+                "ngrok-skip-browser-warning": "69420" 
+            }
         });
-        const data = await res.json();
-        const list = document.getElementById("resourceList");
-        list.innerHTML = "";
         
-        Object.keys(data).reverse().forEach(key => {
-            const item = data[key];
-            const div = document.createElement("div");
-            div.className = "resource-item"; // 기존 디자인 클래스 유지
-            div.innerHTML = `
-                <div style="margin-bottom:10px;"><strong>${item.title}</strong> (${item.date})</div>
-                <div style="font-size:14px; color:#ddd;">${item.content}</div>
-                <div style="margin-top:10px;">
-                    ${item.file_path ? `<a href="${API_BASE_URL}/api/download?path=${encodeURIComponent(item.file_path)}" target="_blank" style="color:#7fc7ff;">[첨부파일 다운로드]</a>` : ""}
-                    ${currentUserRole === 'admin' ? `<button onclick="deleteResource('${key}')" style="margin-left:10px; color:red; background:none; border:none; cursor:pointer;">[삭제]</button>` : ""}
-                </div>
-                <hr style="border-top:1px solid #1b2f80; margin-top:15px;">
-            `;
-            list.appendChild(div);
-        });
+        if (!res.ok) {
+            document.getElementById("resourceList").innerHTML = "<p style='text-align:center; color:#ff4d4d;'>자료를 불러올 권한이 없거나 인증이 만료되었습니다.</p>";
+            return;
+        }
+
+        allResources = await res.json();
+        renderResourceDOM(allResources);
     } catch (err) {
         console.error("자료 로드 실패:", err);
     }
 }
 
-// 파일과 데이터를 자체 서버로 업로드 (multipart/form-data)
+// 데이터를 기반으로 UI 그리기 공통 함수
+function renderResourceDOM(data) {
+    const list = document.getElementById("resourceList");
+    list.innerHTML = "";
+    
+    const keys = Object.keys(data).reverse();
+    if(keys.length === 0) {
+        list.innerHTML = "<p style='grid-column: span 2; text-align:center; color:#aaa; padding: 20px 0;'>등록된 자료가 없습니다.</p>";
+        return;
+    }
+
+    keys.forEach(key => {
+        const item = data[key];
+        const div = document.createElement("div");
+        div.className = "resource-item";
+        
+        // 다운로드 우선순위 판별 (자체 백엔드 업로드 파일링크가 존재하면 해당 주소, 없을 시 관리자가 기입한 외부 수동링크 사용)
+        let downloadPath = item.link || "";
+        if (item.file_path) {
+            downloadPath = `${API_BASE_URL}/api/download?path=${encodeURIComponent(item.file_path)}`;
+        }
+
+        div.innerHTML = `
+            <div>
+                <div class="file-name">${item.title}</div>
+                <div style="font-size:12px; color:#888; margin-bottom:10px;">작성자: ${item.author || '관리자'} | 등록일: ${item.date || ''}</div>
+                <div class="file-desc">${item.content || '설명이 없습니다.'}</div>
+            </div>
+            <div>
+                ${downloadPath ? `<a href="${downloadPath}" class="btn-main btn-download" target="_blank">자료 받아오기 / 링크 이동</a>` : `<span style="color:#aaa; font-size:13px;">다운로드 링크 없음</span>`}
+                ${currentUserRole === 'admin' ? `<button class="btn-delete" onclick="deleteResource('${key}')">[이 자료 완전 삭제]</button>` : ""}
+            </div>
+        `;
+        list.appendChild(div);
+    });
+}
+
+// 💡 [수정] 프론트엔드 자체 실시간 검색 필터링 매핑 완벽 복구
+function filterResources() {
+    const query = document.getElementById("searchInput").value.toLowerCase().trim();
+    const filtered = {};
+    
+    Object.keys(allResources).forEach(key => {
+        const item = allResources[key];
+        const title = (item.title || "").toLowerCase();
+        const content = (item.content || "").toLowerCase();
+        
+        if(title.includes(query) || content.includes(query)) {
+            filtered[key] = item;
+        }
+    });
+    renderResourceDOM(filtered);
+}
+
+// 💡 [수정] FormData 변수 참조 오류 해결 및 multipart/form-data 일괄 바인딩 전송
 async function uploadResource() {
-if (currentUserRole !== 'admin') return alert("관리자만 업로드할 수 있습니다.");
+    if (currentUserRole !== 'admin') return alert("관리자만 업로드할 수 있습니다.");
 
     const title = document.getElementById("fileTitle").value.trim();
     const desc = document.getElementById("fileDesc").value.trim();
     const link = document.getElementById("fileLink").value.trim();
-    const fileInput = document.getElementById("rFile");
+    const fileInput = document.getElementById("fileData"); // ID 매핑 교정
+
+    if (!title) return alert("제목을 입력하세요.");
+
+    const token = currentUser ? await currentUser.getIdToken(true) : "";
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("content", desc);
+    formData.append("link", link);
+    formData.append("author", currentUserName);
+    formData.append("date", new Date().toLocaleDateString('ko-KR'));
+    
     if (fileInput && fileInput.files.length > 0) {
         formData.append("file", fileInput.files[0]);
     }
 
-     if (!title) return alert("제목을 입력하세요.");
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/resources`, {
+            method: "POST",
+            headers: { 
+                "Authorization": `Bearer ${token}`,
+                "ngrok-skip-browser-warning": "69420" 
+            },
+            body: formData // Content-Type 헤더를 쓰지 않아야 브라우저가 boundary를 오토매핑합니다.
+        });
 
-     const formData = new FormData();
-     formData.append("title", title);
-     formData.append("content", desc);
-     formData.append("link", link);
-     formData.append("author", currentUserName);
-     formData.append("date", new Date().toLocaleDateString('ko-KR'));
-     if (fileInput && fileInput.files.length > 0) formData.append("file", fileInput.files[0]);
-
-     try {
-         await fetch(`${API_BASE_URL}/api/resources`, {
-             method: "POST",
-             headers: { "ngrok-skip-browser-warning": "69420" },
-             body: formData
-         });
-         alert("자료 등록 완료");
-         document.getElementById("fileTitle").value = "";
-         document.getElementById("fileDesc").value = "";
-         document.getElementById("fileLink").value = "";
-         if(fileInput) fileInput.value = "";
-         loadResources();
-    } catch (err) { alert("업로드 에러"); }
+        if(response.ok) {
+            alert("자료가 격리 디렉토리에 정상 등록 완료되었습니다.");
+            document.getElementById("fileTitle").value = "";
+            document.getElementById("fileDesc").value = "";
+            document.getElementById("fileLink").value = "";
+            if(fileInput) fileInput.value = "";
+            loadResources();
+        } else {
+            const errData = await response.json();
+            alert("업로드 실패: " + (errData.error || "알 수 없는 요인"));
+        }
+    } catch (err) { 
+        alert("업로드 통신 에러가 발생했습니다."); 
+    }
 }
 
 async function deleteResource(id) {
-    if(!confirm("삭제하시겠습니까?")) return;
-    await fetch(`${API_BASE_URL}/api/resources/${id}`, { method: "DELETE", headers: { "ngrok-skip-browser-warning": "69420" } });
-    loadResources();
+    if(!confirm("해당 자료물과 서버 하드 내에 실존하는 파일을 삭제하시겠습니까?")) return;
+    try {
+        const token = currentUser ? await currentUser.getIdToken(true) : "";
+        const response = await fetch(`${API_BASE_URL}/api/resources/${id}`, { 
+            method: "DELETE", 
+            headers: { 
+                "Authorization": `Bearer ${token}`,
+                "ngrok-skip-browser-warning": "69420" 
+            } 
+        });
+        
+        if(response.ok) {
+            alert("삭제되었습니다.");
+            loadResources();
+        } else {
+            alert("삭제에 실패했습니다.");
+        }
+    } catch (err) {
+        alert("통신 에러가 발생했습니다.");
+    }
 }
 
-    function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
+function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
 </script>
 </body>
 </html>
