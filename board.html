@@ -442,4 +442,48 @@
         const totalPages = Math.ceil(displayPosts.length / postsPerPage);
         if (totalPages <= 1) return;
 
-        for (let i =
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement("button");
+            btn.innerText = i;
+            btn.className = `page-num ${i === currentPage ? 'active' : ''}`;
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                currentPage = i;
+                renderPage();
+                window.scrollTo(0, 0);
+            };
+            paginArea.appendChild(btn);
+        }
+    }
+
+    function checkWriteAuth() {
+        if (!currentUser) {
+            alert("보안을 위해 로그인 해주세요.");
+            location.href = "login.html";
+            return;
+        }
+        location.href = "write.html";
+    }
+
+    function filterPosts() {
+        const term = document.getElementById("searchInput").value.toLowerCase().trim();
+        if (!term) {
+            displayPosts = [...allPosts];
+        } else {
+            displayPosts = allPosts.filter(p => 
+                (p.title && p.title.toLowerCase().includes(term)) || 
+                (p.author && p.author.toLowerCase().includes(term))
+            );
+        }
+        currentPage = 1;
+        renderPage();
+    }
+
+    function logout() { 
+        if(confirm("로그아웃 하시겠습니까?")) {
+            auth.signOut().then(() => location.reload()); 
+        } 
+    }
+</script>
+</body>
+</html>
