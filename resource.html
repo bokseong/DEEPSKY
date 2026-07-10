@@ -224,6 +224,7 @@ const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 let currentUser = null;
 let currentUserName = "익명";
 let currentUserRole = "guest";
+let allResources = {};
 
 auth.onAuthStateChanged((user) => {
     currentUser = user;
@@ -235,47 +236,77 @@ auth.onAuthStateChanged((user) => {
             currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
             if (status) status.innerText = `${currentUserName}님 (${currentUserRole})`;
             
-            // 학생 등급 이상만 열람 가능
+            document.getElementById("lockMessage")?.classList.add("hidden");
+            document.getElementById("mainContent")?.classList.remove("hidden");
+
             if(currentUserRole === 'admin' || currentUserRole === 'student') {
                 loadResources();
-                // 관리자만 업로드 폼 노출 (UI에 id="uploadForm"이 있다고 가정)
-                if (currentUserRole === 'admin') document.getElementById("uploadForm")?.classList.remove("hidden");
+                document.getElementById("adminUpload")?.classList.toggle("hidden", currentUserRole !== 'admin');
             } else {
-                document.getElementById("resourceList").innerHTML = "<p style='text-align:center;'>자료실 열람 권한이 없습니다 (student 이상).</p>";
+                document.getElementById("resourceList").innerHTML = "<p style='text-align:center; grid-column:1/-1;'>자료실 열람 권한이 없습니다 (student 이상).</p>";
+                document.getElementById("adminUpload")?.classList.add("hidden");
             }
         });
     } else {
-        location.href = "index.html";
+        document.getElementById("mainContent")?.classList.add("hidden");
+        document.getElementById("lockMessage")?.classList.remove("hidden");
+        if (status) status.innerText = "로그인이 필요합니다";
     }
 });
 
 async function loadResources() {
     try {
+        const token = await currentUser.getIdToken();
         const res = await fetch(`${API_BASE_URL}/api/resources`, {
-            headers: { "ngrok-skip-browser-warning": "69420" }
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "ngrok-skip-browser-warning": "69420"
+            }
         });
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            throw new Error(errorData.error || "자료 목록을 불러오지 못했습니다.");
+        }
         const data = await res.json();
+        allResources = data || {};
+        renderResources(allResources);
+    } catch (err) {
+        console.error("자료 로드 실패:", err);
         const list = document.getElementById("resourceList");
-        list.innerHTML = "";
-        
-        Object.keys(data).reverse().forEach(key => {
+        list.innerHTML = `<p style="text-align:center; color:#ff7777; grid-column:1/-1;">${err.message || "자료 로드 실패"}</p>`;
+    }
+}
+
+function renderResources(data) {
+    const list = document.getElementById("resourceList");
+    list.innerHTML = "";
+
+    const keys = Object.keys(data || {}).sort((a, b) => getResourceTime(data[b]) - getResourceTime(data[a]));
+    if (keys.length === 0) {
+        list.innerHTML = `<p style="text-align:center; color:#aaa; grid-column:1/-1;">등록된 자료가 없습니다.</p>`;
+        return;
+    }
+
+    keys.forEach(key => {
             const item = data[key];
             const div = document.createElement("div");
             div.className = "resource-item"; // 기존 디자인 클래스 유지
+            const fileLinks = getResourceFiles(item).map((path, index) =>
+                `<button type="button" onclick="openResourceFile('${escapeAttr(path)}', '${escapeAttr(getResourceFileName(path, index))}')" style="color:#7fc7ff; background:none; border:none; cursor:pointer; padding:0; text-decoration:underline;">[첨부파일 ${index + 1}]</button>`
+            ).join("<br>");
+            const externalLink = item.link ? `<a href="${escapeAttr(normalizeLink(item.link))}" target="_blank" rel="noopener noreferrer" style="color:#7fc7ff;">[외부 링크]</a>` : "";
             div.innerHTML = `
-                <div style="margin-bottom:10px;"><strong>${item.title}</strong> (${item.date})</div>
-                <div style="font-size:14px; color:#ddd;">${item.content}</div>
+                <div style="margin-bottom:10px;"><strong>${escapeHtml(item.title || '제목 없음')}</strong> (${escapeHtml(formatResourceDate(item.date))})</div>
+                <div style="font-size:14px; color:#ddd;">${escapeHtml(item.content || '')}</div>
                 <div style="margin-top:10px;">
-                    ${item.file_path ? `<a href="${API_BASE_URL}/api/download?path=${encodeURIComponent(item.file_path)}" target="_blank" style="color:#7fc7ff;">[첨부파일 다운로드]</a>` : ""}
+                    ${fileLinks}
+                    ${externalLink ? (fileLinks ? "<br>" : "") + externalLink : ""}
                     ${currentUserRole === 'admin' ? `<button onclick="deleteResource('${key}')" style="margin-left:10px; color:red; background:none; border:none; cursor:pointer;">[삭제]</button>` : ""}
                 </div>
                 <hr style="border-top:1px solid #1b2f80; margin-top:15px;">
             `;
             list.appendChild(div);
         });
-    } catch (err) {
-        console.error("자료 로드 실패:", err);
-    }
 }
 
 // 파일과 데이터를 자체 서버로 업로드 (multipart/form-data)
@@ -298,27 +329,131 @@ if (currentUserRole !== 'admin') return alert("관리자만 업로드할 수 있
      if (fileInput && fileInput.files.length > 0) formData.append("file", fileInput.files[0]);
 
      try {
-         await fetch(`${API_BASE_URL}/api/resources`, {
+         const token = await currentUser.getIdToken();
+         const res = await fetch(`${API_BASE_URL}/api/resources`, {
              method: "POST",
-             headers: { "ngrok-skip-browser-warning": "69420" },
+             headers: {
+                 "Authorization": `Bearer ${token}`,
+                 "ngrok-skip-browser-warning": "69420"
+             },
              body: formData
          });
+         if (!res.ok) {
+             const errorData = await res.json().catch(() => ({}));
+             throw new Error(errorData.error || "업로드 실패");
+         }
          alert("자료 등록 완료");
          document.getElementById("fileTitle").value = "";
          document.getElementById("fileDesc").value = "";
          document.getElementById("fileLink").value = "";
          if(fileInput) fileInput.value = "";
          loadResources();
-    } catch (err) { alert("업로드 에러"); }
+    } catch (err) { alert(err.message || "업로드 에러"); }
 }
 
 async function deleteResource(id) {
     if(!confirm("삭제하시겠습니까?")) return;
-    await fetch(`${API_BASE_URL}/api/resources/${id}`, { method: "DELETE", headers: { "ngrok-skip-browser-warning": "69420" } });
+    const token = await currentUser.getIdToken();
+    const res = await fetch(`${API_BASE_URL}/api/resources/${id}`, {
+        method: "DELETE",
+        headers: {
+            "Authorization": `Bearer ${token}`,
+            "ngrok-skip-browser-warning": "69420"
+        }
+    });
+    if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        alert(errorData.error || "삭제 실패");
+        return;
+    }
     loadResources();
 }
 
-    function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
+function filterResources() {
+    const term = document.getElementById("searchInput").value.toLowerCase().trim();
+    if (!term) {
+        renderResources(allResources);
+        return;
+    }
+    const filtered = {};
+    Object.keys(allResources).forEach(key => {
+        const item = allResources[key] || {};
+        const text = `${item.title || ''} ${item.content || ''} ${item.author || ''}`.toLowerCase();
+        if (text.includes(term)) filtered[key] = item;
+    });
+    renderResources(filtered);
+}
+
+function getResourceFiles(item) {
+    const files = [];
+    if (Array.isArray(item.file_paths)) files.push(...item.file_paths);
+    if (item.file_path) files.push(item.file_path);
+    return files.filter(Boolean);
+}
+
+function getResourceFileName(path, index) {
+    const raw = String(path || "").split("/").pop() || `file-${index + 1}`;
+    return raw.replace(/^res_[^_]+_/, "");
+}
+
+function normalizeLink(link) {
+    const value = String(link || "").trim();
+    if (!value) return "";
+    return /^https?:\/\//i.test(value) ? value : `https://${value}`;
+}
+
+async function openResourceFile(path, filename) {
+    try {
+        const token = await currentUser.getIdToken();
+        const url = path.startsWith("http") ? path : `${API_BASE_URL}/api/download?path=${encodeURIComponent(path)}`;
+        const res = await fetch(url, {
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "ngrok-skip-browser-warning": "69420"
+            }
+        });
+        if (!res.ok) throw new Error("파일을 불러오지 못했습니다.");
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const opened = window.open(objectUrl, "_blank", "noopener,noreferrer");
+        if (!opened) {
+            const a = document.createElement("a");
+            a.href = objectUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        }
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+    } catch (err) {
+        alert(err.message || "파일 열기 실패");
+    }
+}
+
+function getResourceTime(item) {
+    const value = item?.createdAt || item?.date || item?.timestamp;
+    if (!value) return 0;
+    if (typeof value === "number") return value;
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function formatResourceDate(value) {
+    if (!value) return "";
+    const parsed = Date.parse(value);
+    if (!Number.isNaN(parsed)) return new Date(parsed).toLocaleDateString("ko-KR");
+    return value;
+}
+
+function escapeHtml(value) {
+    return String(value || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+}
+
+function escapeAttr(value) {
+    return escapeHtml(value).replaceAll("`", "&#096;");
+}
+
+function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
 </script>
 </body>
 </html>
