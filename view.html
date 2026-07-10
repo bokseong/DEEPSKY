@@ -122,7 +122,7 @@
         </div>
             <div id="vFileContainer" class="hidden" style="margin-top:15px; padding:12px; background:rgba(255,255,255,0.05); border-radius:8px; border-left:3px solid #3a5aff;">
             <span style="font-size:14px; color:#7fc7ff; font-weight:bold;">첨부 파일 다운로드: </span>
-            <a id="vFileDownloadBtn" href="#" target="_blank" style="color:#fff; font-weight:bold; text-decoration:underline; margin-left:10px;"></a>
+            <button id="vFileDownloadBtn" type="button" style="background:none; border:none; color:#fff; font-weight:bold; text-decoration:underline; margin-left:10px; cursor:pointer; font-size:14px;"></button>
         </div>
 
         <div class="comment-section">
@@ -237,10 +237,10 @@ async function loadPostDetail() {
 
         const fileContainer = document.getElementById("vFileContainer");
         const fileBtn = document.getElementById("vFileDownloadBtn");
-        const filePath = post.file_path || post.fileUrl;
-        if (filePath && fileContainer && fileBtn) {
-            fileBtn.href = filePath.startsWith("http") ? filePath : `${API_BASE_URL}/api/download?path=${encodeURIComponent(filePath)}`;
-            fileBtn.innerText = `[ ${post.file_name || '파일 다운로드'} ]`;
+        const attachment = getAttachmentInfo(post);
+        if (attachment && fileContainer && fileBtn) {
+            fileBtn.innerText = `[ ${attachment.name} ]`;
+            fileBtn.onclick = () => openAttachment(attachment.url, attachment.name);
             fileContainer.classList.remove("hidden");
         } else if (fileContainer) {
             fileContainer.classList.add("hidden");
@@ -328,6 +328,54 @@ async function addComment() {
         loadPostDetail();
     } catch (err) {
         alert("댓글 작성 실패");
+    }
+}
+
+function getAttachmentInfo(post) {
+    const rawUrl = post.fileUrl || post.file_url || post.downloadUrl || post.download_url || post.url;
+    const rawPath = post.file_path || post.filePath || post.path;
+    const filename = post.file_name || post.fileName || post.originalName || post.originalname || post.name || "첨부 파일";
+
+    if (rawUrl) {
+        return { url: normalizeFileUrl(rawUrl), name: filename };
+    }
+    if (rawPath) {
+        return { url: normalizeFileUrl(rawPath), name: filename };
+    }
+    return null;
+}
+
+function normalizeFileUrl(value) {
+    const rawValue = String(value || "").trim();
+    if (!rawValue) return "";
+    if (/^https?:\/\//i.test(rawValue)) return rawValue;
+    if (rawValue.startsWith("/api/")) return `${API_BASE_URL}${rawValue}`;
+    if (rawValue.startsWith("/")) return `${API_BASE_URL}${rawValue}`;
+    return `${API_BASE_URL}/api/download?path=${encodeURIComponent(rawValue)}`;
+}
+
+async function openAttachment(url, filename) {
+    try {
+        const headers = { "ngrok-skip-browser-warning": "69420" };
+        if (currentUser) headers.Authorization = `Bearer ${await currentUser.getIdToken()}`;
+
+        const res = await fetch(url, { method: "GET", headers });
+        if (!res.ok) throw new Error("파일을 불러오지 못했습니다.");
+
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const opened = window.open(objectUrl, "_blank", "noopener,noreferrer");
+        if (!opened) {
+            const link = document.createElement("a");
+            link.href = objectUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+    } catch (err) {
+        alert(err.message || "파일 열기에 실패했습니다.");
     }
 }
 

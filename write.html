@@ -205,12 +205,19 @@ async function submitPost() {
         formData.append("author", currentUserName);
         formData.append("email", currentUser.email);
         formData.append("uid", currentUser.uid);
+        const now = new Date();
         if (!isEditMode) {
-            formData.append("date", new Date().toISOString());
-            formData.append("timestamp", Date.now());
+            formData.append("date", now.toISOString());
+            formData.append("createdAt", now.toISOString());
+            formData.append("updatedAt", now.toISOString());
+            formData.append("timestamp", now.getTime());
         } else if (originalPost?.date) {
             formData.append("date", originalPost.date);
+            formData.append("createdAt", originalPost.createdAt || originalPost.created_at || originalPost.date);
+            formData.append("updatedAt", now.toISOString());
             formData.append("timestamp", originalPost.timestamp || getPostTime(originalPost));
+        } else {
+            formData.append("updatedAt", now.toISOString());
         }
 
         if (fileInput && fileInput.files.length > 0) {

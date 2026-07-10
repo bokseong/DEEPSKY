@@ -262,7 +262,7 @@ function renderPage() {
         item.className = "post-item";
         item.onclick = () => location.href = `view.html?id=${p.id}`;
 
-        const fileIcon = (p.fileUrl || p.file_path || p.link) ? " 📎" : "";
+        const fileIcon = hasAttachment(p) ? " 📎" : "";
         const postNumber = displayPosts.length - (startIndex + idx);
 
         item.innerHTML = `
@@ -373,6 +373,18 @@ function formatPostDate(value) {
     const time = getPostTime({ date: value });
     if (!time) return value;
     return new Date(time).toLocaleString("ko-KR");
+}
+
+function hasAttachment(post) {
+    return Boolean(
+        post.fileUrl ||
+        post.file_url ||
+        post.file_path ||
+        post.filePath ||
+        post.downloadUrl ||
+        post.download_url ||
+        post.link
+    );
 }
 
 function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
