@@ -30,20 +30,23 @@
         /* 3. 헤더 및 내비게이션 */
         header { background: linear-gradient(to right, #0d1b52, #1b2f80); padding: 38px 20px; text-align: center; }
         nav { 
-            background: #11153a; 
-            border-bottom: 1px solid #2d367a; 
-            padding: 10px 0; 
-            overflow-x: visible; 
-            white-space: normal; 
-        }
-        nav .nav-inner { 
-            max-width: 1200px;
-            margin: 0 auto; 
-            display: flex; 
-            flex-wrap: wrap; 
-            justify-content: center; 
-            gap: 5px; 
-        }
+    background: #11153a; 
+    border-bottom: 1px solid #2d367a; 
+    padding: 10px 0; 
+    /* 줄바꿈을 허용하기 위해 아래 두 줄 수정/삭제 */
+    overflow-x: visible; 
+    white-space: normal; 
+}
+
+nav .nav-inner { 
+    max-width: 1200px;
+    margin: 0 auto; 
+    display: flex; 
+    /* wrap으로 변경하여 공간이 부족하면 아래로 넘어가게 함 */
+    flex-wrap: wrap; 
+    justify-content: center; 
+    gap: 5px; /* 줄바꿈 시 가독성을 위해 간격을 조금 넓힘 */
+}
         nav a { color: white; padding: 12px 18px; text-decoration: none; font-weight: bold; font-size: 15px; border-radius: 8px; }
         nav a:hover { background: rgba(127, 199, 255, 0.1); color: #7fc7ff; }
 
@@ -61,73 +64,25 @@
         .btn-write:hover { background: #2a47d6; text-decoration: none; }
 
         /* 게시판 리스트 */
-        .post-list { 
-            display: flex;
-            flex-direction: column;
-            gap: 15px; 
-            min-height: 300px; 
-            margin-top: 10px;
-        }
+        .post-list { border-radius: 10px; overflow: hidden; min-height: 400px; }
         .post-item { 
-            background: #1f265a; 
-            border: 1px solid #2d367a;
-            border-radius: 12px; 
-            padding: 20px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 8px;
-            transition: all 0.3s ease; 
-            cursor: pointer;
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 15px 20px; border-bottom: 1px solid rgba(58, 90, 255, 0.2); 
+            transition: 0.3s; 
         }
-        .post-item:hover { 
-            background: rgba(58, 90, 255, 0.15); 
-            border-color: #3a5aff;
-            transform: translateY(-2px); 
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
-        }
-        .post-header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .post-title { 
-            font-weight: bold; 
-            color: #7fc7ff; 
-            font-size: 18px; 
-        }
-        .post-index { 
-            font-weight: bold; 
-            color: #3a5aff; 
-            margin-right: 10px; 
-        }
-        .post-meta-row { 
-            display: flex;
-            justify-content: space-between; 
-            align-items: center;
-            font-size: 13px; 
-            color: #b0b5d0; 
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            padding-top: 8px;
-            margin-top: 2px;
-        }
-        .post-time {
-            color: #a3b8cc;
-            font-weight: 500;
-        }
+        .post-item:hover { background: rgba(58, 90, 255, 0.1); }
+        
+        .post-info-area { cursor: pointer; flex-grow: 1; display: flex; align-items: center; justify-content: space-between; }
+        .post-title { font-weight: bold; color: #7fc7ff; }
+        .post-meta { font-size: 13px; color: #aaa; }
+
         .del-btn { 
-            background: #ff4d4d; 
-            color: white; 
-            border: none; 
-            padding: 6px 14px; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            font-size: 13px; 
-            font-weight: bold; 
-            transition: background 0.2s;
+            background: #ff4d4d; color: white; border: none; 
+            padding: 5px 12px; border-radius: 6px; cursor: pointer; 
+            font-size: 12px; font-weight: bold; margin-left: 15px;
+            white-space: nowrap;
         }
-        .del-btn:hover { 
-            background: #e60000; 
-        }
+        .del-btn:hover { background: #e60000; }
 
         /* 페이지네이션 */
         .pagination { display: flex; justify-content: center; gap: 5px; margin-top: 30px; }
@@ -209,281 +164,218 @@
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
     <br>
-    Email : leader.deepsky@gmail.com &nbsp;    &nbsp; &nbsp; &nbsp; | &nbsp; &nbsp; &nbsp; &nbsp; Designed by jw-astro09
+    Email : leader.deepsky@gmail.com &nbsp;	&nbsp; &nbsp; &nbsp; | &nbsp; &nbsp; &nbsp; &nbsp; Designed by jw-astro09
 </footer>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
-        authDomain: "bokseong-deep-sky.firebaseapp.com",
-        databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "bokseong-deep-sky",
-        storageBucket: "bokseong-deep-sky.firebasestorage.app",
-        messagingSenderId: "800777151311",
-        appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
-    };
+// 1. 파이어베이스 초기화 및 기본 설정
+const firebaseConfig = {
+    apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
+    authDomain: "bokseong-deep-sky.firebaseapp.com",
+    databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "bokseong-deep-sky",
+    storageBucket: "bokseong-deep-sky.firebasestorage.app",
+    messagingSenderId: "800777151311",
+    appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
+};
 
-    const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.database(); // Realtime DB 명시 선언
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
 
-    const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
-    const ADMIN_EMAIL = "leader.deepsky@gmail.com";
+const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
+const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
-    let currentUser = null;
-    let currentUserRole = "guest";
-    let allPosts = [];
-    let displayPosts = [];
-    let currentPage = 1;
-    const postsPerPage = 10;
-    let isAuthInitialized = false;
+let currentUser = null;
+let currentUserRole = "guest";
+let allPosts = [];
+let displayPosts = [];
+let currentPage = 1;
+const postsPerPage = 10;
 
-    // [인증 세션 상태 감시 및 실시간 등급 바인딩 연동] 
-    auth.onAuthStateChanged(async (user) => {
-        const status = document.getElementById("userStatus");
-        
-        if (user) {
-            currentUser = user;
-            document.getElementById("loginBtn")?.classList.add("hidden");
-            document.getElementById("logoutBtn")?.classList.remove("hidden");
-            
-            const currentUserName = user.displayName || user.email.split('@')[0];
-            
-            // 💡 질문 게시판과 일치하게 Realtime DB를 연동하여 student, admin 상태 추적 보강
-            db.ref('users/' + user.uid).on('value', async (snapshot) => {
-                const userData = snapshot.val() || {};
-                
-                if (user.email === ADMIN_EMAIL || userData.role === '관리자' || userData.role === 'admin') {
-                    currentUserRole = 'admin';
-                } else {
-                    currentUserRole = userData.role || 'member';
-                }
-                
-                if (status) {
-                    let roleDisplay = '회원';
-                    if (currentUserRole === 'admin') roleDisplay = '관리자';
-                    else if (currentUserRole === 'student') roleDisplay = '부원';
-                    status.innerText = `${currentUserName}님 (${roleDisplay})`;
-                }
-                
-                // 데이터 렌더링에 권한이 실시간 반영되도록 갱신 유도
-                if (isAuthInitialized) renderPage();
-            });
-            
-        } else {
-            currentUser = null;
-            currentUserRole = "guest";
-            if (status) status.innerText = "로그인 해주세요";
-            document.getElementById("loginBtn")?.classList.remove("hidden");
-            document.getElementById("logoutBtn")?.classList.add("hidden");
-        }
-        
-        if (!isAuthInitialized) {
-            isAuthInitialized = true;
-            await loadBoardPosts();
-        }
-    });
-
-    document.addEventListener("DOMContentLoaded", () => {
-        const writeBtn = document.getElementById("topWriteBtn");
-        if (writeBtn) {
-            writeBtn.removeAttribute("href"); 
-            writeBtn.style.cursor = "pointer";
-            writeBtn.onclick = (e) => {
-                e.preventDefault();
-                checkWriteAuth();
-            };
-        }
-    });
-
-    async function loadBoardPosts() {
-        try {
-            const headers = { "ngrok-skip-browser-warning": "69420" };
-            
-            if (currentUser) {
-                try {
-                    const token = await currentUser.getIdToken(); 
-                    headers["Authorization"] = `Bearer ${token}`;
-                } catch (tokenErr) {
-                    console.error("토큰 로드 실패:", tokenErr);
-                }
-            }
-
-            const res = await fetch(`${API_BASE_URL}/api/freeboard`, {
-                method: "GET",
-                headers: headers
-            });
-            
-            if (res.status === 401) {
-                alert("보안을 위해 다시 로그인 해주세요.");
-                location.href = "login.html";
-                return;
-            }
-
-            if (!res.ok) throw new Error("자체 백엔드 서버 응답 오류");
-            const data = await res.json();
-            
-            allPosts = Object.keys(data).map(key => ({ id: key, ...data[key] }));
-            
-            allPosts.sort((a, b) => {
-                const timeA = a.date ? new Date(a.date).getTime() : 0;
-                const timeB = b.date ? new Date(b.date).getTime() : 0;
-                
-                if (isNaN(timeA) || isNaN(timeB)) {
-                    return (b.date || "").localeCompare(a.date || "");
-                }
-                return timeB - timeA; 
-            });
-            
-            displayPosts = [...allPosts];
+// 인증 상태 감시 및 회원 정보 등급 동기화
+auth.onAuthStateChanged(async (user) => {
+    currentUser = user;
+    const status = document.getElementById("userStatus");
+    if (user) {
+        db.ref('users/' + user.uid).on('value', (snapshot) => {
+            const userData = snapshot.val() || {};
+            const currentUserName = userData.name || user.displayName || user.email.split('@')[0];
+            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+            if (status) status.innerText = `${currentUserName}님 (${currentUserRole==='admin'?'관리자':(currentUserRole==='student'?'부원':'일반')})`;
             renderPage();
-        } catch (err) {
-            console.error("자체 서버 게시판 로드 실패:", err);
-            const list = document.getElementById("postList");
-            if (list) list.innerHTML = `<p style="text-align:center; padding:50px; color:#ff4d4d;">서버 연결에 실패했습니다.</p>`;
-        }
-    }
-
-    function renderPage() {
-        const list = document.getElementById("postList");
-        if (!list) return;
-        list.innerHTML = "";
-
-        const startIndex = (currentPage - 1) * postsPerPage;
-        const endIndex = startIndex + postsPerPage;
-        const paginatedPosts = displayPosts.slice(startIndex, endIndex);
-
-        if (paginatedPosts.length === 0) {
-            list.innerHTML = `<p style="text-align:center; padding:50px; color:#888;">등록된 게시글이 없습니다.</p>`;
-            return;
-        }
-
-        paginatedPosts.forEach((p, idx) => {
-            const item = document.createElement("div");
-            item.className = "post-item";
-            item.onclick = () => location.href = `view.html?id=${p.id}`;
-
-            const fileIcon = p.fileUrl ? " 📎" : "";
-            const postNumber = displayPosts.length - (startIndex + idx);
-
-            item.innerHTML = `
-                <div class="post-header-row">
-                    <span class="post-title">
-                        <span class="post-index">${postNumber}.</span>${p.title || '제목 없음'}${fileIcon}
-                    </span>
-                    <div class="post-action-area"></div>
-                </div>
-                <div class="post-meta-row">
-                    <span>작성자: <strong>${p.author || '익명'}</strong></span>
-                    <span class="post-time">${p.date || '시간 미지정'}</span>
-                </div>
-            `;
-
-            // 💡 삭제 권한 분기: 관리자(admin)이면 무조건 노출, 일반/부원은 자기 자신의 글(uid 비교)만 노출
-            const isDeleteAuth = (currentUserRole === 'admin') || (currentUser && p.uid === currentUser.uid);
-
-            if (isDeleteAuth) {
-                const actionArea = item.querySelector(".post-action-area");
-                const delBtn = document.createElement("button");
-                delBtn.innerText = "삭제";
-                delBtn.className = "del-btn";
-                
-                delBtn.onclick = async (e) => {
-                    e.stopPropagation(); 
-                    
-                    if (confirm("정말로 이 게시글을 삭제하시겠습니까?")) {
-                        try {
-                            const token = await currentUser.getIdToken();
-                            
-                            const res = await fetch(`${API_BASE_URL}/api/freeboard/${p.id}`, {
-                                method: "DELETE",
-                                headers: {
-                                    "Authorization": `Bearer ${token}`,
-                                    "ngrok-skip-browser-warning": "69420"
-                                }
-                            });
-                            
-                            if (res.status === 401) {
-                                alert("인증이 만료되었습니다. 다시 로그인 해주세요.");
-                                location.href = "login.html";
-                                return;
-                            }
-
-                            const result = await res.json();
-                            if (res.ok && result.success) {
-                                alert("성공적으로 삭제되었습니다.");
-                                await loadBoardPosts(); 
-                            } else {
-                                alert(`삭제 실패: ${result.error || "알 수 없는 오류"}`);
-                            }
-                        } catch (err) {
-                            console.error("삭제 요청 중 에러 발생:", err);
-                            alert("서버 통신 실패로 삭제하지 못했습니다.");
-                        }
-                    }
-                };
-                actionArea.appendChild(delBtn);
-            }
-            list.appendChild(item);
         });
-
-        renderPagination();
-    }
-
-    function renderPagination() {
-        const paginArea = document.getElementById("pagination");
-        if (!paginArea) return;
-        paginArea.innerHTML = "";
-        
-        const totalPages = Math.ceil(displayPosts.length / postsPerPage);
-        if (totalPages <= 1) return;
-
-        for (let i = 1; i <= totalPages; i++) {
-            const btn = document.createElement("button");
-            btn.innerText = i;
-            btn.className = `page-num ${i === currentPage ? 'active' : ''}`;
-            btn.onclick = (e) => {
-                e.stopPropagation();
-                currentPage = i;
-                renderPage();
-                window.scrollTo(0, 0);
-            };
-            paginArea.appendChild(btn);
-        }
-    }
-
-    function checkWriteAuth() {
-        if (!currentUser) {
-            alert("보안을 위해 로그인 해주세요.");
-            location.href = "login.html";
-            return;
-        }
-        location.href = "write.html";
-    }
-
-    function filterPosts() {
-        const term = document.getElementById("searchInput").value.toLowerCase().trim();
-        if (!term) {
-            displayPosts = [...allPosts];
-        } else {
-            displayPosts = allPosts.filter(p => 
-                (p.title && p.title.toLowerCase().includes(term)) || 
-                (p.author && p.author.toLowerCase().includes(term))
-            );
-        }
-        currentPage = 1;
+        document.getElementById("loginBtn")?.classList.add("hidden");
+        document.getElementById("logoutBtn")?.classList.remove("hidden");
+    } else {
+        currentUserRole = "guest";
+        if (status) status.innerText = "로그인 해주세요";
+        document.getElementById("loginBtn")?.classList.remove("hidden");
+        document.getElementById("logoutBtn")?.classList.add("hidden");
         renderPage();
     }
+    loadBoardPosts();
+});
 
-    function logout() { 
-        if(confirm("로그아웃 하시겠습니까?")) {
-            auth.signOut().then(() => location.reload()); 
-        } 
+async function loadBoardPosts() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/freeboard`, {
+            method: "GET",
+            headers: { "ngrok-skip-browser-warning": "69420" }
+        });
+        if (!res.ok) throw new Error("서버 응답 오류");
+        const data = await res.json();
+        
+        allPosts = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+        allPosts.sort((a, b) => getPostTime(b) - getPostTime(a));
+        displayPosts = [...allPosts];
+        
+        renderPage();
+    } catch (err) {
+        console.error("게시판 로드 실패:", err);
+        const list = document.getElementById("postList");
+        if (list) list.innerHTML = `<p style="text-align:center; padding:50px; color:#ff4d4d;">서버 연결에 실패했습니다.</p>`;
     }
+}
+
+function renderPage() {
+    const list = document.getElementById("postList");
+    if (!list) return;
+    list.innerHTML = "";
+
+    const startIndex = (currentPage - 1) * postsPerPage;
+    const endIndex = startIndex + postsPerPage;
+    const paginatedPosts = displayPosts.slice(startIndex, endIndex);
+
+    if (paginatedPosts.length === 0) {
+        list.innerHTML = `<p style="text-align:center; padding:50px; color:#888;">등록된 게시글이 없습니다.</p>`;
+        return;
+    }
+
+    paginatedPosts.forEach((p, idx) => {
+        const item = document.createElement("div");
+        item.className = "post-item";
+        item.onclick = () => location.href = `view.html?id=${p.id}`;
+
+        const fileIcon = (p.fileUrl || p.file_path || p.link) ? " 📎" : "";
+        const postNumber = displayPosts.length - (startIndex + idx);
+
+        item.innerHTML = `
+            <div class="post-info-area">
+                <span class="post-title">${postNumber}. ${p.title || '제목 없음'}${fileIcon}</span>
+                <span class="post-meta">작성자: ${p.author || '익명'} | ${formatPostDate(p.date || p.createdAt || p.timestamp)}</span>
+            </div>
+            <div class="post-action-area"></div>
+        `;
+
+        const canDelete = currentUserRole === "admin" || (currentUser && p.uid === currentUser.uid);
+        if (canDelete) {
+            const delBtn = document.createElement("button");
+            delBtn.className = "del-btn";
+            delBtn.innerText = "삭제";
+            delBtn.onclick = async (event) => {
+                event.stopPropagation();
+                await deletePost(p.id);
+            };
+            item.querySelector(".post-action-area").appendChild(delBtn);
+        }
+
+        list.appendChild(item);
+    });
+
+    renderPagination();
+}
+
+// 페이지네이션 제어
+function renderPagination() {
+    const paginArea = document.getElementById("pagination");
+    if (!paginArea) return;
+    paginArea.innerHTML = "";
+    const totalPages = Math.ceil(displayPosts.length / postsPerPage);
+    if (totalPages <= 1) return;
+
+    for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement("button");
+        btn.innerText = i;
+        btn.className = `page-num ${i === currentPage ? 'active' : ''}`;
+        btn.onclick = () => {
+            currentPage = i;
+            renderPage();
+            window.scrollTo(0, 0);
+        };
+        paginArea.appendChild(btn);
+    }
+}
+
+async function deletePost(postId) {
+    if (!currentUser) return alert("로그인이 필요합니다.");
+    if (!confirm("정말로 이 게시글을 삭제하시겠습니까?")) return;
+    try {
+        const token = await currentUser.getIdToken();
+        const res = await fetch(`${API_BASE_URL}/api/freeboard/${postId}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "ngrok-skip-browser-warning": "69420"
+            }
+        });
+        if (!res.ok) throw new Error("삭제 실패");
+        await loadBoardPosts();
+    } catch (err) {
+        alert("삭제 권한이 없거나 처리에 실패했습니다.");
+    }
+}
+
+function checkWriteAuth() {
+    if (!currentUser) {
+        alert("로그인이 필요합니다.");
+        return;
+    }
+    location.href = "write.html";
+}
+
+function filterPosts() {
+    const term = document.getElementById("searchInput").value.toLowerCase().trim();
+    if (!term) {
+        displayPosts = [...allPosts];
+    } else {
+        displayPosts = allPosts.filter(p => 
+            (p.title && p.title.toLowerCase().includes(term)) || 
+            (p.author && p.author.toLowerCase().includes(term))
+        );
+    }
+    currentPage = 1;
+    renderPage();
+}
+
+function getPostTime(post) {
+    const rawValue = post?.createdAt || post?.created_at || post?.timestamp || post?.date;
+    if (!rawValue) return 0;
+    if (typeof rawValue === "number") return rawValue;
+    if (rawValue.seconds) return rawValue.seconds * 1000;
+
+    const parsed = Date.parse(rawValue);
+    if (!Number.isNaN(parsed)) return parsed;
+
+    const match = String(rawValue).match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})(?:\D+(\d{1,2})\D+(\d{1,2}))?/);
+    if (!match) return 0;
+    const [, year, month, day, hour = "0", minute = "0"] = match;
+    return new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute)).getTime();
+}
+
+function formatPostDate(value) {
+    if (!value) return "시간 미지정";
+    const time = getPostTime({ date: value });
+    if (!time) return value;
+    return new Date(time).toLocaleString("ko-KR");
+}
+
+function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
 </script>
 </body>
 </html>

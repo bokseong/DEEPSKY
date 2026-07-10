@@ -8,7 +8,7 @@
     <style>
         /* 1. 공통 스타일 */
         * { box-sizing: border-box; }
-        body { margin: 0; font-family: "Segoe UI", AppleSDGothicNeo-Regular, sans-serif; background: #0b0f2b; color: white; line-height: 1.6; }
+        body { margin: 0; font-family: "Segoe UI", sans-serif; background: #0b0f2b; color: white; line-height: 1.6; }
         .hidden { display: none !important; }
 
         /* 2. 상단 바 */
@@ -30,20 +30,23 @@
         /* 3. 헤더 및 내비게이션 */
         header { background: linear-gradient(to right, #0d1b52, #1b2f80); padding: 40px 20px; text-align: center; }
         nav { 
-            background: #11153a; 
-            border-bottom: 1px solid #2d367a; 
-            padding: 10px 0; 
-            overflow-x: visible; 
-            white-space: normal; 
-        }
-        nav .nav-inner { 
-            max-width: 1200px;
-            margin: 0 auto; 
-            display: flex; 
-            flex-wrap: wrap; 
-            justify-content: center; 
-            gap: 5px; 
-        }
+    background: #11153a; 
+    border-bottom: 1px solid #2d367a; 
+    padding: 10px 0; 
+    /* 줄바꿈을 허용하기 위해 아래 두 줄 수정/삭제 */
+    overflow-x: visible; 
+    white-space: normal; 
+}
+
+nav .nav-inner { 
+    max-width: 1200px;
+    margin: 0 auto; 
+    display: flex; 
+    /* wrap으로 변경하여 공간이 부족하면 아래로 넘어가게 함 */
+    flex-wrap: wrap; 
+    justify-content: center; 
+    gap: 5px; /* 줄바꿈 시 가독성을 위해 간격을 조금 넓힘 */
+}
         nav a { display: inline-block; color: white; padding: 12px 18px; text-decoration: none; font-weight: bold; font-size: 15px; border-radius: 8px; }
         nav a:hover { background: rgba(127, 199, 255, 0.1); color: #7fc7ff; }
 
@@ -123,7 +126,7 @@
     </a>
     <div class="auth-bar">
         <span id="userStatus">불러오는 중...</span>
-        <button id="loginBtn" class="hidden" onclick="location.href='login.html'">로그인</button>
+        <button id="loginBtn" onclick="location.href='login.html'">로그인</button>
         <button id="logoutBtn" class="hidden" onclick="logout()">로그아웃</button>
     </div>
 </div>
@@ -145,7 +148,7 @@
     </div>
 </nav>
 
-<div class="container hidden">
+<div class="container">
     <div class="card">
         <h3 style="color: #7fc7ff; margin-top: 0; margin-bottom: 25px; text-align: center;">프로필 수정</h3>
         
@@ -199,7 +202,7 @@
                     placeholder="작성 예시:&#10;1. ~&#10;2. ~ 등 &#10;상세 사유 작성"></textarea>
             </div>
 
-            <button class="btn-save" style="background:#28a745; margin-bottom: 0;" onclick="sendRequestEmail(event)">관리자에게 조정 요청 보내기</button>
+            <button class="btn-save" style="background:#28a745; margin-bottom: 0;" onclick="sendRequestEmail()">관리자에게 조정 요청 보내기</button>
         </div>
 
         <h3 style="color: #7fc7ff; font-size: 16px; margin: 30px 0 10px;">등급별 권한 안내</h3>
@@ -227,7 +230,9 @@
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
     <br>
-    Email : leader.deepsky@gmail.com &nbsp;    &nbsp; &nbsp; &nbsp;|    &nbsp; &nbsp; &nbsp; &nbsp;Designed by jw-astro09
+    Email : leader.deepsky@gmail.com &nbsp;	&nbsp; &nbsp; &nbsp;|	&nbsp; &nbsp; &nbsp; &nbsp;Designed by jw-astro09
+    <br>
+    <a href="https://forms.gle/5MZf7MEZwNxAefXw9">&nbsp; &nbsp;시스템 오류 또는 오타 수정 건의하기</a>
 </footer>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -255,7 +260,7 @@ auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
 const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
-// 로그인 상태 감지 및 등급 출력 구조 최적화
+// 로그인 상태 감지
 auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     const displayRole = document.getElementById("displayRole");
@@ -266,35 +271,27 @@ auth.onAuthStateChanged(async (user) => {
     const container = document.querySelector('.container');
 
     if (user) {
-        if (container) container.classList.remove("hidden");
-        if (emailInput) emailInput.value = user.email;
+        // [로그인 성공 시] 화면을 보여줌
+        container.classList.remove("hidden");
         
-        loginBtn?.classList.add("hidden");
-        logoutBtn?.classList.remove("hidden");
+        if(emailInput) emailInput.value = user.email;
+        loginBtn.classList.add("hidden");
+        logoutBtn.classList.remove("hidden");
 
         db.ref('users/' + user.uid).on('value', (snapshot) => {
             const userData = snapshot.val() || {};
-            const currentName = userData.name || user.displayName || user.email.split('@')[0];
+            const currentName = userData.name || user.email.split('@')[0];
             
-            // 다른 페이지 파일들과 동일하게 한글/영문 role 결합 처리
-            let currentUserRole = "member";
-            if (user.email === ADMIN_EMAIL || userData.role === '관리자' || userData.role === 'admin') {
-                currentUserRole = 'admin';
-            } else if (userData.role === 'student' || userData.role === '부원') {
-                currentUserRole = 'student';
-            }
+            let roleName = "일반 회원";
+            if (user.email === ADMIN_EMAIL) roleName = "관리자";
+            else if (userData.role === 'student') roleName = "동아리 부원";
 
-            let roleDisplay = "일반 회원";
-            if (currentUserRole === 'admin') roleDisplay = "관리자";
-            else if (currentUserRole === 'student') roleDisplay = "동아리 부원";
-
-            if (status) status.innerText = `${currentName}님 (${roleDisplay})`;
-            if (displayRole) displayRole.innerText = roleDisplay;
-            if (nameInput && !nameInput.value) nameInput.value = currentName;
+            if(status) status.innerText = `${currentName}님 (${roleName})`;
+            if(displayRole) displayRole.innerText = roleName;
+            if(nameInput) nameInput.value = currentName;
         });
-
-        try { await appCheck.getToken(false); } catch (e) {}
     } else {
+        // [비로그인 상태 시] 즉시 안내 후 로그인 페이지로 이동
         alert("로그인이 필요한 페이지입니다. 로그인 페이지로 이동합니다.");
         location.href = "login.html";
     }
@@ -303,8 +300,6 @@ auth.onAuthStateChanged(async (user) => {
 // 프로필 업데이트
 function updateProfile() {
     const user = auth.currentUser;
-    if (!user) return alert("로그인이 필요합니다.");
-    
     const newName = document.getElementById("userName").value.trim();
     if (!newName) return alert("이름을 입력해주세요.");
 
@@ -313,8 +308,7 @@ function updateProfile() {
       .catch(err => alert("오류: " + err.message));
 }
 
-// 메일 전송 함수 (GAS 연동)
-async function sendRequestEmail(e) {
+async function sendRequestEmail() {
     const user = auth.currentUser;
     const roleElement = document.getElementById("requestedRole");
     const reasonElement = document.getElementById("requestReason");
@@ -331,40 +325,30 @@ async function sendRequestEmail(e) {
     }
 
     if (confirm(`[${requestedRoleName}] 등급으로 조정을 요청하시겠습니까?`)) {
-        const btn = e.currentTarget;
+        const btn = event.currentTarget;
         const originalText = btn.innerText;
         btn.disabled = true;
         btn.innerText = "전송 중...";
 
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbzT5zTtKk0tleprYklvV4jwbUq5pGTwHKz4JyF-GKGfj2BjulwJR5WJQqB0eoIZ8cxu/exec";
-
-        const snapshot = await db.ref('users/' + user.uid).once('value');
-        const userData = snapshot.val() || {};
-        const senderName = userData.name || user.email.split('@')[0];
-
-        const combinedMessage = `[희망 등급]: ${requestedRoleName}\n[조정 사유]: ${reasonValue}`;
-
-        const formData = new URLSearchParams();
-        formData.append("email", user.email);
-        formData.append("name", senderName);
-        formData.append("message", combinedMessage);
-
         try {
-            const response = await fetch(GAS_URL, {
-                method: "POST",
-                body: formData,
-                headers: { "Content-Type": "application/x-www-form-urlencoded" }
+            const snapshot = await db.ref('users/' + user.uid).once('value');
+            const userData = snapshot.val() || {};
+            const senderName = userData.name || user.email.split('@')[0];
+
+            await db.ref('roleRequests').push({
+                uid: user.uid,
+                email: user.email,
+                name: senderName,
+                requestedRole: roleElement.value,
+                requestedRoleName,
+                reason: reasonValue,
+                date: new Date().toISOString()
             });
 
-            const result = await response.text();
-            if (result === "success") {
-                alert("성공적으로 요청을 보냈습니다. 관리자 확인 후 반영됩니다.");
-                reasonElement.value = ""; 
-            } else {
-                throw new Error();
-            }
+            alert("성공적으로 요청을 보냈습니다. 관리자 확인 후 반영됩니다.");
+            reasonElement.value = ""; 
         } catch (error) {
-            alert("메일 전송 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+            alert("요청 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
         } finally {
             btn.disabled = false;
             btn.innerText = originalText;
@@ -374,11 +358,9 @@ async function sendRequestEmail(e) {
 
 // 비밀번호 재설정
 function resetPassword() {
-    const user = auth.currentUser;
-    if (!user) return alert("로그인이 필요합니다.");
-    
+    const email = auth.currentUser.email;
     if(confirm("재설정 메일을 발송할까요?")) {
-        auth.sendPasswordResetEmail(user.email)
+        auth.sendPasswordResetEmail(email)
             .then(() => alert("메일이 발송되었습니다."))
             .catch(err => alert(err.message));
     }
@@ -386,10 +368,8 @@ function resetPassword() {
 
 // 회원 탈퇴
 function deleteAccount() {
-    const user = auth.currentUser;
-    if (!user) return alert("로그인이 필요합니다.");
-
     if (confirm("정말 탈퇴하시겠습니까? 데이터는 복구할 수 없습니다.")) {
+        const user = auth.currentUser;
         db.ref('users/' + user.uid).remove().then(() => user.delete())
           .then(() => { alert("탈퇴되었습니다."); location.href="index.html"; })
           .catch(() => alert("다시 로그인 후 시도해주세요."));

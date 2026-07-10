@@ -89,7 +89,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
-    
+
 <script>
     // 1. Firebase 설정
     const firebaseConfig = {
@@ -115,10 +115,10 @@
     const googleProvider = new firebase.auth.GoogleAuthProvider();
     const githubProvider = new firebase.auth.GithubAuthProvider();
 
-    // 💡 [추가 핵심 안전장치]: 전역 초기화 시점에도 한 번 더 영구 로그인 세션 상태를 지정해 줍니다.
-    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-        .catch(err => console.error("전역 세션 지속성 설정 실패:", err));
-
+    // ------------------------------------------------
+    // [추가] 엔터키 이벤트 리스너
+    // ------------------------------------------------
+    
     // 이름 입력창에서 엔터 -> 회원가입 시도
     document.getElementById("name").addEventListener("keypress", function(e) {
         if (e.key === 'Enter') signup();
@@ -134,14 +134,11 @@
         if (e.key === 'Enter') login();
     });
 
+    // ------------------------------------------------
 
     // 3. 구글 로그인
     function googleLogin() {
-        // 💡 중요: 로그인 트랜잭션이 일어나기 전 LOCAL 세션 영구 유지를 약속받습니다.
-        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-            .then(() => {
-                return auth.signInWithPopup(googleProvider);
-            })
+        auth.signInWithPopup(googleProvider)
             .then((result) => {
                 const user = result.user;
                 return db.ref('users/' + user.uid).update({
@@ -159,11 +156,7 @@
 
     // 4. 깃허브 로그인
     function githubLogin() {
-        // 💡 중요: 로그인 트랜잭션이 일어나기 전 LOCAL 세션 영구 유지를 약속받습니다.
-        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-            .then(() => {
-                return auth.signInWithPopup(githubProvider);
-            })
+        auth.signInWithPopup(githubProvider)
             .then((result) => {
                 const user = result.user;
                 return db.ref('users/' + user.uid).update({
@@ -224,11 +217,7 @@
         const pw = document.getElementById("password").value.trim();
         if(!email || !pw) return alert("이메일과 비밀번호를 입력해주세요.");
         
-        // 💡 중요: 일반 이메일 로그인 시에도 브라우저를 닫거나 페이지를 이동할 때 로그인 상태가 날아가지 않도록 명시합니다.
-        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-            .then(() => {
-                return auth.signInWithEmailAndPassword(email, pw);
-            })
+        auth.signInWithEmailAndPassword(email, pw)
             .then(result => {
                 if (!result.user.emailVerified) {
                     alert("이메일 인증이 완료되지 않았습니다. 메일함을 확인해주세요.");

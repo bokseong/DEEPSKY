@@ -230,7 +230,6 @@ nav .nav-inner {
         return '일반 회원';
     }
 
-    // 4. 이메일 요청 전송 함수 (GAS 연동)
     async function sendRequestEmail() {
         const user = auth.currentUser;
         const roleElement = document.getElementById("requestedRole");
@@ -255,29 +254,21 @@ nav .nav-inner {
             btn.disabled = true;
             btn.innerText = "전송 중...";
 
-            const GAS_URL = "https://script.google.com/macros/s/AKfycbzT5zTtKk0tleprYklvV4jwbUq5pGTwHKz4JyF-GKGfj2BjulwJR5WJQqB0eoIZ8cxu/exec";
-
-            const combinedMessage = `[희망 등급]: ${requestedRoleName}\n[조정 사유]: ${reasonValue}`;
-
-            const formData = new URLSearchParams();
-            formData.append("email", user.email);
-            formData.append("name", user.displayName || "이름미설정");
-            formData.append("message", combinedMessage);
-
             try {
-                const response = await fetch(GAS_URL, {
-                    method: "POST",
-                    body: formData,
-                    headers: { "Content-Type": "application/x-www-form-urlencoded" }
+                const snapshot = await db.ref('users/' + user.uid).once('value');
+                const userData = snapshot.val() || {};
+                await db.ref('roleRequests').push({
+                    uid: user.uid,
+                    email: user.email,
+                    name: userData.name || user.displayName || "이름미설정",
+                    requestedRole: roleElement.value,
+                    requestedRoleName,
+                    reason: reasonValue,
+                    date: new Date().toISOString()
                 });
 
-                const result = await response.text();
-                if (result === "success") {
-                    alert("성공적으로 요청을 보냈습니다. 관리자 확인을 기다려주세요.");
-                    reasonElement.value = "";
-                } else {
-                    throw new Error(result);
-                }
+                alert("성공적으로 요청을 보냈습니다. 관리자 확인을 기다려주세요.");
+                reasonElement.value = "";
             } catch (error) {
                 console.error("Error:", error);
                 alert("전송 중 오류가 발생했습니다.");

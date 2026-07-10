@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="logo.png" type="image/png">
-    <title>DEEP SKY - 건의함</title>
+    <title>DEEP SKY</title>
     <style>
         /* 1. 공통 스타일 */
         * { box-sizing: border-box; }
@@ -40,39 +40,41 @@
         header { background: linear-gradient(to right, #0d1b52, #1b2f80); padding: 38px 20px; text-align: center; }
 
         /* 4. 내비게이션 */
-        nav { 
-            background: #11153a; 
-            border-bottom: 1px solid #2d367a; 
-            padding: 10px 0; 
-            overflow-x: visible; 
-            white-space: normal; 
-        }
+nav { 
+    background: #11153a; 
+    border-bottom: 1px solid #2d367a; 
+    padding: 10px 0; 
+    /* 줄바꿈을 허용하기 위해 아래 두 줄 수정/삭제 */
+    overflow-x: visible; 
+    white-space: normal; 
+}
 
-        nav .nav-inner { 
-            max-width: 1200px;
-            margin: 0 auto; 
-            display: flex; 
-            flex-wrap: wrap; 
-            justify-content: center; 
-            gap: 5px; 
-        }
+nav .nav-inner { 
+    max-width: 1200px;
+    margin: 0 auto; 
+    display: flex; 
+    /* wrap으로 변경하여 공간이 부족하면 아래로 넘어가게 함 */
+    flex-wrap: wrap; 
+    justify-content: center; 
+    gap: 5px; /* 줄바꿈 시 가독성을 위해 간격을 조금 넓힘 */
+}
 
-        nav a { 
-            display: inline-block; 
-            color: white; 
-            padding: 12px 16px; 
-            text-decoration: none; 
-            font-weight: bold; 
-            font-size: 15px; 
-            transition: 0.2s;
-            border-radius: 8px;
-            flex-shrink: 0; 
-        }
+nav a { 
+    display: inline-block; 
+    color: white; 
+    padding: 12px 16px; /* 기존 디자인 유지 */
+    text-decoration: none; 
+    font-weight: bold; 
+    font-size: 15px; /* 기존 디자인 유지 */
+    transition: 0.2s;
+    border-radius: 8px;
+    flex-shrink: 0; /* 글자가 찌그러지지 않게 설정 */
+}
 
-        nav a:hover { 
-            background: rgba(127, 199, 255, 0.1); 
-            color: #7fc7ff; 
-        }
+nav a:hover { 
+    background: rgba(127, 199, 255, 0.1); 
+    color: #7fc7ff; 
+}
 
         /* 5. 메인 컨텐츠 & 건의 게시판 전용 카드 */
         .container { max-width: 1000px; margin: 35px auto; padding: 0 20px 100px; }
@@ -88,14 +90,22 @@
         }
         .form-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; }
         .btn-main { padding: 10px 25px; background: #3a5aff; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        .btn-danger { padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 12px; }
 
         /* 건의 리스트 아이템 */
         .suggest-item { background: #1c225a; padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #2d367a; }
         .suggest-meta { font-size: 12px; color: #7fc7ff; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .suggest-text { font-size: 1rem; line-height: 1.5; white-space: pre-wrap; color: #eee; }
 
-        /* 6. Footer */
+        /* 상태 배지 */
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+        .status-waiting { background: #555; color: #eee; }
+        .status-ing { background: #f39c12; color: white; }
+        .status-done { background: #27ae60; color: white; }
+
+        .admin-controls { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #2d367a; display: flex; gap: 8px; }
+        .btn-status { font-size: 11px; padding: 6px 12px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
+
+        /* 6. Footer (인덱스와 100% 동일) */
         footer { 
             background: #070a1d; text-align: center; padding: 35px 20px;
             color: #888; border-top: 1px solid #1b2f80; font-size: 13px;
@@ -105,6 +115,7 @@
             .logo-area span { font-size: 16px; }
             nav a { padding: 10px 12px; font-size: 13px; }
             header h1 { font-size: 22px; }
+            .header-logo { width: 100px; height: 100px; }
         }
     </style>
 </head>
@@ -165,13 +176,13 @@
         </div>
     </div>
 
-    <div id="mainContent">
+    <div id="mainContent" class="hidden">
         <div class="card">
             <h3 style="color: #7fc7ff; margin-top: 0;">의견 남기기</h3>
             <div class="desc-box">
                 <p>더 나은 DEEP SKY를 위한 소중한 의견<br>
                 동아리 운영이나 홈페이지 개선에 대한 의견을 자유롭게 남겨주세요!(익명 기능도 있습니다)<br>
-                <b>반영 완료된 항목은 관리자가 리스트에서 삭제할 수 있습니다.</b></p>
+                <b>반영 완료된 항목은 7일 후 자동으로 리스트에서 삭제됩니다.</b>
             </div>
             <textarea id="sInput" placeholder="건의 내용을 상세히 입력해주세요..."></textarea>
             <div class="form-footer">
@@ -183,7 +194,7 @@
         </div>
 
         <div id="suggestList">
-            <p style="text-align:center; color:#888;">로딩 중이거나 등록된 글이 없습니다.</p>
+            <p style="text-align:center; color:#888;">아직 등록된 글이 없습니다.</p>
         </div>
     </div>
 </div>
@@ -191,12 +202,13 @@
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
     <br>
-    Email : leader.deepsky@gmail.com &nbsp;    &nbsp; &nbsp; &nbsp;|    &nbsp; &nbsp; &nbsp; &nbsp;Designed by jw-astro09
+    Email : leader.deepsky@gmail.com &nbsp;	&nbsp; &nbsp; &nbsp;|	&nbsp; &nbsp; &nbsp; &nbsp;Designed by jw-astro09
 </footer>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -211,190 +223,90 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
-
 const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
 let currentUser = null;
 let currentUserRole = "guest";
-let currentUserName = "익명"; // 💡 참조 에러 방지를 위한 전역 변수 초기화
 
-// 1. 로그인 상태 체킹 및 등급별 열람 분기 처리
 auth.onAuthStateChanged((user) => {
-    const userStatusText = document.getElementById("userStatus");
-    const loginBtn = document.getElementById("loginBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-
     if (user) {
         currentUser = user;
-        loginBtn.classList.add("hidden");
-        logoutBtn.classList.remove("hidden");
-
         db.ref('users/' + user.uid).on('value', (snapshot) => {
-            const userData = snapshot.val() || {};
-            // 데이터베이스 상에 저장된 실 사용자 이름 확보 (없을 시 이메일 앞자리 활용)
-            currentUserName = userData.name || user.displayName || user.email.split('@')[0];
-            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (snapshot.val()?.role || 'member');
             
-            userStatusText.innerText = `${currentUserName}님 (${currentUserRole})`;
-
-            // 백엔드 권한 규칙에 매칭되도록 열람 제한 (student, admin만 가능)
+            // 열람은 학생 이상만 가능
             if(currentUserRole === 'admin' || currentUserRole === 'student') {
-                document.getElementById("lockMessage").classList.add("hidden");
                 loadSuggestions();
             } else {
-                // 부원 미만은 작성 폼만 제공하고 리스트 영역을 블로킹 처리
-                document.getElementById("suggestList").innerHTML = 
-                    `<p style="text-align:center; color:#f39c12; font-weight:bold;">
-                        ⚠️ 건의함 목록은 동아리 부원(student) 이상만 열람할 수 있습니다. 의견 작성은 가능합니다.
-                     </p>`;
+                document.getElementById("suggestList").innerHTML = "<p>건의함 내용은 동아리원 이상 열람 가능합니다. 작성만 가능합니다.</p>";
             }
         });
     } else {
-        // 비로그인 사용자는 인덱스 페이지로 튕겨내기
         location.href = "index.html";
     }
 });
 
-// 2. 건의 목록 가져오기 (Authorization Header 주입 수정)
-async function loadSuggestions() {
-    if (!currentUser) return;
-    
-    try {
-        // 💡 백엔드 verify_firebase_token 파싱을 만족하기 위해 최신 ID 토큰 추출
-        const token = await currentUser.getIdToken(true);
-
-        const res = await fetch(`${API_BASE_URL}/api/suggests`, {
-            method: "GET",
-            headers: { 
-                "Authorization": `Bearer ${token}`, // 💡 보안 검증 필수 헤더 추가
-                "ngrok-skip-browser-warning": "69420" 
-            }
-        });
-
-        if (!res.ok) throw new Error("데이터 조회 권한이 없거나 서버 에러입니다.");
-
-        const data = await res.json();
-        const suggestListDiv = document.getElementById("suggestList");
-        suggestListDiv.innerHTML = "";
-
-        const keys = Object.keys(data);
-        if (keys.length === 0) {
-            suggestListDiv.innerHTML = '<p style="text-align:center; color:#888;">아직 등록된 건의사항이 없습니다.</p>';
-            return;
-        }
-
-        // 받아온 데이터를 화면에 동적으로 렌더링
-        keys.forEach((id) => {
-            const item = data[id];
-            const isManager = (currentUserRole === 'admin');
-
-            const itemHtml = `
-                <div class="suggest-item" id="item-${id}">
-                    <div class="suggest-meta">
-                        <span>작성자: ${item.author || '익명'} (${item.date || ''})</span>
-                        ${isManager ? `<button class="btn-danger" onclick="deleteSuggest('${id}')">삭제</button>` : ''}
-                    </div>
-                    <div class="suggest-text">${item.content || ''}</div>
-                </div>
-            `;
-            suggestListDiv.insertAdjacentHTML('afterbegin', itemHtml);
-        });
-
-    } catch (err) { 
-        console.error(err);
-        document.getElementById("suggestList").innerHTML = `<p style="text-align:center; color:#e74c3c;">데이터를 가져오지 못했습니다. (${err.message})</p>`; 
-    }
-}
-
-// 3. 건의사항 새 글 등록 (Authorization 및 변수 미정의 오류 수정)
 async function addSuggestion() {
-    const content = document.getElementById("sInput").value.trim();
-    if(!content) return alert("건의 내용을 입력하세요.");
+const content = document.getElementById("sInput").value.trim();
+if(!content) return alert("건의 내용을 입력하세요.");
 
-    const isAnon = document.getElementById("sAnon")?.checked;
-    const authorName = isAnon ? "익명" : currentUserName; // 💡 currentUserName이 항상 보장됨
+     const isAnon = document.getElementById("sAnon")?.checked;
+     const authorName = isAnon ? "익명" : currentUserName;
+
+     try {
+         await fetch(`${API_BASE_URL}/api/suggests`, {
+             method: "POST",
+             headers: { 
+                 "Content-Type": "application/json",
+                 "ngrok-skip-browser-warning": "69420"
+             },
+             body: JSON.stringify({
+                 title: "건의사항", // HTML에 제목 칸이 없으므로 기본값 지정
+                 content: content, 
+                 author: authorName,
+                 uid: currentUser.uid, 
+                 date: new Date().toLocaleDateString()
+             })
+         });
+         alert("건의가 성공적으로 접수되었습니다!");
+         document.getElementById("sInput").value = "";
+         if(document.getElementById("sAnon")) document.getElementById("sAnon").checked = false;
+
+         if(currentUserRole === 'admin' || currentUserRole === 'student') loadSuggestions();
+     } catch (err) { alert("접수 중 에러가 발생했습니다."); }
+ }
+async function submitSuggest() {
+    const title = document.getElementById("sTitle").value;
+    const content = document.getElementById("sContent").value;
+    if(!title || !content) return alert("내용을 입력하세요.");
 
     try {
-        const token = await currentUser.getIdToken(true); // 💡 파이어베이스 인증 토큰 취득
-
-        const response = await fetch(`${API_BASE_URL}/api/suggests`, {
+        await fetch(`${API_BASE_URL}/api/suggests`, {
             method: "POST",
             headers: { 
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`, // 💡 백엔드 세션 식별을 위해 주입
                 "ngrok-skip-browser-warning": "69420"
             },
             body: JSON.stringify({
-                title: "건의사항", 
-                content: content, 
-                author: authorName,
-                date: new Date().toLocaleDateString('ko-KR')
+                title: title, content: content, 
+                author: currentUser.email.split('@')[0],
+                uid: currentUser.uid, date: new Date().toLocaleDateString()
             })
         });
-
-        const resData = await response.json();
-        if(!response.ok) {
-            alert(`등록 실패: ${resData.error || '서버 오류'}`);
-            return;
-        }
-
-        alert("건의가 성공적으로 접수되었습니다!");
-        document.getElementById("sInput").value = "";
-        if(document.getElementById("sAnon")) document.getElementById("sAnon").checked = false;
-
-        // 등급 권한이 충족될 때만 실시간 리스트를 다시 갱신하도록 처리
-        if(currentUserRole === 'admin' || currentUserRole === 'student') {
-            loadSuggestions();
-        }
-    } catch (err) { 
-        alert("접수 중 에러가 발생했습니다."); 
-        console.error(err);
-    }
+        alert("건의가 접수되었습니다!");
+        if(currentUserRole === 'admin' || currentUserRole === 'student') loadSuggestions();
+    } catch (err) { alert("접수 에러"); }
 }
 
-// 4. 건의사항 삭제 처리 기능 (관리자 전용)
 async function deleteSuggest(id) {
-    if(!confirm("이 건의 글을 삭제하시겠습니까?")) return;
-
-    try {
-        const token = await currentUser.getIdToken(true);
-        const response = await fetch(`${API_BASE_URL}/api/suggests/${id}`, { 
-            method: "DELETE", 
-            headers: { 
-                "Authorization": `Bearer ${token}`,
-                "ngrok-skip-browser-warning": "69420" 
-            } 
-        });
-
-        const resData = await response.json();
-        if(response.ok) {
-            alert("정상적으로 삭제되었습니다.");
-            loadSuggestions();
-        } else {
-            alert(`삭제 실패: ${resData.error}`);
-        }
-    } catch(err) {
-        alert("삭제 중 통신 장애가 발생했습니다.");
+    if(confirm("삭제하시겠습니까?")) {
+        await fetch(`${API_BASE_URL}/api/suggests/${id}`, { method: "DELETE", headers: { "ngrok-skip-browser-warning": "69420" } });
+        loadSuggestions();
     }
 }
 
-// 5. 기타 유틸리티 함수 (로그아웃 및 등급 조절 요청 더미)
-function logout() { 
-    if(confirm("로그아웃 하시겠습니까?")) {
-        auth.signOut().then(() => location.reload()); 
-    } 
-}
-
-function submitRoleRequest() {
-    const role = document.getElementById("requestedRole").value;
-    const reason = document.getElementById("requestReason").value.trim();
-    if(!reason) return alert("조정 사유를 입력해주세요.");
-    
-    // 임시 알림 (실제 등급조정 API가 활성화되어 있을 경우 fetch 연동 필요)
-    alert(`신청 완료!\n원하는 등급: ${role}\n사유: ${reason}\n관리자의 승인을 기다려주세요.`);
-    document.getElementById("requestReason").value = "";
-}
+    function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
 </script>
 </body>
 </html>
