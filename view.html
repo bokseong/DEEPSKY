@@ -257,7 +257,7 @@ async function loadPostDetail() {
         renderComments(post.comments || {});
     } catch (err) {
         console.error("게시글 상세 조회 실패:", err);
-        alert("데이터 수신 오류가 발생했습니다.");
+        alert(err.message || "데이터 수신 오류가 발생했습니다.");
     }
 }
 
