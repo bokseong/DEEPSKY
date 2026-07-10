@@ -210,12 +210,7 @@ auth.onAuthStateChanged(async (user) => {
 async function loadPostDetail() {
     if (!postId) return alert("비정상적인 접근 경로입니다.");
     try {
-        const res = await fetch(`${API_BASE_URL}/api/freeboard/${postId}`, {
-            method: "GET",
-            headers: { "ngrok-skip-browser-warning": "69420" }
-        });
-        if (!res.ok) throw new Error();
-        const post = await res.json();
+        const post = await fetchPostDetail(postId);
 
         postAuthorUid = post.uid;
 
@@ -261,8 +256,46 @@ async function loadPostDetail() {
         document.getElementById("commentLoginNotice")?.classList.toggle("hidden", Boolean(currentUser));
         renderComments(post.comments || {});
     } catch (err) {
+        console.error("게시글 상세 조회 실패:", err);
         alert("데이터 수신 오류가 발생했습니다.");
     }
+}
+
+async function fetchPostDetail(id) {
+    const headers = { "ngrok-skip-browser-warning": "69420" };
+    if (currentUser) headers.Authorization = `Bearer ${await currentUser.getIdToken()}`;
+
+    try {
+        const detailRes = await fetch(`${API_BASE_URL}/api/freeboard/${id}`, {
+            method: "GET",
+            headers
+        });
+        if (detailRes.ok) {
+            const detail = await detailRes.json();
+            return normalizePost(detail, id);
+        }
+    } catch (err) {
+        console.warn("상세 API 조회 실패, 목록 API로 재시도:", err);
+    }
+
+    const listRes = await fetch(`${API_BASE_URL}/api/freeboard`, {
+        method: "GET",
+        headers
+    });
+    if (!listRes.ok) throw new Error("게시글 목록을 불러오지 못했습니다.");
+
+    const data = await listRes.json();
+    const post = Array.isArray(data)
+        ? data.find(item => String(item.id || item.key || item._id) === String(id))
+        : data[id];
+    if (!post) throw new Error("게시글을 찾을 수 없습니다.");
+    return normalizePost(post, id);
+}
+
+function normalizePost(post, id) {
+    const normalized = post || {};
+    normalized.id = normalized.id || id;
+    return normalized;
 }
 
 // 댓글 컴포넌트 렌더링

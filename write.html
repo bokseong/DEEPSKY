@@ -152,13 +152,7 @@ async function initEditPage() {
     document.getElementById("submitBtn").innerText = "게시글 수정 완료";
 
     try {
-        const res = await fetch(`${API_BASE_URL}/api/freeboard/${editPostId}`, {
-            method: "GET",
-            headers: { "ngrok-skip-browser-warning": "69420" }
-        });
-        if (!res.ok) throw new Error("게시글을 불러오지 못했습니다.");
-
-        const post = await res.json();
+        const post = await fetchPostForEdit(editPostId);
         if (post.uid !== currentUser.uid && currentUserRole !== "admin") {
             alert("수정 권한이 없습니다.");
             location.href = "board.html";
@@ -180,6 +174,43 @@ async function initEditPage() {
         alert(err.message || "게시글 정보를 불러오는 중 오류가 발생했습니다.");
         location.href = "board.html";
     }
+}
+
+async function fetchPostForEdit(id) {
+    const headers = { "ngrok-skip-browser-warning": "69420" };
+    if (currentUser) headers.Authorization = `Bearer ${await currentUser.getIdToken()}`;
+
+    try {
+        const detailRes = await fetch(`${API_BASE_URL}/api/freeboard/${id}`, {
+            method: "GET",
+            headers
+        });
+        if (detailRes.ok) {
+            const detail = await detailRes.json();
+            return normalizePost(detail, id);
+        }
+    } catch (err) {
+        console.warn("상세 API 조회 실패, 목록 API로 재시도:", err);
+    }
+
+    const listRes = await fetch(`${API_BASE_URL}/api/freeboard`, {
+        method: "GET",
+        headers
+    });
+    if (!listRes.ok) throw new Error("게시글을 불러오지 못했습니다.");
+
+    const data = await listRes.json();
+    const post = Array.isArray(data)
+        ? data.find(item => String(item.id || item.key || item._id) === String(id))
+        : data[id];
+    if (!post) throw new Error("게시글을 찾을 수 없습니다.");
+    return normalizePost(post, id);
+}
+
+function normalizePost(post, id) {
+    const normalized = post || {};
+    normalized.id = normalized.id || id;
+    return normalized;
 }
 
 async function submitPost() {
