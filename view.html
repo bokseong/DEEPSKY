@@ -55,6 +55,12 @@
         .link-section { background: rgba(58, 90, 255, 0.1); padding: 15px; border-radius: 10px; border: 1px dashed #3a5aff; margin-bottom: 30px; }
         .btn-link { display: inline-block; background: #3a5aff; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; transition: 0.2s; }
         .btn-link:hover { background: #5a7aff; transform: translateY(-2px); }
+        .file-actions { margin-top:15px; padding:12px; background:rgba(255,255,255,0.05); border-radius:8px; border-left:3px solid #3a5aff; }
+        .file-action-title { display:block; font-size:14px; color:#7fc7ff; font-weight:bold; margin-bottom:10px; }
+        .file-action-buttons { display:flex; gap:10px; flex-wrap:wrap; }
+        .file-action-btn { display:inline-block; border:none; border-radius:6px; color:#fff; font-weight:bold; text-decoration:none; padding:9px 14px; cursor:pointer; font-size:14px; }
+        .file-preview-btn { background:#28a745; }
+        .file-download-btn { background:#3a5aff; }
 
         .comment-section { margin-top: 40px; border-top: 1px solid #2d367a; padding-top: 30px; }
         .comment-title { font-size: 18px; color: #7fc7ff; margin-bottom: 20px; font-weight: bold; }
@@ -87,6 +93,8 @@
             nav a { padding: 10px 12px; font-size: 13px; }
             header h1 { font-size: 22px; }
             .header-logo { width: 100px; height: 100px; }
+            .file-action-buttons { flex-direction: column; }
+            .file-action-btn { width: 100%; text-align: center; }
         }
     </style>
 </head>
@@ -120,9 +128,12 @@
             <div style="font-size: 13px; color: #7fc7ff; margin-bottom: 8px; font-weight: bold;">첨부된 링크</div>
             <a id="viewFileLink" href="#" target="_blank" class="btn-link">파일/링크 열기</a>
         </div>
-            <div id="vFileContainer" class="hidden" style="margin-top:15px; padding:12px; background:rgba(255,255,255,0.05); border-radius:8px; border-left:3px solid #3a5aff;">
-            <span style="font-size:14px; color:#7fc7ff; font-weight:bold;">첨부 파일 다운로드: </span>
-            <button id="vFileDownloadBtn" type="button" style="background:none; border:none; color:#fff; font-weight:bold; text-decoration:underline; margin-left:10px; cursor:pointer; font-size:14px;"></button>
+            <div id="vFileContainer" class="file-actions hidden">
+            <span id="vFileName" class="file-action-title"></span>
+            <div class="file-action-buttons">
+                <a id="vFilePreviewBtn" class="file-action-btn file-preview-btn" href="#" target="_blank" rel="noopener">미리보기</a>
+                <a id="vFileDownloadBtn" class="file-action-btn file-download-btn" href="#">다운로드</a>
+            </div>
         </div>
 
         <div class="comment-section">
@@ -231,11 +242,15 @@ async function loadPostDetail() {
         }
 
         const fileContainer = document.getElementById("vFileContainer");
-        const fileBtn = document.getElementById("vFileDownloadBtn");
+        const fileName = document.getElementById("vFileName");
+        const previewBtn = document.getElementById("vFilePreviewBtn");
+        const downloadBtn = document.getElementById("vFileDownloadBtn");
         const attachment = getAttachmentInfo(post);
-        if (attachment && fileContainer && fileBtn) {
-            fileBtn.innerText = `[ ${attachment.name} ]`;
-            fileBtn.onclick = () => openAttachment(attachment.url, attachment.name);
+        if (attachment && fileContainer && fileName && previewBtn && downloadBtn) {
+            fileName.innerText = `첨부 파일: ${attachment.name}`;
+            previewBtn.href = attachment.previewUrl;
+            downloadBtn.href = attachment.downloadUrl;
+            downloadBtn.setAttribute("download", attachment.name);
             fileContainer.classList.remove("hidden");
         } else if (fileContainer) {
             fileContainer.classList.add("hidden");
@@ -368,48 +383,40 @@ function getAttachmentInfo(post) {
     const rawUrl = post.fileUrl || post.file_url || post.downloadUrl || post.download_url || post.url;
     const rawPath = post.file_path || post.filePath || post.path;
     const filename = post.file_name || post.fileName || post.originalName || post.originalname || post.name || "첨부 파일";
+    const source = rawUrl || rawPath;
 
-    if (rawUrl) {
-        return { url: normalizeFileUrl(rawUrl), name: filename };
-    }
-    if (rawPath) {
-        return { url: normalizeFileUrl(rawPath), name: filename };
-    }
-    return null;
+    if (!source) return null;
+    return {
+        name: filename,
+        previewUrl: normalizeFileUrl(source, "preview"),
+        downloadUrl: normalizeFileUrl(source, "download")
+    };
 }
 
-function normalizeFileUrl(value) {
+function normalizeFileUrl(value, mode = "preview") {
     const rawValue = String(value || "").trim();
     if (!rawValue) return "";
-    if (/^https?:\/\//i.test(rawValue)) return rawValue;
-    if (rawValue.startsWith("/api/")) return `${API_BASE_URL}${rawValue}`;
+    if (/^https?:\/\//i.test(rawValue)) {
+        if (!rawValue.includes("/api/download")) return rawValue;
+        return withQueryParam(rawValue, "mode", mode);
+    }
+    if (rawValue.startsWith("/api/download")) {
+        return withQueryParam(`${API_BASE_URL}${rawValue}`, "mode", mode);
+    }
+    if (rawValue.startsWith("/uploads/")) {
+        if (mode === "preview") return `${API_BASE_URL}${rawValue}`;
+        return `${API_BASE_URL}/api/download?path=${encodeURIComponent(rawValue)}&mode=download`;
+    }
     if (rawValue.startsWith("/")) return `${API_BASE_URL}${rawValue}`;
-    return `${API_BASE_URL}/api/download?path=${encodeURIComponent(rawValue)}`;
+
+    const downloadPath = rawValue.includes("/uploads/") ? rawValue : `/uploads/${rawValue.replace(/^uploads\//, "")}`;
+    return `${API_BASE_URL}/api/download?path=${encodeURIComponent(downloadPath)}&mode=${encodeURIComponent(mode)}`;
 }
 
-async function openAttachment(url, filename) {
-    try {
-        const headers = { "ngrok-skip-browser-warning": "69420" };
-        if (currentUser) headers.Authorization = `Bearer ${await currentUser.getIdToken()}`;
-
-        const res = await fetch(url, { method: "GET", headers });
-        if (!res.ok) throw new Error("파일을 불러오지 못했습니다.");
-
-        const blob = await res.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        const opened = window.open(objectUrl, "_blank", "noopener,noreferrer");
-        if (!opened) {
-            const link = document.createElement("a");
-            link.href = objectUrl;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-        }
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
-    } catch (err) {
-        alert(err.message || "파일 열기에 실패했습니다.");
-    }
+function withQueryParam(url, key, value) {
+    const parsed = new URL(url, location.href);
+    parsed.searchParams.set(key, value);
+    return parsed.toString();
 }
 
 // 자체 서버 본문 제거 연동
