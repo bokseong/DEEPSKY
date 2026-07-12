@@ -167,7 +167,7 @@ auth.onAuthStateChanged(async (user) => {
 async function loadQuestions() {
     try {
         // ngrok 우회 헤더 마법의 주문 탑재 및 백엔드 GET 호출
-        const response = await fetch(`${API_BASE_URL}/api/question`, {
+        const response = await fetch(`${API_BASE_URL}/api/questions`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -186,6 +186,7 @@ async function loadQuestions() {
 
 // 💡 새로운 질문 등록 (자체 5001번 ngrok 서버 연동 및 보안 규칙 매칭 버전)
 async function addQuestion() {
+    if (!currentUser) return alert("로그인 후 질문을 등록할 수 있습니다.");
     const textInput = document.getElementById("qInput");
     const text = textInput.value.trim();
     if(!text) return alert("질문을 입력해주세요.");
@@ -193,19 +194,19 @@ async function addQuestion() {
     try {
         // 보안 규칙을 통과하고 우분투 DB에 question 항목으로 적재될 데이터 구조화
         const newPost = {
-            text: text,
+            content: text,
             author: currentUserName,
-            email: currentUser ? currentUser.email : "anonymous",
-            uid: currentUser ? currentUser.uid : "anonymous_uid",
             timestamp: Date.now(),
             date: new Date().toLocaleDateString('ko-KR')
         };
 
         // 백엔드로 POST 전송
-        const response = await fetch(`${API_BASE_URL}/api/question`, {
+        const token = await currentUser.getIdToken();
+        const response = await fetch(`${API_BASE_URL}/api/questions`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`,
                 "ngrok-skip-browser-warning": "69420"
             },
             body: JSON.stringify(newPost)
@@ -241,13 +242,15 @@ async function saveAnswer(qKey) {
         };
 
         // 특정 qKey 질문의 하위 replies 경로로 POST 통신 진행
-        const response = await fetch(`${API_BASE_URL}/api/question/${qKey}/reply`, {
+        const token = await currentUser.getIdToken();
+        const response = await fetch(`${API_BASE_URL}/api/questions/${qKey}/replies`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`,
                 "ngrok-skip-browser-warning": "69420"
             },
-            body: JSON.stringify(newReply)
+            body: JSON.stringify({ content: ansText, author: currentUserName })
         });
 
         if(!response.ok) throw new Error("서버에 답변을 추가하지 못했습니다.");
@@ -275,20 +278,23 @@ function renderList(data) {
     // 파이어베이스 기존 실시간 내림차순 정렬 로직 보존하며 렌더링
     Object.keys(data).reverse().forEach(qKey => {
         const q = data[qKey];
+        const questionText = String(q.content || q.text || "");
+        const questionAuthor = String(q.author || "익명");
         const isQAuthor = currentUser && q.email !== "anonymous" && currentUser.email === q.email;
         
         // 검색 필터 검증 (질문 본문, 작성자 명칭 포함 여부 검사)
-        if (searchTerm && !q.text.toLowerCase().includes(searchTerm) && !q.author.toLowerCase().includes(searchTerm)) return;
+        if (searchTerm && !questionText.toLowerCase().includes(searchTerm) && !questionAuthor.toLowerCase().includes(searchTerm)) return;
 
         let repliesHtml = '<div class="replies-container">';
         if (q.replies) {
             Object.keys(q.replies).forEach(rKey => {
                 const r = q.replies[rKey];
+                const replyText = r.content || r.text || "";
                 const canDeleteReply = isAdmin || (currentUser && currentUser.email === r.email) || isQAuthor;
                 
                 repliesHtml += `
                     <div class="ans-box">
-                        <div class="ans-content"><b>A.</b> ${r.text} <br> <span class="ans-author">- ${r.author}</span></div>
+                        <div class="ans-content"><b>A.</b> ${escapeHtml(replyText)} <br> <span class="ans-author">- ${escapeHtml(r.author || '익명')}</span></div>
                         ${canDeleteReply ? `<button class="btn-ans-del" onclick="deleteAnswer('${qKey}', '${rKey}')">삭제</button>` : ""}
                     </div>`;
             });
@@ -306,7 +312,7 @@ function renderList(data) {
                 ${canDeleteQuestion ? `<button class="btn-del" onclick="deleteQuestion('${qKey}')">삭제</button>` : ""}
             </div>` : (canDeleteQuestion ? `<div class="answer-controls" style="justify-content: flex-end;"><button class="btn-del" onclick="deleteQuestion('${qKey}')">삭제</button></div>` : "");
 
-        card.innerHTML = `<div class="q-meta">${q.author}</div><span class="q-text">Q. ${q.text}</span>${repliesHtml}${controlsHtml}`;
+        card.innerHTML = `<div class="q-meta">${escapeHtml(questionAuthor)}</div><span class="q-text">Q. ${escapeHtml(questionText)}</span>${repliesHtml}${controlsHtml}`;
         list.appendChild(card);
     });
 }
@@ -317,9 +323,13 @@ function filterQuestions() { renderList(cachedData); }
 async function deleteQuestion(qKey) { 
     if(!confirm("삭제하시겠습니까?")) return;
     try {
-        const response = await fetch(`${API_BASE_URL}/api/question/${qKey}`, {
+        const token = await currentUser.getIdToken();
+        const response = await fetch(`${API_BASE_URL}/api/questions/${qKey}`, {
             method: "DELETE",
-            headers: { "ngrok-skip-browser-warning": "69420" }
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "ngrok-skip-browser-warning": "69420"
+            }
         });
         if (!response.ok) throw new Error();
         alert("삭제되었습니다.");
@@ -333,9 +343,13 @@ async function deleteQuestion(qKey) {
 async function deleteAnswer(qKey, rKey) { 
     if(!confirm("삭제하시겠습니까?")) return;
     try {
-        const response = await fetch(`${API_BASE_URL}/api/question/${qKey}/reply/${rKey}`, {
+        const token = await currentUser.getIdToken();
+        const response = await fetch(`${API_BASE_URL}/api/questions/${qKey}/replies/${rKey}`, {
             method: "DELETE",
-            headers: { "ngrok-skip-browser-warning": "69420" }
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "ngrok-skip-browser-warning": "69420"
+            }
         });
         if (!response.ok) throw new Error();
         alert("삭제되었습니다.");
@@ -346,6 +360,16 @@ async function deleteAnswer(qKey, rKey) {
 }
 
 function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
+
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+    }[char]));
+}
 </script>
 </body>
 </html>

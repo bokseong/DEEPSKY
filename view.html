@@ -233,7 +233,7 @@ async function loadPostDetail() {
 
         const linkArea = document.getElementById("linkArea");
         const viewFileLink = document.getElementById("viewFileLink");
-        if (post.link) {
+        if (isSafeExternalUrl(post.link)) {
             viewFileLink.href = post.link;
             viewFileLink.innerText = post.linkName || "링크 열기";
             linkArea.classList.remove("hidden");
@@ -337,8 +337,8 @@ function renderComments(comments) {
         const canDelete = isCommentAuthor || isPostAuthor || isAdmin;
 
         item.innerHTML = `
-            <div style="font-size:12px; color:#7fc7ff;">${c.author || '익명'} (${formatPostDate(c.date)})</div>
-            <div style="margin:5px 0; font-size:14px;">${c.text}</div>
+            <div style="font-size:12px; color:#7fc7ff;">${escapeHtml(c.author || '익명')} (${escapeHtml(formatPostDate(c.date))})</div>
+            <div style="margin:5px 0; font-size:14px;">${escapeHtml(c.text || '')}</div>
             ${canDelete ? `<button onclick="deleteComment('${cKey}')" style="background:none; border:none; color:#ff4d4d; font-size:11px; cursor:pointer; padding:0;">[삭제]</button>` : ""}
         `;
         box.appendChild(item);
@@ -464,6 +464,25 @@ function formatPostDate(value) {
     const parsed = Date.parse(value);
     if (!Number.isNaN(parsed)) return new Date(parsed).toLocaleString("ko-KR");
     return value;
+}
+
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+    }[char]));
+}
+
+function isSafeExternalUrl(value) {
+    try {
+        const url = new URL(String(value || ""));
+        return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+        return false;
+    }
 }
 
 function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }

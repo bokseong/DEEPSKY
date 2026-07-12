@@ -204,9 +204,10 @@
                     role: 'member' // 기본 등급 부여
                 }).then(() => user.sendEmailVerification());
             })
+            .then(() => auth.signOut())
             .then(() => {
                 alert("가입 성공! 메일함을 확인하여 인증을 완료해주세요.");
-                location.href = "index.html";
+                location.href = "login.html";
             })
             .catch(err => alert("가입 실패: " + err.message));
     }

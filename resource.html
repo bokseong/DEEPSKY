@@ -288,25 +288,50 @@ function renderResources(data) {
     }
 
     keys.forEach(key => {
-            const item = data[key];
-            const div = document.createElement("div");
-            div.className = "resource-item"; // 기존 디자인 클래스 유지
-            const fileLinks = getResourceFiles(item).map((path, index) =>
-                `<button type="button" onclick="openResourceFile('${escapeAttr(path)}', '${escapeAttr(getResourceFileName(path, index))}')" style="color:#7fc7ff; background:none; border:none; cursor:pointer; padding:0; text-decoration:underline;">[첨부파일 ${index + 1}]</button>`
-            ).join("<br>");
-            const externalLink = item.link ? `<a href="${escapeAttr(normalizeLink(item.link))}" target="_blank" rel="noopener noreferrer" style="color:#7fc7ff;">[외부 링크]</a>` : "";
-            div.innerHTML = `
-                <div style="margin-bottom:10px;"><strong>${escapeHtml(item.title || '제목 없음')}</strong> (${escapeHtml(formatResourceDate(item.date))})</div>
-                <div style="font-size:14px; color:#ddd;">${escapeHtml(item.content || '')}</div>
-                <div style="margin-top:10px;">
-                    ${fileLinks}
-                    ${externalLink ? (fileLinks ? "<br>" : "") + externalLink : ""}
-                    ${currentUserRole === 'admin' ? `<button onclick="deleteResource('${key}')" style="margin-left:10px; color:red; background:none; border:none; cursor:pointer;">[삭제]</button>` : ""}
-                </div>
-                <hr style="border-top:1px solid #1b2f80; margin-top:15px;">
-            `;
-            list.appendChild(div);
+        const item = data[key] || {};
+        const div = document.createElement("div");
+        div.className = "resource-item";
+        div.innerHTML = `
+            <div style="margin-bottom:10px;"><strong>${escapeHtml(item.title || '제목 없음')}</strong> (${escapeHtml(formatResourceDate(item.date))})</div>
+            <div style="font-size:14px; color:#ddd;">${escapeHtml(item.content || '')}</div>
+            <div class="resource-actions" style="margin-top:10px;"></div>
+            <hr style="border-top:1px solid #1b2f80; margin-top:15px;">
+        `;
+
+        const actions = div.querySelector(".resource-actions");
+        getResourceFiles(item).forEach((path, index) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.textContent = `[첨부파일 ${index + 1}]`;
+            button.style.cssText = "color:#7fc7ff;background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;";
+            button.addEventListener("click", () => openResourceFile(path, getResourceFileName(path, index)));
+            if (actions.childNodes.length) actions.appendChild(document.createElement("br"));
+            actions.appendChild(button);
         });
+
+        const externalUrl = normalizeLink(item.link);
+        if (externalUrl) {
+            if (actions.childNodes.length) actions.appendChild(document.createElement("br"));
+            const link = document.createElement("a");
+            link.href = externalUrl;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = "[외부 링크]";
+            link.style.color = "#7fc7ff";
+            actions.appendChild(link);
+        }
+
+        if (currentUserRole === 'admin') {
+            const deleteButton = document.createElement("button");
+            deleteButton.type = "button";
+            deleteButton.textContent = "[삭제]";
+            deleteButton.style.cssText = "margin-left:10px;color:red;background:none;border:none;cursor:pointer;";
+            deleteButton.addEventListener("click", () => deleteResource(key));
+            actions.appendChild(deleteButton);
+        }
+
+        list.appendChild(div);
+    });
 }
 
 // 파일과 데이터를 자체 서버로 업로드 (multipart/form-data)
@@ -404,8 +429,11 @@ function normalizeLink(link) {
 
 async function openResourceFile(path, filename) {
     try {
+        if (!String(path || "").startsWith("/uploads/resources/")) {
+            throw new Error("허용되지 않는 파일 경로입니다.");
+        }
         const token = await currentUser.getIdToken();
-        const url = path.startsWith("http") ? path : `${API_BASE_URL}/api/download?path=${encodeURIComponent(path)}`;
+        const url = `${API_BASE_URL}/api/download?path=${encodeURIComponent(path)}`;
         const res = await fetch(url, {
             headers: {
                 "Authorization": `Bearer ${token}`,

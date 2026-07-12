@@ -254,6 +254,7 @@ const firebaseConfig = {
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
+const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
 auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
@@ -331,19 +332,24 @@ async function sendRequestEmail() {
         btn.innerText = "전송 중...";
 
         try {
-            const snapshot = await db.ref('users/' + user.uid).once('value');
-            const userData = snapshot.val() || {};
-            const senderName = userData.name || user.email.split('@')[0];
-
-            await db.ref('roleRequests').push({
-                uid: user.uid,
-                email: user.email,
-                name: senderName,
+            const token = await user.getIdToken();
+            const response = await fetch(`${API_BASE_URL}/api/role-requests`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                    "ngrok-skip-browser-warning": "69420"
+                },
+                body: JSON.stringify({
                 requestedRole: roleElement.value,
-                requestedRoleName,
                 reason: reasonValue,
                 date: new Date().toISOString()
+                })
             });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || "등급 요청 실패");
+            }
 
             alert("성공적으로 요청을 보냈습니다. 관리자 확인 후 반영됩니다.");
             reasonElement.value = ""; 

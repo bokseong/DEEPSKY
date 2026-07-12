@@ -191,6 +191,16 @@ appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
 const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+    }[char]));
+}
+
 // 전역 유저 변수
 let currentUser = null;
 
@@ -292,7 +302,8 @@ async function loadUpdateLogs() {
         });
         if (!response.ok) throw new Error("로그 로드 실패");
 
-        const logs = await response.json(); // 백엔드에서 배열 형태로 전달받음
+        const rawLogs = await response.json();
+        const logs = Array.isArray(rawLogs) ? rawLogs : Object.values(rawLogs || {});
         logList.innerHTML = "";
         
         // 💡 백엔드가 주는 데이터를 최신순(timestamp 내림차순) 정렬
@@ -313,10 +324,10 @@ async function loadUpdateLogs() {
             item.className = "log-item";
             item.innerHTML = `
                 <div class="log-header">
-                    <span class="log-version">${log.version}</span>
-                    <span class="log-date">${log.date || ''}</span>
+                    <span class="log-version">${escapeHtml(log.version || '')}</span>
+                    <span class="log-date">${escapeHtml(log.date || '')}</span>
                 </div>
-                <div class="log-text">${log.content}</div>`;
+                <div class="log-text">${escapeHtml(log.content || '')}</div>`;
             logList.appendChild(item);
         });
     } catch (error) {

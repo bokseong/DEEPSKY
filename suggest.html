@@ -228,12 +228,15 @@ const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
 let currentUser = null;
 let currentUserRole = "guest";
+let currentUserName = "익명";
 
 auth.onAuthStateChanged((user) => {
     if (user) {
         currentUser = user;
         db.ref('users/' + user.uid).on('value', (snapshot) => {
-            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (snapshot.val()?.role || 'member');
+            const userData = snapshot.val() || {};
+            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+            currentUserName = userData.name || user.displayName || user.email.split('@')[0];
             
             // 열람은 학생 이상만 가능
             if(currentUserRole === 'admin' || currentUserRole === 'student') {
@@ -255,10 +258,12 @@ if(!content) return alert("건의 내용을 입력하세요.");
      const authorName = isAnon ? "익명" : currentUserName;
 
      try {
-         await fetch(`${API_BASE_URL}/api/suggests`, {
+         const token = await currentUser.getIdToken();
+         const response = await fetch(`${API_BASE_URL}/api/suggests`, {
              method: "POST",
-             headers: { 
+             headers: {
                  "Content-Type": "application/json",
+                 "Authorization": `Bearer ${token}`,
                  "ngrok-skip-browser-warning": "69420"
              },
              body: JSON.stringify({
@@ -269,6 +274,7 @@ if(!content) return alert("건의 내용을 입력하세요.");
                  date: new Date().toLocaleDateString()
              })
          });
+         if (!response.ok) throw new Error("건의 등록 실패");
          alert("건의가 성공적으로 접수되었습니다!");
          document.getElementById("sInput").value = "";
          if(document.getElementById("sAnon")) document.getElementById("sAnon").checked = false;
@@ -282,10 +288,12 @@ async function submitSuggest() {
     if(!title || !content) return alert("내용을 입력하세요.");
 
     try {
-        await fetch(`${API_BASE_URL}/api/suggests`, {
+        const token = await currentUser.getIdToken();
+        const response = await fetch(`${API_BASE_URL}/api/suggests`, {
             method: "POST",
-            headers: { 
+            headers: {
                 "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`,
                 "ngrok-skip-browser-warning": "69420"
             },
             body: JSON.stringify({
@@ -294,6 +302,7 @@ async function submitSuggest() {
                 uid: currentUser.uid, date: new Date().toLocaleDateString()
             })
         });
+        if (!response.ok) throw new Error("건의 등록 실패");
         alert("건의가 접수되었습니다!");
         if(currentUserRole === 'admin' || currentUserRole === 'student') loadSuggestions();
     } catch (err) { alert("접수 에러"); }
@@ -301,7 +310,15 @@ async function submitSuggest() {
 
 async function deleteSuggest(id) {
     if(confirm("삭제하시겠습니까?")) {
-        await fetch(`${API_BASE_URL}/api/suggests/${id}`, { method: "DELETE", headers: { "ngrok-skip-browser-warning": "69420" } });
+        const token = await currentUser.getIdToken();
+        const response = await fetch(`${API_BASE_URL}/api/suggests/${id}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "ngrok-skip-browser-warning": "69420"
+            }
+        });
+        if (!response.ok) return alert("삭제 권한이 없거나 삭제에 실패했습니다.");
         loadSuggestions();
     }
 }

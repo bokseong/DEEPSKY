@@ -192,6 +192,7 @@ nav .nav-inner {
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
+    const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
     const appCheck = firebase.appCheck();
     appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
@@ -255,17 +256,24 @@ nav .nav-inner {
             btn.innerText = "전송 중...";
 
             try {
-                const snapshot = await db.ref('users/' + user.uid).once('value');
-                const userData = snapshot.val() || {};
-                await db.ref('roleRequests').push({
-                    uid: user.uid,
-                    email: user.email,
-                    name: userData.name || user.displayName || "이름미설정",
+                const token = await user.getIdToken();
+                const response = await fetch(`${API_BASE_URL}/api/role-requests`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`,
+                        "ngrok-skip-browser-warning": "69420"
+                    },
+                    body: JSON.stringify({
                     requestedRole: roleElement.value,
-                    requestedRoleName,
                     reason: reasonValue,
                     date: new Date().toISOString()
+                    })
                 });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || "등급 요청 실패");
+                }
 
                 alert("성공적으로 요청을 보냈습니다. 관리자 확인을 기다려주세요.");
                 reasonElement.value = "";

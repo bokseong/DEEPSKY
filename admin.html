@@ -246,11 +246,24 @@ function loadAllUsers() {
 }
 
 // 직접 권한 수정 함수
-function updateUserRole(uid) {
+async function updateUserRole(uid) {
     const newRole = document.getElementById("role_" + uid).value;
-    db.ref('users/' + uid).update({ role: newRole })
-      .then(() => alert("등급 권한이 성공적으로 수정되었습니다."))
-      .catch(e => alert("등급 수정 실패: " + e.message));
+    try {
+        const token = await currentUser.getIdToken();
+        const response = await fetch(`${API_BASE_URL}/api/admin/users/${encodeURIComponent(uid)}/role`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`,
+                "ngrok-skip-browser-warning": "69420"
+            },
+            body: JSON.stringify({ role: newRole })
+        });
+        if (!response.ok) throw new Error("등급 수정 실패");
+        alert("등급 권한이 성공적으로 수정되었습니다.");
+    } catch (error) {
+        alert(error.message || "등급 수정 실패");
+    }
 }
 
 
@@ -282,30 +295,43 @@ function loadRoleRequests() {
             div.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <div>
-                        <strong>신청자:</strong> ${reqData.name || '익명'} (${reqData.email || ''})<br>
-                        <strong>요청 등급:</strong> <span style="color:#7fc7ff; font-weight:bold;">${reqData.requestedRole || 'student'}</span><br>
-                        <small style="color:#888;">신청일시: ${reqData.date || ''}</small>
+                        <strong>신청자:</strong> ${escapeHtml(reqData.name || '익명')} (${escapeHtml(reqData.email || '')})<br>
+                        <strong>요청 등급:</strong> <span style="color:#7fc7ff; font-weight:bold;">${escapeHtml(reqData.requestedRole || 'student')}</span><br>
+                        <small style="color:#888;">신청일시: ${escapeHtml(reqData.date || '')}</small>
                     </div>
-                    <div>
-                        <button onclick="approveRoleRequest('${reqData.uid}', '${reqData.requestedRole}', '${reqId}')" style="padding:6px 12px; background:#28a745; border:none; color:white; border-radius:4px; cursor:pointer; margin-right:5px;">승인</button>
-                        <button onclick="rejectRoleRequest('${reqId}')" style="padding:6px 12px; background:#dc3545; border:none; color:white; border-radius:4px; cursor:pointer;">거절</button>
-                    </div>
+                    <div class="role-request-actions"></div>
                 </div>
             `;
+            const actions = div.querySelector(".role-request-actions");
+            const approveButton = document.createElement("button");
+            approveButton.textContent = "승인";
+            approveButton.style.cssText = "padding:6px 12px;background:#28a745;border:none;color:white;border-radius:4px;cursor:pointer;margin-right:5px;";
+            approveButton.addEventListener("click", () => approveRoleRequest(reqId));
+            const rejectButton = document.createElement("button");
+            rejectButton.textContent = "거절";
+            rejectButton.style.cssText = "padding:6px 12px;background:#dc3545;border:none;color:white;border-radius:4px;cursor:pointer;";
+            rejectButton.addEventListener("click", () => rejectRoleRequest(reqId));
+            actions.append(approveButton, rejectButton);
             list.appendChild(div);
         });
     });
 }
 
 // 등급 요청 승인 처리 (해당 유저 role을 업데이트하고 요청서 삭제)
-async function approveRoleRequest(userUid, targetRole, reqId) {
+async function approveRoleRequest(reqId) {
     if (!confirm("이 요청을 승인하고 등급을 조절하시겠습니까?")) return;
     try {
-        // 1. 사용자 등급 변경
-        await db.ref('users/' + userUid).update({ role: targetRole });
-        // 2. 등급 요청 노드에서 항목 삭제
-        await db.ref('roleRequests/' + reqId).remove();
+        const token = await currentUser.getIdToken();
+        const response = await fetch(`${API_BASE_URL}/api/admin/role-requests/${encodeURIComponent(reqId)}/approve`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "ngrok-skip-browser-warning": "69420"
+            }
+        });
+        if (!response.ok) throw new Error("승인 처리 실패");
         alert("등급 요청 승인이 완료되었습니다.");
+        loadRoleRequests();
     } catch (err) {
         alert("승인 처리 중 오류 발생: " + err.message);
     }
@@ -315,8 +341,17 @@ async function approveRoleRequest(userUid, targetRole, reqId) {
 async function rejectRoleRequest(reqId) {
     if (!confirm("요청을 거절하고 삭제하시겠습니까?")) return;
     try {
-        await db.ref('roleRequests/' + reqId).remove();
+        const token = await currentUser.getIdToken();
+        const response = await fetch(`${API_BASE_URL}/api/admin/role-requests/${encodeURIComponent(reqId)}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "ngrok-skip-browser-warning": "69420"
+            }
+        });
+        if (!response.ok) throw new Error("거절 처리 실패");
         alert("요청이 취소/거절되었습니다.");
+        loadRoleRequests();
     } catch (err) {
         alert("처리 실패: " + err.message);
     }
@@ -360,11 +395,15 @@ async function loadServerSuggestions() {
             div.style.position = "relative";
             
             div.innerHTML = `
-                <div style="font-size:15px; font-weight:bold; color:#fff; margin-bottom:5px;">${s.title}</div>
-                <div style="font-size:13px; color:#ccc; white-space:pre-wrap; margin-bottom:10px;">${s.content}</div>
-                <div style="font-size:11px; color:#888;">작성자: ${s.author} | 날짜: ${s.date || ''}</div>
-                <button onclick="deleteServerSuggest('${key}')" style="position:absolute; top:15px; right:15px; background:none; border:none; color:#ff4d4d; font-size:13px; cursor:pointer; font-weight:bold;">[삭제]</button>
+                <div style="font-size:15px; font-weight:bold; color:#fff; margin-bottom:5px;">${escapeHtml(s.title || '')}</div>
+                <div style="font-size:13px; color:#ccc; white-space:pre-wrap; margin-bottom:10px;">${escapeHtml(s.content || '')}</div>
+                <div style="font-size:11px; color:#888;">작성자: ${escapeHtml(s.author || '')} | 날짜: ${escapeHtml(s.date || '')}</div>
             `;
+            const deleteButton = document.createElement("button");
+            deleteButton.textContent = "[삭제]";
+            deleteButton.style.cssText = "position:absolute;top:15px;right:15px;background:none;border:none;color:#ff4d4d;font-size:13px;cursor:pointer;font-weight:bold;";
+            deleteButton.addEventListener("click", () => deleteServerSuggest(key));
+            div.appendChild(deleteButton);
             list.appendChild(div);
         });
     } catch (err) {

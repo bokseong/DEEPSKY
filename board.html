@@ -267,8 +267,8 @@ function renderPage() {
 
         item.innerHTML = `
             <div class="post-info-area">
-                <span class="post-title">${postNumber}. ${p.title || '제목 없음'}${fileIcon}</span>
-                <span class="post-meta">작성자: ${p.author || '익명'} | ${formatPostDate(p.date || p.createdAt || p.timestamp)}</span>
+                <span class="post-title">${postNumber}. ${escapeHtml(p.title || '제목 없음')}${fileIcon}</span>
+                <span class="post-meta">작성자: ${escapeHtml(p.author || '익명')} | ${escapeHtml(formatPostDate(p.date || p.createdAt || p.timestamp))}</span>
             </div>
             <div class="post-action-area"></div>
         `;
@@ -385,6 +385,16 @@ function hasAttachment(post) {
         post.download_url ||
         post.link
     );
+}
+
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+    }[char]));
 }
 
 function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
