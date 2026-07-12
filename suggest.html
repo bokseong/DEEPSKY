@@ -44,7 +44,6 @@ nav {
     background: #11153a; 
     border-bottom: 1px solid #2d367a; 
     padding: 10px 0; 
-    /* 줄바꿈을 허용하기 위해 아래 두 줄 수정/삭제 */
     overflow-x: visible; 
     white-space: normal; 
 }
@@ -53,22 +52,21 @@ nav .nav-inner {
     max-width: 1200px;
     margin: 0 auto; 
     display: flex; 
-    /* wrap으로 변경하여 공간이 부족하면 아래로 넘어가게 함 */
     flex-wrap: wrap; 
     justify-content: center; 
-    gap: 5px; /* 줄바꿈 시 가독성을 위해 간격을 조금 넓힘 */
+    gap: 5px;
 }
 
 nav a { 
     display: inline-block; 
     color: white; 
-    padding: 12px 16px; /* 기존 디자인 유지 */
+    padding: 12px 16px;
     text-decoration: none; 
     font-weight: bold; 
-    font-size: 15px; /* 기존 디자인 유지 */
+    font-size: 15px;
     transition: 0.2s;
     border-radius: 8px;
-    flex-shrink: 0; /* 글자가 찌그러지지 않게 설정 */
+    flex-shrink: 0;
 }
 
 nav a:hover { 
@@ -202,7 +200,7 @@ nav a:hover {
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
     <br>
-    Email : leader.deepsky@gmail.com &nbsp;	&nbsp; &nbsp; &nbsp;|	&nbsp; &nbsp; &nbsp; &nbsp;Designed by jw-astro09
+    Email : leader.deepsky@gmail.com &nbsp;	| &nbsp; Designed by jw-astro09
 </footer>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
