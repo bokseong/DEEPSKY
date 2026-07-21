@@ -1,20 +1,3 @@
-const firebaseConfig = {
-    apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
-    authDomain: "bokseong-deep-sky.firebaseapp.com",
-    databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "bokseong-deep-sky",
-    storageBucket: "bokseong-deep-sky.firebasestorage.app",
-    messagingSenderId: "800777151311",
-    appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
-};
-
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.database();
-
-const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
-const ADMIN_EMAIL = "leader.deepsky@gmail.com";
-
 const params = new URLSearchParams(location.search);
 const postId = params.get("id");
 
@@ -133,12 +116,6 @@ async function fetchPostDetail(id) {
         : data[id];
     if (!post) throw new Error("게시글을 찾을 수 없습니다.");
     return normalizePost(post, id);
-}
-
-function normalizePost(post, id) {
-    const normalized = post || {};
-    normalized.id = normalized.id || id;
-    return normalized;
 }
 
 // 댓글 컴포넌트 렌더링
@@ -292,16 +269,6 @@ function formatPostDate(value) {
     const parsed = Date.parse(value);
     if (!Number.isNaN(parsed)) return new Date(parsed).toLocaleString("ko-KR");
     return value;
-}
-
-function escapeHtml(value) {
-    return String(value ?? "").replace(/[&<>"']/g, char => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;"
-    }[char]));
 }
 
 function isSafeExternalUrl(value) {

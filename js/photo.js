@@ -1,27 +1,6 @@
-const firebaseConfig = {
-    apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
-    authDomain: "bokseong-deep-sky.firebaseapp.com",
-    databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "bokseong-deep-sky",
-    storageBucket: "bokseong-deep-sky.firebasestorage.app",
-    messagingSenderId: "800777151311",
-    appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
-};
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.database();
-const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
-const ADMIN_EMAIL = "leader.deepsky@gmail.com";
-
 let currentUser = null;
 let currentUserRole = "guest";
 let allPhotos = {};
-
-function normalizeRole(role) {
-    if (role === '관리자') return 'admin';
-    if (role === '부원' || role === '동아리 부원') return 'student';
-    return role || 'member';
-}
 
 auth.onAuthStateChanged((user) => {
     const status = document.getElementById("userStatus");
@@ -217,14 +196,6 @@ function openPhotoModal(url) {
 function closePhotoModal() {
     document.getElementById("photoModal").classList.add("hidden");
     document.getElementById("modalPhoto").src = "";
-}
-
-function escapeHtml(value) {
-    return String(value || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
-}
-
-function escapeAttr(value) {
-    return escapeHtml(value).replaceAll("`", "&#096;");
 }
 
 function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }

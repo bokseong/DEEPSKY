@@ -1,36 +1,6 @@
-// 1. Firebase 설정 (기존 설정 100% 유지)
-const firebaseConfig = {
-    apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
-    authDomain: "bokseong-deep-sky.firebaseapp.com",
-    databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "bokseong-deep-sky",
-    storageBucket: "bokseong-deep-sky.firebasestorage.app",
-    messagingSenderId: "800777151311",
-    appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
-};
-
-// 2. 초기화
-const app = firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.database(); // Realtime DB 정의 유지 (타 게시판 호환용)
-
 // App Check 활성화
 const appCheck = firebase.appCheck();
 appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
-
-// 🚀 자체 서버(우분투 파이썬) 연동용 ngrok 베이스 주소
-const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
-const ADMIN_EMAIL = "leader.deepsky@gmail.com";
-
-function escapeHtml(value) {
-    return String(value ?? "").replace(/[&<>"']/g, char => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;"
-    }[char]));
-}
 
 // 전역 유저 변수
 let currentUser = null;
@@ -86,12 +56,6 @@ auth.onAuthStateChanged(async (user) => {
 });
 
 // 4. 등급 명칭 변환
-function getRoleName(role) {
-    if (role === 'admin') return '관리자';
-    if (role === 'student') return '동아리 부원';
-    return '일반 회원';
-}
-
 // 5. 이번 주 프로그램 로드 (자체 서버 연동 버전)
 async function loadProgram() {
     const el = document.getElementById("weekProgramText");

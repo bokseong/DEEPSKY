@@ -1,24 +1,9 @@
-// 1. Firebase 설정
-    const firebaseConfig = {
-        apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
-        authDomain: "bokseong-deep-sky.firebaseapp.com",
-        databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "bokseong-deep-sky",
-        storageBucket: "bokseong-deep-sky.firebasestorage.app",
-        messagingSenderId: "800777151311",
-        appId: "1:800777151311:web:8c901fcf0ded04b1941b3a",
-        measurementId: "G-LNZFCW099Z"
-    };
-
-    // 2. 초기화 및 App Check 활성화
-    firebase.initializeApp(firebaseConfig);
+    // App Check 활성화
     const appCheck = firebase.appCheck();
     appCheck.activate(
         '6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0',
         true
     );
-    const auth = firebase.auth();
-    const db = firebase.database();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
     const githubProvider = new firebase.auth.GithubAuthProvider();
 

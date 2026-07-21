@@ -1,23 +1,6 @@
-// 1. Firebase 설정
-    const firebaseConfig = {
-        apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
-        authDomain: "bokseong-deep-sky.firebaseapp.com",
-        databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "bokseong-deep-sky",
-        storageBucket: "bokseong-deep-sky.firebasestorage.app",
-        messagingSenderId: "800777151311",
-        appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
-    };
-
-    // 2. 초기화
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.database();
-    const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
     const appCheck = firebase.appCheck();
     appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
-    const ADMIN_EMAIL = "leader.deepsky@gmail.com";
 
    // 3. 인증 상태 관리
     auth.onAuthStateChanged((user) => {
@@ -45,12 +28,6 @@
             location.href = 'login.html';
         }
     });
-
-    function getRoleName(role) {
-        if (role === 'admin') return '관리자';
-        if (role === 'student') return '동아리 부원';
-        return '일반 회원';
-    }
 
     async function sendRequestEmail() {
         const user = auth.currentUser;

@@ -1,29 +1,5 @@
-// 1. 파이어베이스 초기화 및 기본 설정
-const firebaseConfig = {
-    apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
-    authDomain: "bokseong-deep-sky.firebaseapp.com",
-    databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "bokseong-deep-sky",
-    storageBucket: "bokseong-deep-sky.firebasestorage.app",
-    messagingSenderId: "800777151311",
-    appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
-};
-
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.database();
-
-const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
-const ADMIN_EMAIL = "leader.deepsky@gmail.com";
-
 let currentUser = null;
 let currentUserRole = "guest";
-
-function normalizeRole(role) {
-    if (role === '관리자') return 'admin';
-    if (role === '부원' || role === '동아리 부원') return 'student';
-    return role || 'member';
-}
 
 // 관리자 권한 검증 및 초기화 데이터 로드
 auth.onAuthStateChanged((user) => {
@@ -275,10 +251,6 @@ async function deleteServerSuggest(id) {
     } catch (err) {
         alert("삭제 처리 중 통신 에러가 발생했습니다.");
     }
-}
-
-function escapeHtml(value) {
-    return String(value || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 }
 
 function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.href="index.html"); }

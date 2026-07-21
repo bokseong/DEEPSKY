@@ -1,70 +1,25 @@
 /* 1. 공통 스타일 */
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            font-family: "Pretendard", "Segoe UI", sans-serif;
-            background: #0b0f2b;
-            color: white;
-            overflow-x: hidden;
-        }
 
-        .hidden { display: none !important; }
+        body {
+            font-family: "Pretendard", "Segoe UI", sans-serif;
+            overflow-x: hidden;}
 
         /* 2. 상단 바 */
-        .top-bar {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 0 30px; background: #070a1d;
-            border-bottom: 1px solid #1b2f80;
-            height: 65px; position: sticky; top: 0; z-index: 1000;
-        }
-        .logo-area { display: flex; align-items: center; text-decoration: none; color: white; }
-        .logo-area img { width: 40px; height: 40px; margin-right: 12px; border-radius: 50%; }
-        .logo-area span { font-size: 20px; font-weight: bold; letter-spacing: 1px; }
-
-        .auth-bar { font-size: 14px; display: flex; align-items: center; gap: 10px; }
+        .top-bar { justify-content: space-between;
+            padding: 0 30px;
+            height: 65px; position: sticky; top: 0; z-index: 1000;}
+        .logo-area img { width: 40px; height: 40px; margin-right: 12px;}
+        .logo-area span { font-size: 20px; letter-spacing: 1px;}
         .auth-bar button {
-            padding: 7px 16px; border-radius: 5px; border: none;
-            background: #3a5aff; color: white;
-            cursor: pointer; font-weight: bold;
-        }
+            padding: 7px 16px;}/* 3. 헤더 */
+/* 4. 내비게이션 */
 
-        /* 3. 헤더 */
-        header { background: linear-gradient(to right, #0d1b52, #1b2f80); padding: 38px 20px; text-align: center; }
-
-        /* 4. 내비게이션 */
-nav {
-    background: #11153a;
-    border-bottom: 1px solid #2d367a;
-    padding: 10px 0;
-    overflow-x: visible;
-    white-space: normal;
-}
-
-nav .nav-inner {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 5px;
-}
 
 nav a {
     display: inline-block;
-    color: white;
     padding: 12px 16px;
-    text-decoration: none;
-    font-weight: bold;
-    font-size: 15px;
     transition: 0.2s;
-    border-radius: 8px;
-    flex-shrink: 0;
-}
-
-nav a:hover {
-    background: rgba(127, 199, 255, 0.1);
-    color: #7fc7ff;
-}
+    flex-shrink: 0;}
 
         /* 5. 메인 컨텐츠 & 건의 게시판 전용 카드 */
         .container { max-width: 1000px; margin: 35px auto; padding: 0 20px 100px; }
@@ -96,14 +51,11 @@ nav a:hover {
         .btn-status { font-size: 11px; padding: 6px 12px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
 
         /* 6. Footer (인덱스와 100% 동일) */
-        footer {
-            background: #070a1d; text-align: center; padding: 35px 20px;
-            color: #888; border-top: 1px solid #1b2f80; font-size: 13px;
-        }
+        footer { padding: 35px 20px; font-size: 13px;}
 
         @media (max-width: 600px) {
-            .logo-area span { font-size: 16px; }
-            nav a { padding: 10px 12px; font-size: 13px; }
+            .logo-area span { font-size: 16px;}
+            nav a { padding: 10px 12px; font-size: 13px;}
             header h1 { font-size: 22px; }
             .header-logo { width: 100px; height: 100px; }
         }

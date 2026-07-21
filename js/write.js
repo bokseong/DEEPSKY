@@ -1,20 +1,3 @@
-const firebaseConfig = {
-    apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
-    authDomain: "bokseong-deep-sky.firebaseapp.com",
-    databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "bokseong-deep-sky",
-    storageBucket: "bokseong-deep-sky.firebasestorage.app",
-    messagingSenderId: "800777151311",
-    appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
-};
-
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.database();
-
-const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
-const ADMIN_EMAIL = "leader.deepsky@gmail.com";
-
 let currentUser = null;
 let currentUserName = "익명";
 let currentUserRole = "guest";
@@ -101,12 +84,6 @@ async function fetchPostForEdit(id) {
         : data[id];
     if (!post) throw new Error("게시글을 찾을 수 없습니다.");
     return normalizePost(post, id);
-}
-
-function normalizePost(post, id) {
-    const normalized = post || {};
-    normalized.id = normalized.id || id;
-    return normalized;
 }
 
 async function submitPost() {
