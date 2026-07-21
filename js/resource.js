@@ -77,13 +77,32 @@ function renderResources(data) {
 
         const actions = div.querySelector(".resource-actions");
         getResourceFiles(item).forEach((path, index) => {
-            const button = document.createElement("button");
-            button.type = "button";
-            button.textContent = `[첨부파일 ${index + 1}]`;
-            button.style.cssText = "color:#7fc7ff;background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;";
-            button.addEventListener("click", () => openResourceFile(path, getResourceFileName(path, index)));
-            if (actions.childNodes.length) actions.appendChild(document.createElement("br"));
-            actions.appendChild(button);
+            const filename = getResourceFileName(path, index);
+            const fileRow = document.createElement("div");
+            fileRow.className = "resource-file-row";
+
+            const fileName = document.createElement("span");
+            fileName.className = "resource-file-name";
+            fileName.textContent = `첨부파일 ${index + 1}: ${filename}`;
+
+            const fileActions = document.createElement("div");
+            fileActions.className = "resource-file-actions";
+
+            const previewButton = document.createElement("button");
+            previewButton.type = "button";
+            previewButton.className = "btn-file btn-preview";
+            previewButton.textContent = "미리보기";
+            previewButton.addEventListener("click", () => openResourceFile(path, filename, "preview"));
+
+            const downloadButton = document.createElement("button");
+            downloadButton.type = "button";
+            downloadButton.className = "btn-file btn-download";
+            downloadButton.textContent = "다운로드";
+            downloadButton.addEventListener("click", () => openResourceFile(path, filename, "download"));
+
+            fileActions.append(previewButton, downloadButton);
+            fileRow.append(fileName, fileActions);
+            actions.appendChild(fileRow);
         });
 
         const externalUrl = normalizeLink(item.link);
@@ -204,13 +223,20 @@ function normalizeLink(link) {
     return /^https?:\/\//i.test(value) ? value : `https://${value}`;
 }
 
-async function openResourceFile(path, filename) {
+async function openResourceFile(path, filename, mode) {
+    const previewWindow = mode === "preview" ? window.open("about:blank", "_blank") : null;
     try {
         if (!String(path || "").startsWith("/uploads/resources/")) {
             throw new Error("허용되지 않는 파일 경로입니다.");
         }
+        if (mode !== "preview" && mode !== "download") {
+            throw new Error("지원하지 않는 파일 열기 방식입니다.");
+        }
+        if (mode === "preview" && !previewWindow) {
+            throw new Error("팝업이 차단되어 미리보기를 열 수 없습니다.");
+        }
         const token = await currentUser.getIdToken();
-        const url = `${API_BASE_URL}/api/download?path=${encodeURIComponent(path)}`;
+        const url = `${API_BASE_URL}/api/download?path=${encodeURIComponent(path)}&mode=${mode}`;
         const res = await fetch(url, {
             headers: {
                 "Authorization": `Bearer ${token}`,
@@ -220,18 +246,22 @@ async function openResourceFile(path, filename) {
         if (!res.ok) throw new Error("파일을 불러오지 못했습니다.");
         const blob = await res.blob();
         const objectUrl = URL.createObjectURL(blob);
-        const opened = window.open(objectUrl, "_blank", "noopener,noreferrer");
-        if (!opened) {
-            const a = document.createElement("a");
-            a.href = objectUrl;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
+
+        if (mode === "preview") {
+            previewWindow.opener = null;
+            previewWindow.location.href = objectUrl;
+        } else {
+            const downloadLink = document.createElement("a");
+            downloadLink.href = objectUrl;
+            downloadLink.download = filename;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            downloadLink.remove();
         }
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 300000);
     } catch (err) {
-        alert(err.message || "파일 열기 실패");
+        if (previewWindow) previewWindow.close();
+        alert(err.message || (mode === "preview" ? "미리보기 실패" : "다운로드 실패"));
     }
 }
 

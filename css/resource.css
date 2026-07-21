@@ -65,10 +65,20 @@
         .file-name { font-weight: bold; color: #7fc7ff; font-size: 18px; margin-bottom: 8px; }
         .file-desc { font-size: 14px; color: #ccc; margin-bottom: 20px; min-height: 42px; }
 
-        .btn-download {
-            display: block; text-align: center; background: #3a5aff; color: white;
-            text-decoration: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 14px;
+        .resource-actions { margin-top: 12px; }
+        .resource-file-row {
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            padding: 10px 0; border-bottom: 1px solid rgba(58, 90, 255, 0.2);
         }
+        .resource-file-name { min-width: 0; color: #c8d8ff; font-size: 13px; overflow-wrap: anywhere; }
+        .resource-file-actions { display: flex; flex-shrink: 0; gap: 8px; }
+        .btn-file {
+            padding: 7px 12px; border: 1px solid #3a5aff; border-radius: 6px;
+            color: white; cursor: pointer; font-size: 12px; font-weight: bold;
+        }
+        .btn-preview { background: transparent; color: #7fc7ff; }
+        .btn-download { background: #3a5aff; }
+        .btn-file:hover { filter: brightness(1.15); }
         .btn-delete {
             background: none; color: #ff4d4d; border: none; cursor: pointer;
             font-size: 12px; margin-top: 12px; text-decoration: underline; text-align: center;
@@ -81,4 +91,7 @@
             nav a { padding: 10px 12px; font-size: 13px;}
             header h1 { font-size: 22px; }
             .header-logo { width: 100px; height: 100px; }
+            .resource-file-row { align-items: flex-start; flex-direction: column; }
+            .resource-file-actions { width: 100%; }
+            .btn-file { flex: 1; }
         }
