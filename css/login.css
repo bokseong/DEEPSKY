@@ -1,0 +1,30 @@
+* { box-sizing: border-box; }
+        body { margin: 0; font-family: "Segoe UI", sans-serif; background: #0b0f2b; color: white; min-height: 100vh; display: flex; flex-direction: column; }
+        .top-bar { display: flex; align-items: center; padding: 0 20px; background: #070a1d; border-bottom: 1px solid #1b2f80; height: 60px; }
+        .logo-area { display: flex; align-items: center; text-decoration: none; color: white; }
+        .logo-area img { width: 35px; height: 35px; margin-right: 10px; border-radius: 50%; }
+        .logo-area span { font-size: 18px; font-weight: bold; }
+
+        .login-container { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-box { width: 100%; max-width: 400px; background: #161b4a; padding: 40px 30px; border-radius: 20px; border: 1px solid #2d367a; text-align: center; }
+        .login-box h2 { color: #7fc7ff; margin-bottom: 30px; }
+
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; font-size: 13px; color: #aaa; margin-bottom: 5px; }
+        input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #1b2f80; background: #0b0f2b; color: white; outline: none; }
+        input:focus { border-color: #3a5aff; }
+
+        .btn-group { margin-top: 25px; display: flex; flex-direction: column; gap: 10px; }
+        button { width: 100%; padding: 13px; border-radius: 8px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-login { background: #3a5aff; color: white; }
+        .btn-signup { background: transparent; color: #7fc7ff; border: 1px solid #3a5aff; }
+        .btn-google { background: white; color: #444; border: 1px solid #ddd; }
+        .btn-github { background: #24292e; color: white; }
+        .btn-github img { filter: invert(1); }
+
+        .link-group { margin-top: 15px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
+        .sub-link { color: #7fc7ff; font-size: 13px; text-decoration: none; cursor: pointer; }
+        .sub-link:hover { text-decoration: underline; }
+        .info-text { margin-top: 20px; font-size: 12px; color: #666; }
+
+        footer { background: #070a1d; text-align: center; padding: 20px; font-size: 12px; color: #888; border-top: 1px solid #1b2f80; }

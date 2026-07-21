@@ -1,0 +1,109 @@
+/* 1. 공통 스타일 */
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: "Segoe UI", sans-serif; background: #0b0f2b; color: white; line-height: 1.6; }
+        .hidden { display: none !important; }
+
+        /* 2. 상단 바 */
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 20px; background: #070a1d; border-bottom: 1px solid #1b2f80;
+            height: 60px; position: sticky; top: 0; z-index: 1000;
+        }
+        .logo-area { display: flex; align-items: center; text-decoration: none; color: white; }
+        .logo-area img { width: 35px; height: 35px; margin-right: 10px; border-radius: 50%; }
+        .logo-area span { font-size: 18px; font-weight: bold; }
+
+        .auth-bar { font-size: 14px; display: flex; align-items: center; gap: 10px; }
+        .auth-bar button {
+            padding: 5px 12px; border-radius: 5px; border: none;
+            background: #3a5aff; color: white; cursor: pointer; font-weight: bold;
+        }
+
+        /* 3. 헤더 및 내비게이션 */
+        header { background: linear-gradient(to right, #0d1b52, #1b2f80); padding: 40px 20px; text-align: center; }
+        nav {
+    background: #11153a;
+    border-bottom: 1px solid #2d367a;
+    padding: 10px 0;
+    /* 줄바꿈을 허용하기 위해 아래 두 줄 수정/삭제 */
+    overflow-x: visible;
+    white-space: normal;
+}
+
+nav .nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    /* wrap으로 변경하여 공간이 부족하면 아래로 넘어가게 함 */
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px; /* 줄바꿈 시 가독성을 위해 간격을 조금 넓힘 */
+}
+        nav a { display: inline-block; color: white; padding: 12px 18px; text-decoration: none; font-weight: bold; font-size: 15px; border-radius: 8px; }
+        nav a:hover { background: rgba(127, 199, 255, 0.1); color: #7fc7ff; }
+
+        /* 4. 본문 컨테이너 */
+        .container { max-width: 700px; margin: 30px auto; padding: 0 20px 100px; }
+
+        .card {
+            background: #161b4a; padding: 30px; border-radius: 15px;
+            border: 1px solid #2d367a; margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        /* 등급 표시 칸 */
+        .role-badge-box {
+            background: rgba(58, 90, 255, 0.15); border: 1px solid #3a5aff;
+            padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 10px;
+        }
+        .role-title { font-size: 14px; color: #7fc7ff; margin-bottom: 5px; }
+        .role-name { font-size: 24px; font-weight: bold; color: white; letter-spacing: 1px; }
+
+        /* 입력 폼 스타일 */
+        .info-group { margin-bottom: 20px; }
+        .info-group label { display: block; font-size: 13px; color: #7fc7ff; margin-bottom: 8px; font-weight: bold; }
+        .info-group input, .info-group select, .info-group textarea {
+            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #1b2f80;
+            background: #0b0f2b; color: white; font-size: 15px; outline: none; font-family: inherit;
+        }
+        .info-group input:disabled { background: #070a1d; color: #666; cursor: not-allowed; }
+
+        .btn-save {
+            width: 100%; padding: 14px; background: #3a5aff; color: white;
+            border: none; border-radius: 8px; font-weight: bold; cursor: pointer;
+            font-size: 16px; transition: 0.3s; margin-bottom: 10px;
+        }
+        .btn-save:hover { background: #2846d1; }
+
+        .btn-pw-reset {
+            width: 100%; padding: 12px; background: transparent; color: #7fc7ff;
+            border: 1px solid #3a5aff; border-radius: 8px; font-weight: bold; cursor: pointer;
+            font-size: 14px; transition: 0.3s;
+        }
+        .btn-pw-reset:hover { background: rgba(58, 90, 255, 0.1); }
+
+        /* 권한 안내 표 */
+        .permission-table {
+            width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px;
+        }
+        .permission-table th, .permission-table td {
+            padding: 10px; border: 1px solid #2d367a; text-align: center;
+        }
+        .permission-table th { background: rgba(58, 90, 255, 0.2); color: #7fc7ff; }
+        .check { color: #3a5aff; font-weight: bold; }
+
+        .danger-zone {
+            margin-top: 40px; border-top: 1px solid #2d367a; padding-top: 25px;
+            text-align: center;
+        }
+        .btn-withdraw {
+            background: #ff4d4d; color: white; border: none;
+            padding: 10px 20px; border-radius: 6px; cursor: pointer;
+            font-weight: bold; font-size: 13px;
+        }
+
+        footer {
+            background: #070a1d; text-align: center; padding: 30px 20px;
+            font-size: 12px; color: #888; border-top: 1px solid #1b2f80;
+            width: 100%; margin-top: 50px;
+        }

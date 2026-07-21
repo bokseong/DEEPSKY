@@ -1,83 +1,11 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="logo.png" type="image/png">
     <title>DEEP SKY</title>
-    <style>
-        /* 1. 공통 스타일 */
-        * { box-sizing: border-box; }
-        body { margin: 0; font-family: "Segoe UI", sans-serif; background: #0b0f2b; color: white; }
-
-        .hidden { display: none !important; }
-
-        /* 2. 상단 바 */
-        .top-bar {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 0 20px; background: #070a1d; border-bottom: 1px solid #1b2f80;
-            height: 60px; position: sticky; top: 0; z-index: 1000;
-        }
-        .logo-area { display: flex; align-items: center; text-decoration: none; color: white; }
-        .logo-area img { width: 35px; height: 35px; margin-right: 10px; border-radius: 50%; }
-        .logo-area span { font-size: 18px; font-weight: bold; }
-
-        .auth-bar { font-size: 14px; display: flex; align-items: center; gap: 10px; }
-        .auth-bar button {
-            padding: 5px 12px; border-radius: 5px; border: none;
-            background: #3a5aff; color: white; cursor: pointer; font-weight: bold;
-        }
-
-        /* 3. 헤더 및 내비게이션 (디자인 통일) */
-        header { background: linear-gradient(to right, #0d1b52, #1b2f80); padding: 38px 20px; text-align: center; }
-        nav { 
-    background: #11153a; 
-    border-bottom: 1px solid #2d367a; 
-    padding: 10px 0; 
-    /* 줄바꿈을 허용하기 위해 아래 두 줄 수정/삭제 */
-    overflow-x: visible; 
-    white-space: normal; 
-}
-
-nav .nav-inner { 
-    max-width: 1200px;
-    margin: 0 auto; 
-    display: flex; 
-    /* wrap으로 변경하여 공간이 부족하면 아래로 넘어가게 함 */
-    flex-wrap: wrap; 
-    justify-content: center; 
-    gap: 5px; /* 줄바꿈 시 가독성을 위해 간격을 조금 넓힘 */
-}
-        nav a { 
-            display: inline-block; 
-            color: white; 
-            padding: 12px 18px; 
-            text-decoration: none; 
-            font-weight: bold; 
-            font-size: 15px; 
-            border-radius: 8px;
-        }
-        nav a:hover { background: rgba(127, 199, 255, 0.1); color: #7fc7ff; }
-        
-        /* 4. 레이아웃 */
-        .container { max-width: 1100px; margin: 30px auto; padding: 0 20px 100px; }
-        .card { background: #161b4a; padding: 25px; border-radius: 15px; border: 1px solid #2d367a; margin-bottom: 30px; }
-        .card h2, .card h3 { color: #7fc7ff; margin-top: 0; display: flex; align-items: center; gap: 10px; font-size: 1.2rem; }
-
-        .media-wrapper { width: 100%; border-radius: 10px; overflow: hidden; background: #070a1d; border: 1px solid #2d367a; }
-        iframe { width: 100%; border: none; display: block; }
-
-        .desc-box { font-size: 13px; color: #aaa; margin-top: 15px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; }
-        
-        footer { background: #070a1d; text-align: center; padding: 30px 20px; font-size: 12px; color: #888; border-top: 1px solid #1b2f80; width: 100%; margin-top: 50px; }
-
-        @media (max-width: 600px) {
-            .logo-area span { font-size: 16px; }
-            nav a { padding: 10px 12px; font-size: 13px; }
-            header h1 { font-size: 22px; }
-            .card { padding: 15px; }
-        }
-    </style>
+    <link rel="stylesheet" href="/css/weather.css">
 </head>
 <body>
 
@@ -196,92 +124,6 @@ nav .nav-inner {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 
-<script>
-// 1. Firebase 설정
-const firebaseConfig = {
-    apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
-    authDomain: "bokseong-deep-sky.firebaseapp.com",
-    databaseURL: "https://bokseong-deep-sky-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "bokseong-deep-sky",
-    storageBucket: "bokseong-deep-sky.firebasestorage.app",
-    messagingSenderId: "800777151311",
-    appId: "1:800777151311:web:8c901fcf0ded04b1941b3a"
-};
-
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.database();
-const ADMIN_EMAIL = "leader.deepsky@gmail.com";
-
-// 세션 유지 및 App Check 활성화
-auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
-const appCheck = firebase.appCheck();
-appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
-
-// 2. 로그인 상태 감지 및 UI 처리
-auth.onAuthStateChanged(async (user) => {
-    const status = document.getElementById("userStatus");
-    const loginBtn = document.getElementById("loginBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-
-    if (user) {
-        // [로그인 로직] 실시간 데이터 로드 및 등급 확인
-        db.ref('users/' + user.uid).on('value', (snapshot) => {
-            const userData = snapshot.val() || {};
-            const currentName = userData.name || user.displayName || user.email.split('@')[0];
-            
-            // 등급 명칭 설정
-            let roleName = "일반 회원";
-            if (user.email === ADMIN_EMAIL) roleName = "관리자";
-            else if (userData.role === 'student') roleName = "동아리 부원";
-
-            if (status) status.innerText = `${currentName}님 (${roleName})`;
-            
-            // UI 표시 전환
-            loginBtn.classList.add("hidden");
-            logoutBtn.classList.remove("hidden");
-        });
-
-        // 보안 토큰 확인
-        try { await appCheck.getToken(false); } catch (e) {}
-
-    } else {
-        // 비로그인 상태
-        if (status) status.innerText = "로그인 해주세요";
-        loginBtn.classList.remove("hidden");
-        logoutBtn.classList.add("hidden");
-    }
-});
-
-// 3. 페이지 초기화 기능 (이미지 로드 및 이벤트 통합)
-window.addEventListener('load', function() {
-    // 외계행성 식 이미지 강제 새로고침 로드
-    const img = document.getElementById('transitImg');
-    if (img) {
-        const timestamp = new Date().getTime();
-        const proxyUrl = "https://images.weserv.nl/?url=";
-        const targetImg = "nysc.dothome.co.kr/today_2.png";
-        
-        // 이미지 로드 시도
-        img.src = proxyUrl + targetImg + "&t=" + timestamp;
-
-        // 로드 실패 시 에러 처리
-        img.onerror = function() {
-            this.alt = "예보 이미지를 불러올 수 없습니다. (원본 사이트 확인 필요)";
-            this.style.background = "#2d367a";
-            this.style.padding = "20px";
-        };
-    }
-});
-
-// 4. 로그아웃 기능
-function logout() { 
-    if(confirm("로그아웃 하시겠습니까?")) {
-        auth.signOut().then(() => { 
-            location.href = 'index.html'; 
-        });
-    }
-}
-</script>
+<script src="/js/weather.js"></script>
 </body>
 </html>
