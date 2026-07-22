@@ -206,10 +206,10 @@ function filterResources() {
 }
 
 function getResourceFiles(item) {
-    const files = [];
-    if (Array.isArray(item.file_paths)) files.push(...item.file_paths);
-    if (item.file_path) files.push(item.file_path);
-    return files.filter(Boolean);
+    const files = Array.isArray(item.file_paths) && item.file_paths.length > 0
+        ? item.file_paths
+        : [item.file_path];
+    return [...new Set(files.map(path => String(path || "").trim()).filter(Boolean))];
 }
 
 function getResourceFileName(path, index) {
