@@ -11,13 +11,16 @@ auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     const status = document.getElementById("userStatus");
     if (user) {
-        db.ref('users/' + user.uid).on('value', (snapshot) => {
-            const userData = snapshot.val() || {};
+        try {
+            const userData = await getServerUserProfile(user);
             currentUserName = userData.name || user.displayName || user.email.split('@')[0];
-            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+            currentUserRole = normalizeRole(userData.role);
             if (status) status.innerText = `${currentUserName}님 (${currentUserRole==='admin'?'관리자':(currentUserRole==='student'?'부원':'일반')})`;
             if (isEditMode && !originalPost) initEditPage();
-        });
+        } catch (error) {
+            alert(error.message);
+            location.href = "board.html";
+        }
         document.getElementById("loginBtn")?.classList.add("hidden");
         document.getElementById("logoutBtn")?.classList.remove("hidden");
     } else {

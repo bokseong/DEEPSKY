@@ -35,8 +35,8 @@ auth.onAuthStateChanged((user) => {
     }
 });
 
-function getUserProfile(uid) {
-    const roleRequest = db.ref('users/' + uid).once('value').then((snapshot) => snapshot.val() || {});
+function getUserProfile() {
+    const roleRequest = getServerUserProfile(auth.currentUser);
     const timeout = new Promise((_, reject) => {
         setTimeout(() => reject(new Error("권한 정보 응답 지연")), 3000);
     });

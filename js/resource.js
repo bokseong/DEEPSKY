@@ -3,14 +3,14 @@ let currentUserName = "익명";
 let currentUserRole = "guest";
 let allResources = {};
 
-auth.onAuthStateChanged((user) => {
+auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     const status = document.getElementById("userStatus");
     if (user) {
-        db.ref('users/' + user.uid).on('value', (snapshot) => {
-            const userData = snapshot.val() || {};
+        try {
+            const userData = await getServerUserProfile(user);
             currentUserName = userData.name || user.displayName || user.email.split('@')[0];
-            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+            currentUserRole = normalizeRole(userData.role);
             if (status) status.innerText = `${currentUserName}님 (${currentUserRole})`;
 
             document.getElementById("lockMessage")?.classList.add("hidden");
@@ -23,7 +23,9 @@ auth.onAuthStateChanged((user) => {
                 document.getElementById("resourceList").innerHTML = "<p style='text-align:center; grid-column:1/-1;'>자료실 열람 권한이 없습니다 (student 이상).</p>";
                 document.getElementById("adminUpload")?.classList.add("hidden");
             }
-        });
+        } catch (error) {
+            if (status) status.innerText = error.message;
+        }
     } else {
         document.getElementById("mainContent")?.classList.add("hidden");
         document.getElementById("lockMessage")?.classList.remove("hidden");

@@ -2,14 +2,13 @@ let currentUser = null;
 let currentUserRole = "guest";
 
 // 관리자 권한 검증 및 초기화 데이터 로드
-auth.onAuthStateChanged((user) => {
+auth.onAuthStateChanged(async (user) => {
     if (user) {
         currentUser = user;
-        db.ref('users/' + user.uid).once('value').then(snap => {
-            const userData = snap.val() || {};
-            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : normalizeRole(userData.role);
+        try {
+            const userData = await getServerUserProfile(user);
+            currentUserRole = normalizeRole(userData.role);
 
-            // 보안 규칙 상 admin 권한이 아니면 강제 퇴장 처리
             if (currentUserRole !== 'admin') {
                 alert("관리자 전용 페이지입니다.");
                 location.href = "index.html";
@@ -23,7 +22,10 @@ auth.onAuthStateChanged((user) => {
                 loadRoleRequests();
                 loadServerSuggestions();
             }
-        });
+        } catch (error) {
+            alert(error.message || "관리자 권한을 확인하지 못했습니다.");
+            location.href = "index.html";
+        }
     } else {
         alert("로그인이 필요합니다.");
         location.href = "login.html";
@@ -31,17 +33,16 @@ auth.onAuthStateChanged((user) => {
 });
 
 // ==========================================
-// [기능 1] 전체 회원 목록 및 등급 관리 (Firebase RTDB)
+// [기능 1] 전체 회원 목록 및 등급 관리
 // ==========================================
-function loadAllUsers() {
-    db.ref('users').on('value', snapshot => {
+async function loadAllUsers() {
+    try {
+        const users = await requestAuthenticatedApi("/api/admin/users");
         const list = document.getElementById("userList");
         if (!list) return;
         list.innerHTML = "";
 
-        snapshot.forEach(child => {
-            const uid = child.key;
-            const data = child.val();
+        Object.entries(users).forEach(([uid, data]) => {
             const currentRole = normalizeRole(data.role);
 
             const row = document.createElement("tr");
@@ -63,24 +64,24 @@ function loadAllUsers() {
             `;
             list.appendChild(row);
         });
-    });
+    } catch (error) {
+        const list = document.getElementById("userList");
+        if (list) list.innerHTML = `<tr><td colspan="5">${escapeHtml(error.message)}</td></tr>`;
+    }
 }
 
 // 직접 권한 수정 함수
 async function updateUserRole(uid) {
     const newRole = document.getElementById("role_" + uid).value;
     try {
-        const token = await currentUser.getIdToken();
-        const response = await fetch(`${API_BASE_URL}/api/admin/users/${encodeURIComponent(uid)}/role`, {
+        await requestAuthenticatedApi(`/api/admin/users/${encodeURIComponent(uid)}/role`, {
             method: "PUT",
             headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`,
-                "ngrok-skip-browser-warning": "69420"
+                "Content-Type": "application/json"
             },
             body: JSON.stringify({ role: newRole })
         });
-        if (!response.ok) throw new Error("등급 수정 실패");
+        await loadAllUsers();
         alert("등급 권한이 성공적으로 수정되었습니다.");
     } catch (error) {
         alert(error.message || "등급 수정 실패");
@@ -89,22 +90,21 @@ async function updateUserRole(uid) {
 
 
 // ==========================================
-// [기능 2] 등급 조정 요청 관리 (Firebase RTDB - roleRequests 노드)
+// [기능 2] 등급 조정 요청 관리
 // ==========================================
-function loadRoleRequests() {
-    db.ref('roleRequests').on('value', snapshot => {
+async function loadRoleRequests() {
+    try {
+        const requests = await requestAuthenticatedApi("/api/admin/role-requests");
         const list = document.getElementById("roleRequestList");
         if (!list) return;
         list.innerHTML = "";
 
-        if (!snapshot.exists()) {
+        if (Object.keys(requests).length === 0) {
             list.innerHTML = "<p style='color:#888; text-align:center;'>접수된 등급 승인 요청이 없습니다.</p>";
             return;
         }
 
-        snapshot.forEach(child => {
-            const reqId = child.key;
-            const reqData = child.val();
+        Object.entries(requests).forEach(([reqId, reqData]) => {
 
             const div = document.createElement("div");
             div.style.padding = "12px";
@@ -135,24 +135,21 @@ function loadRoleRequests() {
             actions.append(approveButton, rejectButton);
             list.appendChild(div);
         });
-    });
+    } catch (error) {
+        const list = document.getElementById("roleRequestList");
+        if (list) list.innerHTML = `<p style="color:#ff4d4d;text-align:center;">${escapeHtml(error.message)}</p>`;
+    }
 }
 
 // 등급 요청 승인 처리 (해당 유저 role을 업데이트하고 요청서 삭제)
 async function approveRoleRequest(reqId) {
     if (!confirm("이 요청을 승인하고 등급을 조절하시겠습니까?")) return;
     try {
-        const token = await currentUser.getIdToken();
-        const response = await fetch(`${API_BASE_URL}/api/admin/role-requests/${encodeURIComponent(reqId)}/approve`, {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${token}`,
-                "ngrok-skip-browser-warning": "69420"
-            }
+        await requestAuthenticatedApi(`/api/admin/role-requests/${encodeURIComponent(reqId)}/approve`, {
+            method: "POST"
         });
-        if (!response.ok) throw new Error("승인 처리 실패");
+        await Promise.all([loadRoleRequests(), loadAllUsers()]);
         alert("등급 요청 승인이 완료되었습니다.");
-        loadRoleRequests();
     } catch (err) {
         alert("승인 처리 중 오류 발생: " + err.message);
     }
@@ -162,17 +159,11 @@ async function approveRoleRequest(reqId) {
 async function rejectRoleRequest(reqId) {
     if (!confirm("요청을 거절하고 삭제하시겠습니까?")) return;
     try {
-        const token = await currentUser.getIdToken();
-        const response = await fetch(`${API_BASE_URL}/api/admin/role-requests/${encodeURIComponent(reqId)}`, {
-            method: "DELETE",
-            headers: {
-                "Authorization": `Bearer ${token}`,
-                "ngrok-skip-browser-warning": "69420"
-            }
+        await requestAuthenticatedApi(`/api/admin/role-requests/${encodeURIComponent(reqId)}`, {
+            method: "DELETE"
         });
-        if (!response.ok) throw new Error("거절 처리 실패");
+        await loadRoleRequests();
         alert("요청이 취소/거절되었습니다.");
-        loadRoleRequests();
     } catch (err) {
         alert("처리 실패: " + err.message);
     }

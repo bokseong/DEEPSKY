@@ -1,6 +1,4 @@
 auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
-const appCheck = firebase.appCheck();
-appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
 // 로그인 상태 감지
 auth.onAuthStateChanged(async (user) => {
@@ -20,18 +18,18 @@ auth.onAuthStateChanged(async (user) => {
         loginBtn.classList.add("hidden");
         logoutBtn.classList.remove("hidden");
 
-        db.ref('users/' + user.uid).on('value', (snapshot) => {
-            const userData = snapshot.val() || {};
+        try {
+            const userData = await getServerUserProfile(user);
             const currentName = userData.name || user.email.split('@')[0];
 
-            let roleName = "일반 회원";
-            if (user.email === ADMIN_EMAIL) roleName = "관리자";
-            else if (userData.role === 'student') roleName = "동아리 부원";
+            const roleName = getRoleName(normalizeRole(userData.role));
 
             if(status) status.innerText = `${currentName}님 (${roleName})`;
             if(displayRole) displayRole.innerText = roleName;
             if(nameInput) nameInput.value = currentName;
-        });
+        } catch (error) {
+            if(status) status.innerText = error.message;
+        }
     } else {
         // [비로그인 상태 시] 즉시 안내 후 로그인 페이지로 이동
         alert("로그인이 필요한 페이지입니다. 로그인 페이지로 이동합니다.");
@@ -40,14 +38,18 @@ auth.onAuthStateChanged(async (user) => {
 });
 
 // 프로필 업데이트
-function updateProfile() {
+async function updateProfile() {
     const user = auth.currentUser;
     const newName = document.getElementById("userName").value.trim();
     if (!newName) return alert("이름을 입력해주세요.");
 
-    db.ref('users/' + user.uid).update({ name: newName })
-      .then(() => alert("성공적으로 저장되었습니다."))
-      .catch(err => alert("오류: " + err.message));
+    try {
+        await syncServerUserProfile(user, newName);
+        await user.updateProfile({ displayName: newName });
+        alert("성공적으로 저장되었습니다.");
+    } catch (error) {
+        alert("오류: " + error.message);
+    }
 }
 
 async function sendRequestEmail() {
@@ -114,12 +116,17 @@ function resetPassword() {
 }
 
 // 회원 탈퇴
-function deleteAccount() {
+async function deleteAccount() {
     if (confirm("정말 탈퇴하시겠습니까? 데이터는 복구할 수 없습니다.")) {
         const user = auth.currentUser;
-        db.ref('users/' + user.uid).remove().then(() => user.delete())
-          .then(() => { alert("탈퇴되었습니다."); location.href="index.html"; })
-          .catch(() => alert("다시 로그인 후 시도해주세요."));
+        try {
+            await requestAuthenticatedApi("/api/me", { method: "DELETE" });
+            await user.delete();
+            alert("탈퇴되었습니다.");
+            location.href = "index.html";
+        } catch (error) {
+            alert("다시 로그인 후 시도해주세요: " + error.message);
+        }
     }
 }
 

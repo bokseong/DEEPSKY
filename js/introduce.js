@@ -1,24 +1,21 @@
-    const appCheck = firebase.appCheck();
-    appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
-
-
     // 3. 로그인 상태 감지 및 정보 업데이트
-    auth.onAuthStateChanged((user) => {
+    auth.onAuthStateChanged(async (user) => {
         const status = document.getElementById("userStatus");
         const loginBtn = document.getElementById("loginBtn");
         const logoutBtn = document.getElementById("logoutBtn");
 
         if (user) {
-            // 사용자 실시간 데이터 감시 (이름 및 등급)
-            db.ref('users/' + user.uid).on('value', (snapshot) => {
-                const userData = snapshot.val() || {};
+            try {
+                const userData = await getServerUserProfile(user);
                 const finalName = userData.name || user.displayName || user.email.split('@')[0];
 
                 // 등급 판정: 관리자 이메일이면 'admin', 아니면 DB 등급, 기본값 'member'
-                let userRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+                const userRole = normalizeRole(userData.role);
 
                 if (status) status.innerText = `${finalName}님 (${getRoleName(userRole)})`;
-            });
+            } catch (error) {
+                if (status) status.innerText = error.message;
+            }
 
             loginBtn?.classList.add("hidden");
             logoutBtn?.classList.remove("hidden");

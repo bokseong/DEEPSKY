@@ -2,12 +2,12 @@ let currentUser = null;
 let currentUserRole = "guest";
 let currentUserName = "익명";
 
-auth.onAuthStateChanged((user) => {
+auth.onAuthStateChanged(async (user) => {
     if (user) {
         currentUser = user;
-        db.ref('users/' + user.uid).on('value', (snapshot) => {
-            const userData = snapshot.val() || {};
-            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+        try {
+            const userData = await getServerUserProfile(user);
+            currentUserRole = normalizeRole(userData.role);
             currentUserName = userData.name || user.displayName || user.email.split('@')[0];
 
             // 열람은 학생 이상만 가능
@@ -16,7 +16,9 @@ auth.onAuthStateChanged((user) => {
             } else {
                 document.getElementById("suggestList").innerHTML = "<p>건의함 내용은 동아리원 이상 열람 가능합니다. 작성만 가능합니다.</p>";
             }
-        });
+        } catch (error) {
+            document.getElementById("suggestList").innerHTML = `<p>${escapeHtml(error.message)}</p>`;
+        }
     } else {
         location.href = "index.html";
     }

@@ -1,7 +1,5 @@
-// 세션 유지 및 App Check 활성화
+// 세션 유지
 auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
-const appCheck = firebase.appCheck();
-appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
 
 // 2. 로그인 상태 감지 및 UI 처리
 auth.onAuthStateChanged(async (user) => {
@@ -10,25 +8,20 @@ auth.onAuthStateChanged(async (user) => {
     const logoutBtn = document.getElementById("logoutBtn");
 
     if (user) {
-        // [로그인 로직] 실시간 데이터 로드 및 등급 확인
-        db.ref('users/' + user.uid).on('value', (snapshot) => {
-            const userData = snapshot.val() || {};
+        try {
+            const userData = await getServerUserProfile(user);
             const currentName = userData.name || user.displayName || user.email.split('@')[0];
 
-            // 등급 명칭 설정
-            let roleName = "일반 회원";
-            if (user.email === ADMIN_EMAIL) roleName = "관리자";
-            else if (userData.role === 'student') roleName = "동아리 부원";
+            const roleName = getRoleName(normalizeRole(userData.role));
 
             if (status) status.innerText = `${currentName}님 (${roleName})`;
 
             // UI 표시 전환
             loginBtn.classList.add("hidden");
             logoutBtn.classList.remove("hidden");
-        });
-
-        // 보안 토큰 확인
-        try { await appCheck.getToken(false); } catch (e) {}
+        } catch (error) {
+            if (status) status.innerText = error.message;
+        }
 
     } else {
         // 비로그인 상태

@@ -1,7 +1,3 @@
-// App Check 활성화
-const appCheck = firebase.appCheck();
-appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
-
 // 전역 유저 변수
 let currentUser = null;
 
@@ -20,12 +16,12 @@ auth.onAuthStateChanged(async (user) => {
     if (user) {
         currentUser = user; // 전역 변수에 저장하여 글 작성 시 활용
 
-        db.ref('users/' + user.uid).on('value', snapshot => {
-            const userData = snapshot.val() || {};
+        try {
+            const userData = await getServerUserProfile(user);
             const finalName = userData.name || user.displayName || user.email.split('@')[0];
 
-            const isAdmin = (user.email === ADMIN_EMAIL) || (userData.role === 'admin');
-            let userRole = isAdmin ? 'admin' : (userData.role || 'member');
+            const userRole = normalizeRole(userData.role);
+            const isAdmin = userRole === 'admin';
 
             if(status) status.innerText = `${finalName}님 (${getRoleName(userRole)})`;
 
@@ -36,7 +32,11 @@ auth.onAuthStateChanged(async (user) => {
                 adminBox?.classList.add("hidden");
                 adminUpdateBox?.classList.add("hidden");
             }
-        });
+        } catch (error) {
+            if(status) status.innerText = error.message;
+            adminBox?.classList.add("hidden");
+            adminUpdateBox?.classList.add("hidden");
+        }
 
         loginBtn?.classList.add("hidden");
         logoutBtn?.classList.remove("hidden");

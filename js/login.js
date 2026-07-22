@@ -1,9 +1,3 @@
-    // App Check 활성화
-    const appCheck = firebase.appCheck();
-    appCheck.activate(
-        '6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0',
-        true
-    );
     const googleProvider = new firebase.auth.GoogleAuthProvider();
     const githubProvider = new firebase.auth.GithubAuthProvider();
 
@@ -31,13 +25,9 @@
     // 3. 구글 로그인
     function googleLogin() {
         auth.signInWithPopup(googleProvider)
-            .then((result) => {
+            .then(async (result) => {
                 const user = result.user;
-                return db.ref('users/' + user.uid).update({
-                    name: user.displayName || "구글 사용자",
-                    email: user.email,
-                    lastLogin: new Date().toLocaleString()
-                });
+                return syncServerUserProfile(user, user.displayName || "구글 사용자");
             })
             .then(() => {
                 alert("환영합니다!");
@@ -49,13 +39,9 @@
     // 4. 깃허브 로그인
     function githubLogin() {
         auth.signInWithPopup(githubProvider)
-            .then((result) => {
+            .then(async (result) => {
                 const user = result.user;
-                return db.ref('users/' + user.uid).update({
-                    name: user.displayName || "GitHub 유저",
-                    email: user.email || "Private Email",
-                    lastLogin: new Date().toLocaleString()
-                });
+                return syncServerUserProfile(user, user.displayName || "GitHub 유저");
             })
             .then(() => {
                 alert("환영합니다!");
@@ -86,15 +72,11 @@
         if(!name || !email || !pw) return alert("회원가입을 위해 모든 항목을 입력해주세요.");
 
         auth.createUserWithEmailAndPassword(email, pw)
-            .then(result => {
+            .then(async result => {
                 const user = result.user;
-                user.updateProfile({ displayName: name });
-                return db.ref('users/' + user.uid).set({
-                    name: name,
-                    email: email,
-                    uid: user.uid,
-                    role: 'member' // 기본 등급 부여
-                }).then(() => user.sendEmailVerification());
+                await user.updateProfile({ displayName: name });
+                await syncServerUserProfile(user, name);
+                return user.sendEmailVerification();
             })
             .then(() => auth.signOut())
             .then(() => {
@@ -111,11 +93,13 @@
         if(!email || !pw) return alert("이메일과 비밀번호를 입력해주세요.");
 
         auth.signInWithEmailAndPassword(email, pw)
-            .then(result => {
+            .then(async result => {
                 if (!result.user.emailVerified) {
                     alert("이메일 인증이 완료되지 않았습니다. 메일함을 확인해주세요.");
-                    auth.signOut();
+                    await auth.signOut();
                 } else {
+                    const profile = await getServerUserProfile(result.user);
+                    await syncServerUserProfile(result.user, profile.name);
                     alert("로그인 성공!");
                     location.href = "index.html";
                 }

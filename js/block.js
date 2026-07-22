@@ -1,9 +1,5 @@
-    const appCheck = firebase.appCheck();
-    appCheck.activate('6Leol8MsAAAAAJcS-pWEjPLZu4alKMIxiYYiDJI0', true);
-
-
    // 3. 인증 상태 관리
-    auth.onAuthStateChanged((user) => {
+    auth.onAuthStateChanged(async (user) => {
         const status = document.getElementById("userStatus");
         const loginBtn = document.getElementById("loginBtn");
         const logoutBtn = document.getElementById("logoutBtn");
@@ -13,13 +9,15 @@
             // [로그인 상태] 컨테이너를 보여주고 유저 정보 로드
             if (mainContainer) mainContainer.classList.remove("hidden");
 
-            db.ref('users/' + user.uid).on('value', (snapshot) => {
-                const userData = snapshot.val() || {};
+            try {
+                const userData = await getServerUserProfile(user);
                 const finalName = userData.name || user.displayName || user.email.split('@')[0];
-                let userRole = (user.email === ADMIN_EMAIL) ? 'admin' : (userData.role || 'member');
+                const userRole = normalizeRole(userData.role);
 
                 if (status) status.innerText = `${finalName}님 (${getRoleName(userRole)})`;
-            });
+            } catch (error) {
+                if (status) status.innerText = error.message;
+            }
 
             loginBtn?.classList.add("hidden");
             logoutBtn?.classList.remove("hidden");
