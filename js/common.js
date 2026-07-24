@@ -13,8 +13,9 @@ if (!firebase.apps.length) {
 }
 
 const auth = firebase.auth();
-const API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
-const ADMIN_EMAIL = "leader.deepsky@gmail.com";
+const API_BASE_URL = String(
+    window.DEEPSKY_API_BASE_URL || "https://hypocrite-depletion-until.ngrok-free.dev"
+).replace(/\/+$/, "");
 
 function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, char => ({
@@ -79,4 +80,56 @@ function normalizePost(post, id) {
     const normalized = post || {};
     normalized.id = normalized.id || id;
     return normalized;
+}
+
+function getApiStatusBanner() {
+    let banner = document.getElementById("api-status-banner");
+    if (banner) return banner;
+    banner = document.createElement("div");
+    banner.id = "api-status-banner";
+    banner.className = "api-status-banner";
+    banner.setAttribute("role", "status");
+    banner.setAttribute("aria-live", "polite");
+    banner.hidden = true;
+
+    const message = document.createElement("span");
+    message.textContent = "서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.";
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.textContent = "다시 확인";
+    retry.addEventListener("click", checkApiAvailability);
+    banner.append(message, retry);
+    document.body.prepend(banner);
+    return banner;
+}
+
+async function checkApiAvailability() {
+    const banner = getApiStatusBanner();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/health`, {
+            headers: { "ngrok-skip-browser-warning": "69420" },
+            signal: controller.signal
+        });
+        if (!response.ok) throw new Error(`Health check failed (${response.status})`);
+        banner.hidden = true;
+        return true;
+    } catch {
+        banner.hidden = false;
+        return false;
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
+function startApiStatusMonitor() {
+    checkApiAvailability();
+    window.addEventListener("online", checkApiAvailability);
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", startApiStatusMonitor, { once: true });
+} else {
+    startApiStatusMonitor();
 }

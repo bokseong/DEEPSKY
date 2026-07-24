@@ -89,27 +89,17 @@ async function addQuestion() {
 }
 
 // 💡 답변 등록 (각 질문 내부 하위 항목에 replies-reply 배열 형식 구조화 연동)
-async function saveAnswer(qKey) {
+async function saveAnswer(qKey, answerInput) {
     if(currentUserRole !== 'admin' && currentUserRole !== 'student') return alert("답변 권한이 없습니다.");
-    const ansInput = document.getElementById("ans_"+qKey);
+    const ansInput = answerInput;
+    if (!ansInput) return alert("답변 입력창을 찾을 수 없습니다.");
     const ansText = ansInput.value.trim();
     if(!ansText) return alert("내용을 입력하세요.");
 
     try {
-        // 기존 객체 내의 원본 질문 데이터 추적
-        const qData = cachedData[qKey];
-
-        const newReply = {
-            text: ansText,
-            author: currentUserName,
-            email: currentUser.email,
-            uid: currentUser.uid,
-            timestamp: Date.now()
-        };
-
         // 특정 qKey 질문의 하위 replies 경로로 POST 통신 진행
         const token = await currentUser.getIdToken();
-        const response = await fetch(`${API_BASE_URL}/api/questions/${qKey}/replies`, {
+        const response = await fetch(`${API_BASE_URL}/api/questions/${encodeURIComponent(String(qKey))}/replies`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -139,7 +129,7 @@ function renderList(data) {
     }
 
     const canReply = (currentUserRole === 'admin' || currentUserRole === 'student');
-    const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+    const isAdmin = currentUserRole === 'admin';
 
     // 파이어베이스 기존 실시간 내림차순 정렬 로직 보존하며 렌더링
     Object.keys(data).reverse().forEach(qKey => {
@@ -151,34 +141,83 @@ function renderList(data) {
         // 검색 필터 검증 (질문 본문, 작성자 명칭 포함 여부 검사)
         if (searchTerm && !questionText.toLowerCase().includes(searchTerm) && !questionAuthor.toLowerCase().includes(searchTerm)) return;
 
-        let repliesHtml = '<div class="replies-container">';
+        const repliesContainer = document.createElement("div");
+        repliesContainer.className = "replies-container";
         if (q.replies) {
             Object.keys(q.replies).forEach(rKey => {
                 const r = q.replies[rKey];
                 const replyText = r.content || r.text || "";
                 const canDeleteReply = isAdmin || (currentUser && currentUser.email === r.email) || isQAuthor;
 
-                repliesHtml += `
-                    <div class="ans-box">
-                        <div class="ans-content"><b>A.</b> ${escapeHtml(replyText)} <br> <span class="ans-author">- ${escapeHtml(r.author || '익명')}</span></div>
-                        ${canDeleteReply ? `<button class="btn-ans-del" onclick="deleteAnswer('${qKey}', '${rKey}')">삭제</button>` : ""}
-                    </div>`;
+                const answerBox = document.createElement("div");
+                answerBox.className = "ans-box";
+                const answerContent = document.createElement("div");
+                answerContent.className = "ans-content";
+                const answerLabel = document.createElement("b");
+                answerLabel.textContent = "A. ";
+                const answerText = document.createTextNode(String(replyText));
+                const lineBreak = document.createElement("br");
+                const answerAuthor = document.createElement("span");
+                answerAuthor.className = "ans-author";
+                answerAuthor.textContent = `- ${r.author || '익명'}`;
+                answerContent.append(answerLabel, answerText, lineBreak, answerAuthor);
+                answerBox.appendChild(answerContent);
+
+                if (canDeleteReply) {
+                    const deleteReplyButton = document.createElement("button");
+                    deleteReplyButton.type = "button";
+                    deleteReplyButton.className = "btn-ans-del";
+                    deleteReplyButton.textContent = "삭제";
+                    deleteReplyButton.addEventListener("click", () => deleteAnswer(qKey, rKey));
+                    answerBox.appendChild(deleteReplyButton);
+                }
+                repliesContainer.appendChild(answerBox);
             });
         }
-        repliesHtml += '</div>';
 
         const card = document.createElement("div");
         card.className = "q-card";
         const canDeleteQuestion = isAdmin || isQAuthor;
 
-        let controlsHtml = canReply ? `
-            <div class="answer-controls">
-                <input type="text" id="ans_${qKey}" placeholder="답글 입력..." onkeypress="if(event.key==='Enter') saveAnswer('${qKey}')">
-                <button class="btn-ans" onclick="saveAnswer('${qKey}')">등록</button>
-                ${canDeleteQuestion ? `<button class="btn-del" onclick="deleteQuestion('${qKey}')">삭제</button>` : ""}
-            </div>` : (canDeleteQuestion ? `<div class="answer-controls" style="justify-content: flex-end;"><button class="btn-del" onclick="deleteQuestion('${qKey}')">삭제</button></div>` : "");
+        const meta = document.createElement("div");
+        meta.className = "q-meta";
+        meta.textContent = questionAuthor;
+        const question = document.createElement("span");
+        question.className = "q-text";
+        question.textContent = `Q. ${questionText}`;
+        card.append(meta, question, repliesContainer);
 
-        card.innerHTML = `<div class="q-meta">${escapeHtml(questionAuthor)}</div><span class="q-text">Q. ${escapeHtml(questionText)}</span>${repliesHtml}${controlsHtml}`;
+        if (canReply || canDeleteQuestion) {
+            const controls = document.createElement("div");
+            controls.className = "answer-controls";
+            if (!canReply) controls.style.justifyContent = "flex-end";
+
+            if (canReply) {
+                const answerInput = document.createElement("input");
+                answerInput.type = "text";
+                answerInput.placeholder = "답글 입력...";
+                answerInput.setAttribute("aria-label", "답글");
+                answerInput.addEventListener("keydown", event => {
+                    if (event.key === "Enter") saveAnswer(qKey, answerInput);
+                });
+                const answerButton = document.createElement("button");
+                answerButton.type = "button";
+                answerButton.className = "btn-ans";
+                answerButton.textContent = "등록";
+                answerButton.addEventListener("click", () => saveAnswer(qKey, answerInput));
+                controls.append(answerInput, answerButton);
+            }
+
+            if (canDeleteQuestion) {
+                const deleteQuestionButton = document.createElement("button");
+                deleteQuestionButton.type = "button";
+                deleteQuestionButton.className = "btn-del";
+                deleteQuestionButton.textContent = "삭제";
+                deleteQuestionButton.addEventListener("click", () => deleteQuestion(qKey));
+                controls.appendChild(deleteQuestionButton);
+            }
+            card.appendChild(controls);
+        }
         list.appendChild(card);
     });
 }
@@ -190,7 +229,7 @@ async function deleteQuestion(qKey) {
     if(!confirm("삭제하시겠습니까?")) return;
     try {
         const token = await currentUser.getIdToken();
-        const response = await fetch(`${API_BASE_URL}/api/questions/${qKey}`, {
+        const response = await fetch(`${API_BASE_URL}/api/questions/${encodeURIComponent(String(qKey))}`, {
             method: "DELETE",
             headers: {
                 "Authorization": `Bearer ${token}`,
@@ -210,7 +249,7 @@ async function deleteAnswer(qKey, rKey) {
     if(!confirm("삭제하시겠습니까?")) return;
     try {
         const token = await currentUser.getIdToken();
-        const response = await fetch(`${API_BASE_URL}/api/questions/${qKey}/replies/${rKey}`, {
+        const response = await fetch(`${API_BASE_URL}/api/questions/${encodeURIComponent(String(qKey))}/replies/${encodeURIComponent(String(rKey))}`, {
             method: "DELETE",
             headers: {
                 "Authorization": `Bearer ${token}`,

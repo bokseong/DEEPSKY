@@ -1,0 +1,97 @@
+import fs from "node:fs";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const failures = [];
+
+function walk(directory) {
+    return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+        if (entry.name === ".git" || entry.name === "node_modules") return [];
+        const fullPath = path.join(directory, entry.name);
+        return entry.isDirectory() ? walk(fullPath) : [fullPath];
+    });
+}
+
+function relative(file) {
+    return path.relative(root, file).replaceAll("\\", "/");
+}
+
+function fail(file, message) {
+    failures.push(`${relative(file)}: ${message}`);
+}
+
+const files = walk(root);
+const htmlFiles = files.filter(file => file.endsWith(".html"));
+const jsFiles = files.filter(file => file.endsWith(".js") || file.endsWith(".mjs"));
+
+for (const file of htmlFiles) {
+    const html = fs.readFileSync(file, "utf8");
+
+    for (const match of html.matchAll(/<img\b[^>]*>/gi)) {
+        if (!/\balt\s*=/i.test(match[0])) fail(file, "img 요소에 alt 속성이 없습니다.");
+    }
+
+    for (const match of html.matchAll(/<nav\b[^>]*>/gi)) {
+        if (!/\baria-label(?:ledby)?\s*=/i.test(match[0])) {
+            fail(file, "nav 요소에 접근 가능한 이름이 없습니다.");
+        }
+    }
+
+    for (const match of html.matchAll(/<(input|select|textarea)\b[^>]*>/gi)) {
+        const tag = match[0];
+        if (/\btype\s*=\s*["']hidden["']/i.test(tag)) continue;
+        if (/\baria-label(?:ledby)?\s*=/i.test(tag)) continue;
+        const id = tag.match(/\bid\s*=\s*["']([^"']+)["']/i)?.[1];
+        const hasForLabel = id && new RegExp(`<label\\b[^>]*\\bfor\\s*=\\s*["']${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["']`, "i").test(html);
+        const lastOpenLabel = html.lastIndexOf("<label", match.index);
+        const lastCloseLabel = html.lastIndexOf("</label>", match.index);
+        if (!hasForLabel && lastOpenLabel <= lastCloseLabel) {
+            fail(file, `${tag.slice(0, 80)} 요소에 연결된 label 또는 aria-label이 없습니다.`);
+        }
+    }
+
+    for (const match of html.matchAll(/\b(?:href|src)\s*=\s*["']([^"'#?]+)["']/gi)) {
+        const reference = match[1];
+        if (/^(?:https?:|mailto:|tel:|data:|javascript:|\/)/i.test(reference)) continue;
+        const target = path.resolve(path.dirname(file), reference);
+        if (!fs.existsSync(target)) fail(file, `로컬 참조가 존재하지 않습니다: ${reference}`);
+    }
+
+    for (const match of html.matchAll(/<a\b[^>]*\btarget\s*=\s*["']_blank["'][^>]*>/gi)) {
+        if (!/\brel\s*=\s*["'][^"']*\bnoopener\b[^"']*["']/i.test(match[0])) {
+            fail(file, "target=_blank 링크에 rel=noopener가 없습니다.");
+        }
+    }
+}
+
+for (const file of jsFiles) {
+    const source = fs.readFileSync(file, "utf8");
+    const syntax = spawnSync(process.execPath, ["--input-type=module", "--check"], {
+        input: source,
+        encoding: "utf8"
+    });
+    if (syntax.status !== 0) fail(file, `JavaScript 문법 오류: ${syntax.stderr.trim()}`);
+}
+
+const questionSource = fs.readFileSync(path.join(root, "js", "question.js"), "utf8");
+const adminSource = fs.readFileSync(path.join(root, "js", "admin.js"), "utf8");
+if (/onclick\s*=\s*["'][^"']*\$\{/.test(questionSource) || /onclick\s*=\s*["'][^"']*\$\{/.test(adminSource)) {
+    fail(path.join(root, "js"), "서버 식별자를 인라인 이벤트 처리기에 삽입하고 있습니다.");
+}
+if (/\bADMIN_EMAIL\b/.test(files.filter(file => file.endsWith(".js")).map(file => fs.readFileSync(file, "utf8")).join("\n"))) {
+    fail(path.join(root, "js"), "관리자 권한을 이메일 상수로 판정하고 있습니다.");
+}
+
+for (const file of files) {
+    const size = fs.statSync(file).size;
+    if (size > 5 * 1024 * 1024) fail(file, `파일이 5MB를 초과합니다 (${(size / 1024 / 1024).toFixed(1)}MB).`);
+}
+
+if (failures.length) {
+    console.error(failures.join("\n"));
+    process.exit(1);
+}
+
+console.log(`Frontend checks passed: ${htmlFiles.length} HTML, ${jsFiles.length} JavaScript files.`);

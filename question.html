@@ -11,7 +11,7 @@
 <body>
 <div class="top-bar">
     <a href="index.html" class="logo-area">
-        <img src="logo.png" onerror="this.src='https://via.placeholder.com/35'">
+        <img src="logo.png" alt="" aria-hidden="true">
         <span>DEEP SKY</span>
     </a>
     <div class="auth-bar">
@@ -21,7 +21,7 @@
     </div>
 </div>
 <header><h1>질문 게시판</h1></header>
-<nav>
+<nav aria-label="주요 메뉴">
     <div class="nav-inner">
         <a href="index.html">홈</a>
         <a href="introduce.html">동아리 소개</a>
@@ -39,10 +39,10 @@
 </nav>
 <div class="container">
     <div class="search-box">
-        <input type="text" id="qSearch" onkeyup="filterQuestions()" placeholder="질문 내용, 작성자, 답글을 검색하세요...">
+        <input type="search" id="qSearch" aria-label="질문 검색" onkeyup="filterQuestions()" placeholder="질문 내용, 작성자, 답글을 검색하세요...">
     </div>
     <div class="write-card">
-        <input type="text" id="qInput" placeholder="질문 내용을 입력하세요. (비로그인은 익명) 최대한 빠르게 답변하겠습니다!">
+        <input type="text" id="qInput" aria-label="질문 내용" placeholder="질문 내용을 입력하세요. 최대한 빠르게 답변하겠습니다!">
         <button class="btn-main" onclick="addQuestion()">질문 등록</button>
     </div>
     <div id="questionList">

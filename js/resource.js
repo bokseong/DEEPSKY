@@ -52,7 +52,7 @@ async function loadResources() {
     } catch (err) {
         console.error("자료 로드 실패:", err);
         const list = document.getElementById("resourceList");
-        list.innerHTML = `<p style="text-align:center; color:#ff7777; grid-column:1/-1;">${err.message || "자료 로드 실패"}</p>`;
+        list.innerHTML = `<p style="text-align:center; color:#ff7777; grid-column:1/-1;">${escapeHtml(err.message || "자료 로드 실패")}</p>`;
     }
 }
 
@@ -177,7 +177,7 @@ if (currentUserRole !== 'admin') return alert("관리자만 업로드할 수 있
 async function deleteResource(id) {
     if(!confirm("삭제하시겠습니까?")) return;
     const token = await currentUser.getIdToken();
-    const res = await fetch(`${API_BASE_URL}/api/resources/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/api/resources/${encodeURIComponent(String(id))}`, {
         method: "DELETE",
         headers: {
             "Authorization": `Bearer ${token}`,

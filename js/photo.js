@@ -6,7 +6,7 @@ auth.onAuthStateChanged((user) => {
     const status = document.getElementById("userStatus");
     if (user) {
         currentUser = user;
-        currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : 'member';
+        currentUserRole = 'member';
         if (status) status.innerText = `${user.displayName || user.email || '사용자'}님`;
         document.getElementById("loginBtn")?.classList.add("hidden");
         document.getElementById("logoutBtn")?.classList.remove("hidden");
@@ -16,7 +16,7 @@ auth.onAuthStateChanged((user) => {
         loadPhotos();
 
         getUserProfile(user.uid).then((userData) => {
-            currentUserRole = (user.email === ADMIN_EMAIL) ? 'admin' : normalizeRole(userData.role);
+            currentUserRole = normalizeRole(userData.role);
             if (status) status.innerText = `${userData.name || user.displayName || '사용자'}님 (${currentUserRole})`;
             updateUploadAccess();
             renderPhotos(allPhotos);
@@ -66,7 +66,7 @@ async function loadPhotos() {
         renderPhotos(allPhotos);
     } catch (err) {
         console.error(err);
-        document.getElementById("photoGrid").innerHTML = `<p style="grid-column:1/-1; text-align:center; color:#ff7777;">${err.message || "사진 로드 실패"}</p>`;
+        document.getElementById("photoGrid").innerHTML = `<p style="grid-column:1/-1; text-align:center; color:#ff7777;">${escapeHtml(err.message || "사진 로드 실패")}</p>`;
     }
 }
 
@@ -141,7 +141,7 @@ async function uploadPhoto() {
 async function deletePhoto(id) {
     if(!confirm("사진을 삭제하시겠습니까?")) return;
     const token = await currentUser.getIdToken();
-    const res = await fetch(`${API_BASE_URL}/api/photos/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/api/photos/${encodeURIComponent(String(id))}`, {
         method: "DELETE",
         headers: {
             "Authorization": `Bearer ${token}`,

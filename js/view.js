@@ -75,7 +75,7 @@ async function loadPostDetail() {
         if (currentUser && (currentUser.uid === post.uid || currentUserRole === 'admin')) {
             editBtn?.classList.remove("hidden");
             deleteBtn?.classList.remove("hidden");
-            if (editBtn) editBtn.onclick = () => location.href = `write.html?id=${postId}`;
+            if (editBtn) editBtn.onclick = () => location.href = `write.html?id=${encodeURIComponent(postId)}`;
         } else {
             editBtn?.classList.add("hidden");
             deleteBtn?.classList.add("hidden");
@@ -95,7 +95,7 @@ async function fetchPostDetail(id) {
     if (currentUser) headers.Authorization = `Bearer ${await currentUser.getIdToken()}`;
 
     try {
-        const detailRes = await fetch(`${API_BASE_URL}/api/freeboard/${id}`, {
+        const detailRes = await fetch(`${API_BASE_URL}/api/freeboard/${encodeURIComponent(String(id))}`, {
             method: "GET",
             headers
         });
@@ -144,11 +144,21 @@ function renderComments(comments) {
         const isAdmin = currentUserRole === 'admin';
         const canDelete = isCommentAuthor || isPostAuthor || isAdmin;
 
-        item.innerHTML = `
-            <div style="font-size:12px; color:#7fc7ff;">${escapeHtml(c.author || '익명')} (${escapeHtml(formatPostDate(c.date))})</div>
-            <div style="margin:5px 0; font-size:14px;">${escapeHtml(c.text || '')}</div>
-            ${canDelete ? `<button onclick="deleteComment('${cKey}')" style="background:none; border:none; color:#ff4d4d; font-size:11px; cursor:pointer; padding:0;">[삭제]</button>` : ""}
-        `;
+        const meta = document.createElement("div");
+        meta.style.cssText = "font-size:12px; color:#7fc7ff;";
+        meta.textContent = `${c.author || '익명'} (${formatPostDate(c.date)})`;
+        const content = document.createElement("div");
+        content.style.cssText = "margin:5px 0; font-size:14px;";
+        content.textContent = c.text || "";
+        item.append(meta, content);
+        if (canDelete) {
+            const deleteButton = document.createElement("button");
+            deleteButton.type = "button";
+            deleteButton.style.cssText = "background:none; border:none; color:#ff4d4d; font-size:11px; cursor:pointer; padding:0;";
+            deleteButton.textContent = "[삭제]";
+            deleteButton.addEventListener("click", () => deleteComment(cKey));
+            item.appendChild(deleteButton);
+        }
         box.appendChild(item);
     });
 }
@@ -169,7 +179,7 @@ async function addComment() {
         };
         const token = await currentUser.getIdToken();
 
-        const res = await fetch(`${API_BASE_URL}/api/freeboard/${postId}/comment`, {
+        const res = await fetch(`${API_BASE_URL}/api/freeboard/${encodeURIComponent(postId)}/comment`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -232,7 +242,7 @@ async function deletePost() {
     if (!confirm("정말로 이 글을 삭제하시겠습니까?")) return;
     try {
         const token = await currentUser.getIdToken();
-        const res = await fetch(`${API_BASE_URL}/api/freeboard/${postId}`, {
+        const res = await fetch(`${API_BASE_URL}/api/freeboard/${encodeURIComponent(postId)}`, {
             method: "DELETE",
             headers: {
                 "Authorization": `Bearer ${token}`,
@@ -252,7 +262,7 @@ async function deleteComment(cKey) {
     if (!confirm("댓글을 제거하시겠습니까?")) return;
     try {
         const token = await currentUser.getIdToken();
-        const res = await fetch(`${API_BASE_URL}/api/freeboard/${postId}/comment/${cKey}`, {
+        const res = await fetch(`${API_BASE_URL}/api/freeboard/${encodeURIComponent(postId)}/comment/${encodeURIComponent(String(cKey))}`, {
             method: "DELETE",
             headers: {
                 "Authorization": `Bearer ${token}`,

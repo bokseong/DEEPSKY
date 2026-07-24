@@ -8,6 +8,44 @@ body {
     color: white;
 }
 
+.api-status-banner {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 3000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: #8b2430;
+    color: #fff;
+    font-size: 14px;
+    text-align: center;
+}
+
+.api-status-banner[hidden] {
+    display: none;
+}
+
+.api-status-banner button {
+    padding: 5px 10px;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+    outline: 3px solid #7fc7ff;
+    outline-offset: 3px;
+}
+
 .hidden {
     display: none !important;
 }

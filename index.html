@@ -11,7 +11,7 @@
 <body>
 <div class="top-bar">
     <a href="index.html" class="logo-area">
-        <img src="logo.png" onerror="this.src='https://via.placeholder.com/40'">
+        <img src="logo.png" alt="" aria-hidden="true">
         <span>DEEP SKY</span>
     </a>
     <div class="auth-bar">
@@ -23,7 +23,7 @@
 <header>
     <div class="header-content">
         <div class="header-logo">
-            <img src="logo.png" onerror="this.src='https://via.placeholder.com/110'">
+            <img src="logo.png" alt="DEEP SKY 동아리 로고">
         </div>
         <div class="header-text">
             <h1>DEEP SKY</h1>
@@ -31,7 +31,7 @@
         </div>
     </div>
 </header>
-<nav>
+<nav aria-label="주요 메뉴">
     <div class="nav-inner">
         <a href="index.html">홈</a>
         <a href="introduce.html">동아리 소개</a>
@@ -54,7 +54,7 @@
     </div>
     <div id="adminBox" class="card hidden">
         <h3 style="color: #ff4d4d; margin-top: 0;">관리자 메뉴 (공지 수정)</h3>
-        <textarea id="weekProgramInput" placeholder="새로운 내용을 입력하세요..."></textarea>
+        <textarea id="weekProgramInput" aria-label="예정된 프로그램 내용" placeholder="새로운 내용을 입력하세요..."></textarea>
         <button onclick="saveProgram()" style="margin-top:10px; padding:10px 20px; background:#ff4d4d; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">수정하기</button>
     </div>
     <div class="card">
@@ -65,28 +65,29 @@
 </div>
 <div id="adminUpdateBox" class="card hidden" style="border: 1px solid #4a9eff; background: rgba(74, 158, 255, 0.05);">
     <h3 style="color: #4a9eff; margin-top: 0;">관리자 메뉴 (업데이트 기록 추가)</h3>
-    <input type="text" id="updateVersion" placeholder="버전 (규칙: 첫번째 자리에는 대규모 개편, 두번째 자리는 기능 추가, 세번째 자리는 버그나 문구 수정 -> 예:v 1.0.1)" style="width: 100%; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
-    <textarea id="updateContent" placeholder="업데이트 내용"></textarea>
+    <input type="text" id="updateVersion" aria-label="업데이트 버전" placeholder="버전 (규칙: 첫번째 자리에는 대규모 개편, 두번째 자리는 기능 추가, 세번째 자리는 버그나 문구 수정 -> 예:v 1.0.1)" style="width: 100%; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+    <textarea id="updateContent" aria-label="업데이트 내용" placeholder="업데이트 내용"></textarea>
     <button onclick="addUpdateLog()" style="margin-top:10px; padding:10px 20px; background:#4a9eff; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">기록하기</button>
 </div>
 </div>
-<div class="slide-container">
+<div class="slide-container" role="region" aria-roledescription="carousel" aria-label="동아리 관측 기록">
     <div class="slide-header">
         <h3 style="margin:0; color:#fff;">동아리 관측 기록</h3>
         <p style="margin:5px 0 0; font-size:12px; color:#ccc;">사진 게시 문의 : leader.deepsky@gmail.com</p>
     </div>
-    <div class="slide-item active"><img src="https://i.ibb.co/svKGfcrG/p1.jpg"></div>
-    <div class="slide-item"><img src="https://i.ibb.co/ZqpHPJd/p3.jpg"></div>
-    <div class="slide-item"><img src="https://i.ibb.co/hFGNWDyZ/p4.jpg"></div>
-    <div class="slide-item"><img src="https://i.ibb.co/1NCk7Qg/p5.jpg"></div>
-    <div class="slide-item"><img src="https://i.ibb.co/d1XRz5p/p7.jpg"></div>
-    <div class="slide-item"><img src="https://i.ibb.co/S7MpnPNv/p6.jpg"></div>
-    <div class="slide-item"><img src="https://i.ibb.co/JRMdzxH7/p8.jpg"></div>
-    <div class="slide-item"><img src="https://i.ibb.co/DPSQTQFS/p9.jpg"></div>
-    <div class="slide-item"><img src="https://i.ibb.co/HRScqtB/p10.jpg"></div>
-    <div class="slide-item"><img src="https://i.ibb.co/8nZqccMV/p11.jpg"></div>
-    <button class="slide-btn btn-prev" onclick="changeSlide(-1)">❮</button>
-    <button class="slide-btn btn-next" onclick="changeSlide(1)">❯</button>
+    <div class="slide-item active"><img src="assets/images/observations/observation-01.webp" alt="DEEP SKY 동아리 관측 활동 사진 1" fetchpriority="high" decoding="async"></div>
+    <div class="slide-item"><img src="assets/images/observations/observation-02.webp" alt="DEEP SKY 동아리 관측 활동 사진 2" loading="lazy" decoding="async"></div>
+    <div class="slide-item"><img src="assets/images/observations/observation-03.webp" alt="DEEP SKY 동아리 관측 활동 사진 3" loading="lazy" decoding="async"></div>
+    <div class="slide-item"><img src="assets/images/observations/observation-04.webp" alt="DEEP SKY 동아리 관측 활동 사진 4" loading="lazy" decoding="async"></div>
+    <div class="slide-item"><img src="assets/images/observations/observation-05.webp" alt="DEEP SKY 동아리 관측 활동 사진 5" loading="lazy" decoding="async"></div>
+    <div class="slide-item"><img src="assets/images/observations/observation-06.webp" alt="DEEP SKY 동아리 관측 활동 사진 6" loading="lazy" decoding="async"></div>
+    <div class="slide-item"><img src="assets/images/observations/observation-07.webp" alt="DEEP SKY 동아리 관측 활동 사진 7" loading="lazy" decoding="async"></div>
+    <div class="slide-item"><img src="assets/images/observations/observation-08.webp" alt="DEEP SKY 동아리 관측 활동 사진 8" loading="lazy" decoding="async"></div>
+    <div class="slide-item"><img src="assets/images/observations/observation-09.webp" alt="DEEP SKY 동아리 관측 활동 사진 9" loading="lazy" decoding="async"></div>
+    <div class="slide-item"><img src="assets/images/observations/observation-10.webp" alt="DEEP SKY 동아리 관측 활동 사진 10" loading="lazy" decoding="async"></div>
+    <button type="button" class="slide-btn btn-prev" aria-label="이전 사진" onclick="changeSlide(-1)">❮</button>
+    <button type="button" class="slide-btn btn-next" aria-label="다음 사진" onclick="changeSlide(1)">❯</button>
+    <button type="button" id="slidePauseBtn" class="slide-pause" aria-pressed="false">일시정지</button>
 </div>
 <footer>
     © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.

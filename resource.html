@@ -12,7 +12,7 @@
 
 <div class="top-bar">
     <a href="index.html" class="logo-area">
-        <img src="logo.png" onerror="this.src='https://via.placeholder.com/35'">
+        <img src="logo.png" alt="" aria-hidden="true">
         <span>DEEP SKY</span>
     </a>
     <div class="auth-bar">
@@ -26,7 +26,7 @@
     <h1>자료실</h1>
 </header>
 
-<nav>
+<nav aria-label="주요 메뉴">
     <div class="nav-inner">
         <a href="index.html">홈</a>
         <a href="introduce.html">동아리 소개</a>
@@ -53,10 +53,10 @@
     <div id="mainContent" class="hidden">
         <div id="adminUpload" class="admin-box hidden">
             <h3>새로운 자료 등록 (관리자)</h3>
-            <input type="text" id="fileTitle" placeholder="자료 제목">
-            <input type="text" id="fileDesc" placeholder="자료 설명">
-            <input type="text" id="fileLink" placeholder="다운로드/보기 (외부 링크)">
-            <input type="file" id="fileData" style="width: 100%; padding: 12px; margin-bottom: 10px; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px;">
+            <input type="text" id="fileTitle" aria-label="자료 제목" placeholder="자료 제목">
+            <input type="text" id="fileDesc" aria-label="자료 설명" placeholder="자료 설명">
+            <input type="url" id="fileLink" aria-label="자료 외부 링크" placeholder="다운로드/보기 (외부 링크)">
+            <input type="file" id="fileData" aria-label="업로드할 자료 파일" style="width: 100%; padding: 12px; margin-bottom: 10px; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px;">
             <button class="btn-main" onclick="uploadResource()">자료 게시하기</button>
         </div>
 
@@ -64,7 +64,7 @@
             <h2>보관된 자료 목록</h2>
             
             <div class="search-box">
-                <input type="text" id="searchInput" placeholder="찾으시는 자료의 제목이나 설명을 입력하세요..." onkeyup="filterResources()">
+                <input type="search" id="searchInput" aria-label="자료 검색" placeholder="찾으시는 자료의 제목이나 설명을 입력하세요..." onkeyup="filterResources()">
             </div>
 
             <div class="resource-grid" id="resourceList">

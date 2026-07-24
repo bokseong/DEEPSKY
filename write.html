@@ -12,7 +12,7 @@
 
 <div class="top-bar">
     <a href="index.html" class="logo-area">
-        <img src="logo.png" onerror="this.src='https://via.placeholder.com/40'">
+        <img src="logo.png" alt="" aria-hidden="true">
         <span>DEEP SKY</span>
     </a>
     <div class="auth-bar">
@@ -23,27 +23,27 @@
 </div>
 
 <div class="container">
-    <h2 id="pageTitle" style="text-align:center; color:#7fc7ff; margin-bottom:30px;">새 게시글 작성</h2>
+    <h1 id="pageTitle" style="text-align:center; color:#7fc7ff; margin-bottom:30px;">새 게시글 작성</h1>
     <div class="write-card">
-        <input type="text" id="postTitle" placeholder="제목을 입력하세요">
+        <input type="text" id="postTitle" aria-label="게시글 제목" placeholder="제목을 입력하세요">
         
     <div class="link-input-group">
     <label>공유 링크 첨부 (선택)</label>
         <div id="linkContainer">
             <div class="link-item" style="display: flex; gap: 10px; margin-bottom: 10px;">
-                <input type="text" class="postFileUrl" placeholder="링크 주소 (https://...)" style="flex: 2; margin-bottom: 0;">
-                <input type="text" class="postFileName" placeholder="표시될 이름" style="flex: 1; margin-bottom: 0;">
+                <input type="url" class="postFileUrl" aria-label="공유 링크 주소" placeholder="링크 주소 (https://...)" style="flex: 2; margin-bottom: 0;">
+                <input type="text" class="postFileName" aria-label="공유 링크 이름" placeholder="표시될 이름" style="flex: 1; margin-bottom: 0;">
                 <button type="button" onclick="addLinkField()" style="width: 40px; background: #5a7aff; color: white; border: none; border-radius: 5px; cursor: pointer;">+</button>
             </div>
         </div>
         <div style="margin-bottom: 15px;">
             <label style="display:block; margin-bottom:5px; font-weight:bold; color:#7fc7ff;">파일 업로드:</label>
-            <input type="file" id="pFile" style="width:100%; padding:10px; background:#0b0f2b; color:white; border:1px solid #1b2f80; border-radius:8px;">
+            <input type="file" id="pFile" aria-label="첨부 파일" style="width:100%; padding:10px; background:#0b0f2b; color:white; border:1px solid #1b2f80; border-radius:8px;">
             <div id="oldFileInfo" class="hidden" style="margin-top:8px; color:#aaa; font-size:13px;"></div>
         </div>
     </div>
 
-        <textarea id="postContent" placeholder="내용을 자유롭게 입력하세요..."></textarea>
+        <textarea id="postContent" aria-label="게시글 내용" placeholder="내용을 자유롭게 입력하세요..."></textarea>
         
         <button id="submitBtn" class="btn-submit" onclick="submitPost()">게시글 등록하기</button>
         <button class="btn-cancel" onclick="history.back()">취소</button>

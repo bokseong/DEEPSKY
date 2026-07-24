@@ -63,7 +63,7 @@ async function fetchPostForEdit(id) {
     if (currentUser) headers.Authorization = `Bearer ${await currentUser.getIdToken()}`;
 
     try {
-        const detailRes = await fetch(`${API_BASE_URL}/api/freeboard/${id}`, {
+        const detailRes = await fetch(`${API_BASE_URL}/api/freeboard/${encodeURIComponent(String(id))}`, {
             method: "GET",
             headers
         });

@@ -85,7 +85,7 @@ async function submitSuggest() {
 async function deleteSuggest(id) {
     if(confirm("삭제하시겠습니까?")) {
         const token = await currentUser.getIdToken();
-        const response = await fetch(`${API_BASE_URL}/api/suggests/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/api/suggests/${encodeURIComponent(String(id))}`, {
             method: "DELETE",
             headers: {
                 "Authorization": `Bearer ${token}`,

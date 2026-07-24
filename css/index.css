@@ -37,6 +37,8 @@
         .slide-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; width: 45px; height: 45px; cursor: pointer; font-size: 18px; border-radius: 50%; z-index: 30; }
         .btn-prev { left: 15px; }
         .btn-next { right: 15px; }
+        .slide-pause { position: absolute; right: 15px; bottom: 15px; z-index: 30; padding: 7px 12px; border: 1px solid rgba(255,255,255,.7); border-radius: 6px; background: rgba(0,0,0,.65); color: #fff; cursor: pointer; }
+        .slide-btn:focus-visible, .slide-pause:focus-visible { outline: 3px solid #7fc7ff; outline-offset: 2px; }
         footer { padding: 35px 20px; font-size: 13px;}
         @media (max-width: 600px) {
             .logo-area span { font-size: 16px;}

@@ -46,22 +46,37 @@ async function loadAllUsers() {
             const currentRole = normalizeRole(data.role);
 
             const row = document.createElement("tr");
+            [data.name || '이름없음', data.email || '이메일없음', currentRole].forEach(value => {
+                const cell = document.createElement("td");
+                cell.textContent = value;
+                row.appendChild(cell);
+            });
 
-            row.innerHTML = `
-                <td>${escapeHtml(data.name || '이름없음')}</td>
-                <td>${escapeHtml(data.email || '이메일없음')}</td>
-                <td>${escapeHtml(currentRole)}</td>
-                <td>
-                    <select id="role_${uid}" style="padding:5px; background:#0b0f2b; color:white; border:1px solid #1b2f80; border-radius:4px;">
-                        <option value="member" ${currentRole === 'member' ? 'selected' : ''}>일반(member)</option>
-                        <option value="student" ${currentRole === 'student' ? 'selected' : ''}>부원(student)</option>
-                        <option value="admin" ${currentRole === 'admin' ? 'selected' : ''}>관리자(admin)</option>
-                    </select>
-                </td>
-                <td>
-                    <button onclick="updateUserRole('${uid}')" style="margin-left:8px; padding:5px 10px; background:#1b2f80; border:none; color:white; border-radius:4px; cursor:pointer;">변경</button>
-                </td>
-            `;
+            const roleCell = document.createElement("td");
+            const select = document.createElement("select");
+            select.setAttribute("aria-label", `${data.name || '사용자'}의 등급`);
+            select.style.cssText = "padding:5px; background:#0b0f2b; color:white; border:1px solid #1b2f80; border-radius:4px;";
+            [
+                ["member", "일반(member)"],
+                ["student", "부원(student)"],
+                ["admin", "관리자(admin)"]
+            ].forEach(([value, label]) => {
+                const option = document.createElement("option");
+                option.value = value;
+                option.textContent = label;
+                option.selected = currentRole === value;
+                select.appendChild(option);
+            });
+            roleCell.appendChild(select);
+
+            const actionCell = document.createElement("td");
+            const updateButton = document.createElement("button");
+            updateButton.type = "button";
+            updateButton.textContent = "변경";
+            updateButton.style.cssText = "margin-left:8px; padding:5px 10px; background:#1b2f80; border:none; color:white; border-radius:4px; cursor:pointer;";
+            updateButton.addEventListener("click", () => updateUserRole(uid, select));
+            actionCell.appendChild(updateButton);
+            row.append(roleCell, actionCell);
             list.appendChild(row);
         });
     } catch (error) {
@@ -71,8 +86,8 @@ async function loadAllUsers() {
 }
 
 // 직접 권한 수정 함수
-async function updateUserRole(uid) {
-    const newRole = document.getElementById("role_" + uid).value;
+async function updateUserRole(uid, roleSelect) {
+    const newRole = roleSelect.value;
     try {
         await requestAuthenticatedApi(`/api/admin/users/${encodeURIComponent(uid)}/role`, {
             method: "PUT",
@@ -229,7 +244,7 @@ async function deleteServerSuggest(id) {
     if (!confirm("이 건의글을 자체 데이터베이스에서 영구 삭제하시겠습니까?")) return;
     try {
         const token = await currentUser.getIdToken();
-        const res = await fetch(`${API_BASE_URL}/api/suggests/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/api/suggests/${encodeURIComponent(String(id))}`, {
             method: "DELETE",
             headers: {
                 "Authorization": `Bearer ${token}`,

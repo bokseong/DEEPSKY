@@ -12,7 +12,7 @@
 
 <div class="top-bar">
     <a href="index.html" class="logo-area">
-        <img src="logo.png" onerror="this.src='https://via.placeholder.com/40'">
+        <img src="logo.png" alt="" aria-hidden="true">
         <span>DEEP SKY</span>
     </a>
     <div class="auth-bar">
@@ -36,7 +36,7 @@
 
         <div id="linkArea" class="link-section hidden">
             <div style="font-size: 13px; color: #7fc7ff; margin-bottom: 8px; font-weight: bold;">첨부된 링크</div>
-            <a id="viewFileLink" href="#" target="_blank" class="btn-link">파일/링크 열기</a>
+            <a id="viewFileLink" href="#" target="_blank" rel="noopener" class="btn-link">파일/링크 열기</a>
         </div>
             <div id="vFileContainer" class="file-actions hidden">
             <span id="vFileName" class="file-action-title"></span>
@@ -51,7 +51,7 @@
             <div id="commentList"></div>
             
             <div id="commentFormArea" class="comment-form hidden">
-                <input type="text" id="commentInput" class="comment-input" placeholder="댓글을 남겨보세요...">
+                <input type="text" id="commentInput" class="comment-input" aria-label="댓글" placeholder="댓글을 남겨보세요...">
                 <button class="btn-comment-submit" onclick="addComment()">등록</button>
             </div>
             <div id="commentLoginNotice" style="text-align: center; padding: 20px; color: #aaa; font-size: 14px;">

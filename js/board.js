@@ -69,7 +69,18 @@ function renderPage() {
     paginatedPosts.forEach((p, idx) => {
         const item = document.createElement("div");
         item.className = "post-item";
-        item.onclick = () => location.href = `view.html?id=${p.id}`;
+        item.tabIndex = 0;
+        item.setAttribute("role", "link");
+        const postUrl = `view.html?id=${encodeURIComponent(String(p.id))}`;
+        item.addEventListener("click", () => {
+            location.href = postUrl;
+        });
+        item.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                location.href = postUrl;
+            }
+        });
 
         const fileIcon = hasAttachment(p) ? " 📎" : "";
         const postNumber = displayPosts.length - (startIndex + idx);
@@ -91,6 +102,7 @@ function renderPage() {
                 event.stopPropagation();
                 await deletePost(p.id);
             };
+            delBtn.addEventListener("keydown", event => event.stopPropagation());
             item.querySelector(".post-action-area").appendChild(delBtn);
         }
 
@@ -126,7 +138,7 @@ async function deletePost(postId) {
     if (!confirm("정말로 이 게시글을 삭제하시겠습니까?")) return;
     try {
         const token = await currentUser.getIdToken();
-        const res = await fetch(`${API_BASE_URL}/api/freeboard/${postId}`, {
+        const res = await fetch(`${API_BASE_URL}/api/freeboard/${encodeURIComponent(String(postId))}`, {
             method: "DELETE",
             headers: {
                 "Authorization": `Bearer ${token}`,

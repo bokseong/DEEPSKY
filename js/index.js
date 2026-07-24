@@ -221,12 +221,42 @@ let slideIndex = 0;
 function setupSlides() {
     const slides = document.querySelectorAll(".slide-item");
     if(slides.length === 0) return;
+    const pauseButton = document.getElementById("slidePauseBtn");
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let isPaused = reduceMotion;
+
     window.changeSlide = (n) => {
         slides.forEach(s => s.classList.remove("active"));
         slideIndex = (slideIndex + n + slides.length) % slides.length;
         slides[slideIndex].classList.add("active");
     };
-    if(!window.slideInterval) window.slideInterval = setInterval(() => window.changeSlide(1), 4000);
+
+    const stopSlides = () => {
+        if (window.slideInterval) {
+            clearInterval(window.slideInterval);
+            window.slideInterval = null;
+        }
+    };
+    const startSlides = () => {
+        stopSlides();
+        if (!isPaused && !document.hidden) {
+            window.slideInterval = setInterval(() => window.changeSlide(1), 4000);
+        }
+    };
+    const updatePauseButton = () => {
+        if (!pauseButton) return;
+        pauseButton.textContent = isPaused ? "재생" : "일시정지";
+        pauseButton.setAttribute("aria-pressed", String(isPaused));
+    };
+
+    pauseButton?.addEventListener("click", () => {
+        isPaused = !isPaused;
+        updatePauseButton();
+        startSlides();
+    });
+    document.addEventListener("visibilitychange", startSlides);
+    updatePauseButton();
+    startSlides();
 }
 setupSlides();
 

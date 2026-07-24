@@ -12,7 +12,7 @@
 
 <div class="top-bar">
     <a href="index.html" class="logo-area">
-        <img src="logo.png" onerror="this.src='https://via.placeholder.com/35'">
+        <img src="logo.png" alt="" aria-hidden="true">
         <span>DEEP SKY</span>
     </a>
     <div class="auth-bar">
@@ -24,7 +24,7 @@
 
 <header><h1>자유 게시판</h1></header>
 
-<nav>
+<nav aria-label="주요 메뉴">
     <div class="nav-inner">
         <a href="index.html">홈</a>
         <a href="introduce.html">동아리 소개</a>
@@ -46,7 +46,7 @@
         <h2>COMMUNITY</h2>  
         
         <div class="action-bar">
-            <input type="text" id="searchInput" placeholder="제목 또는 작성자로 검색..." 
+            <input type="search" id="searchInput" aria-label="게시글 검색" placeholder="제목 또는 작성자로 검색..."
                style="flex: 1; background: #0b0f2b; color: white; border: 1px solid #2d367a; border-radius: 5px; padding: 10px 15px; outline: none; font-size: 14px;">
             <button onclick="filterPosts();" style="background: #3a5aff; color: white; border: none; border-radius: 5px; padding: 0 20px; cursor: pointer; font-weight: bold; transition: 0.2s;">
                 검색

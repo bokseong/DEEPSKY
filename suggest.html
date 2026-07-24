@@ -11,7 +11,7 @@
 <body>
 <div class="top-bar">
     <a href="index.html" class="logo-area">
-        <img src="logo.png" onerror="this.src='https://via.placeholder.com/40'">
+        <img src="logo.png" alt="" aria-hidden="true">
         <span>DEEP SKY</span>
     </a>
     <div class="auth-bar">
@@ -29,7 +29,7 @@
     </div>
 </header>
 
-<nav>
+<nav aria-label="주요 메뉴">
     <div class="nav-inner">
         <a href="index.html">홈</a>
         <a href="introduce.html">동아리 소개</a>
@@ -53,14 +53,14 @@
         
         <div style="margin: 25px 0; text-align: left; background: rgba(58, 90, 255, 0.05); padding: 20px; border-radius: 10px; border: 1px dashed #3a5aff;">
             <label style="display:block; margin-bottom:8px; color:#7fc7ff; font-size:14px; font-weight:bold;">원하는 등급</label>
-            <select id="requestedRole" style="width:100%; background:#0b0f2b; color:white; border:1px solid #3a5aff; padding:10px; border-radius:5px; margin-bottom:15px; outline:none;">
+            <select id="requestedRole" aria-label="요청할 등급" style="width:100%; background:#0b0f2b; color:white; border:1px solid #3a5aff; padding:10px; border-radius:5px; margin-bottom:15px; outline:none;">
                 <option value="student">동아리 부원</option>
                 <option value="admin">관리자</option>
                 <option value="member">일반 회원</option>
             </select>
 
             <label style="display:block; margin-bottom:8px; color:#7fc7ff; font-size:14px; font-weight:bold;">조정 사유</label>
-            <textarea id="requestReason" placeholder="작성 예시:&#10;1. 신입 부원 누구입니다.&#10;2. 권한 승인 부탁드립니다."></textarea>
+            <textarea id="requestReason" aria-label="등급 조정 요청 사유" placeholder="작성 예시:&#10;1. 신입 부원 누구입니다.&#10;2. 권한 승인 부탁드립니다."></textarea>
             <button onclick="submitRoleRequest()" style="width:100%; padding:12px; margin-top:10px; background:#3a5aff; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">등급 조정 요청하기</button>
         </div>
     </div>
@@ -73,7 +73,7 @@
                 동아리 운영이나 홈페이지 개선에 대한 의견을 자유롭게 남겨주세요!(익명 기능도 있습니다)<br>
                 <b>반영 완료된 항목은 7일 후 자동으로 리스트에서 삭제됩니다.</b>
             </div>
-            <textarea id="sInput" placeholder="건의 내용을 상세히 입력해주세요..."></textarea>
+            <textarea id="sInput" aria-label="건의 내용" placeholder="건의 내용을 상세히 입력해주세요..."></textarea>
             <div class="form-footer">
                 <label style="font-size: 14px; cursor: pointer; color: #ccc; display: flex; align-items: center; gap: 5px;">
                     <input type="checkbox" id="sAnon"> 익명으로 제출하기
