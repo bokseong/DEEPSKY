@@ -27,13 +27,26 @@ auth.onAuthStateChanged(async (user) => {
             if(status) status.innerText = `${currentName}님 (${roleName})`;
             if(displayRole) displayRole.innerText = roleName;
             if(nameInput) nameInput.value = currentName;
+            setProtectedPageAccess({ allowed: true });
         } catch (error) {
             if(status) status.innerText = error.message;
+            setProtectedPageAccess({
+                allowed: false,
+                title: "권한 확인 실패",
+                message: "서버에서 사용자 정보를 확인하지 못했습니다.",
+                action: "retry"
+            });
         }
     } else {
-        // [비로그인 상태 시] 즉시 안내 후 로그인 페이지로 이동
-        alert("로그인이 필요한 페이지입니다. 로그인 페이지로 이동합니다.");
-        location.href = "login.html";
+        if(status) status.innerText = "로그인이 필요합니다";
+        loginBtn.classList.remove("hidden");
+        logoutBtn.classList.add("hidden");
+        setProtectedPageAccess({
+            allowed: false,
+            title: "회원 전용 공간",
+            message: "회원 정보를 수정하려면 로그인해 주세요.",
+            action: "login"
+        });
     }
 });
 

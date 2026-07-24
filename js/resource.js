@@ -6,30 +6,50 @@ let allResources = {};
 auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     const status = document.getElementById("userStatus");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
     if (user) {
+        loginBtn?.classList.add("hidden");
+        logoutBtn?.classList.remove("hidden");
         try {
             const userData = await getServerUserProfile(user);
             currentUserName = userData.name || user.displayName || user.email.split('@')[0];
             currentUserRole = normalizeRole(userData.role);
-            if (status) status.innerText = `${currentUserName}님 (${currentUserRole})`;
-
-            document.getElementById("lockMessage")?.classList.add("hidden");
-            document.getElementById("mainContent")?.classList.remove("hidden");
+            if (status) status.innerText = `${currentUserName}님 (${getRoleName(currentUserRole)})`;
 
             if(currentUserRole === 'admin' || currentUserRole === 'student') {
+                setProtectedPageAccess({ allowed: true });
                 loadResources();
                 document.getElementById("adminUpload")?.classList.toggle("hidden", currentUserRole !== 'admin');
             } else {
-                document.getElementById("resourceList").innerHTML = "<p style='text-align:center; grid-column:1/-1;'>자료실 열람 권한이 없습니다 (student 이상).</p>";
                 document.getElementById("adminUpload")?.classList.add("hidden");
+                setProtectedPageAccess({
+                    allowed: false,
+                    title: "접근 제한",
+                    message: "자료실은 동아리 부원 이상만 접근할 수 있습니다.",
+                    action: "role"
+                });
             }
         } catch (error) {
             if (status) status.innerText = error.message;
+            setProtectedPageAccess({
+                allowed: false,
+                title: "권한 확인 실패",
+                message: "서버에서 권한 정보를 확인하지 못했습니다.",
+                action: "retry"
+            });
         }
     } else {
-        document.getElementById("mainContent")?.classList.add("hidden");
-        document.getElementById("lockMessage")?.classList.remove("hidden");
+        currentUserRole = "guest";
         if (status) status.innerText = "로그인이 필요합니다";
+        loginBtn?.classList.remove("hidden");
+        logoutBtn?.classList.add("hidden");
+        setProtectedPageAccess({
+            allowed: false,
+            title: "회원 전용 공간",
+            message: "자료실을 이용하려면 로그인해 주세요.",
+            action: "login"
+        });
     }
 });
 

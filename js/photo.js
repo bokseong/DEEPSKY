@@ -2,36 +2,41 @@ let currentUser = null;
 let currentUserRole = "guest";
 let allPhotos = {};
 
-auth.onAuthStateChanged((user) => {
+auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
     if (user) {
         currentUser = user;
-        currentUserRole = 'member';
-        if (status) status.innerText = `${user.displayName || user.email || '사용자'}님`;
         document.getElementById("loginBtn")?.classList.add("hidden");
         document.getElementById("logoutBtn")?.classList.remove("hidden");
-        document.getElementById("lockMessage")?.classList.add("hidden");
-        document.getElementById("mainContent")?.classList.remove("hidden");
-        updateUploadAccess();
-        loadPhotos();
 
-        getUserProfile(user.uid).then((userData) => {
+        try {
+            const userData = await getUserProfile();
             currentUserRole = normalizeRole(userData.role);
-            if (status) status.innerText = `${userData.name || user.displayName || '사용자'}님 (${currentUserRole})`;
+            if (status) status.innerText = `${userData.name || user.displayName || '사용자'}님 (${getRoleName(currentUserRole)})`;
+            setProtectedPageAccess({ allowed: true });
             updateUploadAccess();
-            renderPhotos(allPhotos);
-        }).catch((err) => {
-            console.warn("사용자 권한 정보를 불러오지 못했습니다.", err);
-            updateUploadAccess();
-        });
+            await loadPhotos();
+        } catch (error) {
+            if (status) status.innerText = error.message;
+            setProtectedPageAccess({
+                allowed: false,
+                title: "권한 확인 실패",
+                message: "서버에서 권한 정보를 확인하지 못했습니다.",
+                action: "retry"
+            });
+        }
     } else {
         currentUser = null;
         currentUserRole = "guest";
         if (status) status.innerText = "로그인이 필요합니다";
         document.getElementById("loginBtn")?.classList.remove("hidden");
         document.getElementById("logoutBtn")?.classList.add("hidden");
-        document.getElementById("mainContent")?.classList.add("hidden");
-        document.getElementById("lockMessage")?.classList.remove("hidden");
+        setProtectedPageAccess({
+            allowed: false,
+            title: "회원 전용 공간",
+            message: "활동 사진을 보려면 로그인해 주세요.",
+            action: "login"
+        });
     }
 });
 

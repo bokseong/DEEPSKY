@@ -10,11 +10,17 @@ auth.onAuthStateChanged(async (user) => {
             currentUserRole = normalizeRole(userData.role);
 
             if (currentUserRole !== 'admin') {
-                alert("관리자 전용 페이지입니다.");
-                location.href = "index.html";
+                document.getElementById("loginBtn")?.classList.add("hidden");
+                document.getElementById("logoutBtn")?.classList.remove("hidden");
+                document.getElementById("userStatus").innerText = `${userData.name || user.displayName || '사용자'}님 (${getRoleName(currentUserRole)})`;
+                setProtectedPageAccess({
+                    allowed: false,
+                    title: "관리자 전용 공간",
+                    message: "이 페이지는 관리자 권한이 있어야 접근할 수 있습니다.",
+                    action: "role"
+                });
             } else {
-                document.getElementById("authMsg")?.classList.add("hidden");
-                document.getElementById("adminContent")?.classList.remove("hidden");
+                setProtectedPageAccess({ allowed: true });
                 document.getElementById("loginBtn")?.classList.add("hidden");
                 document.getElementById("logoutBtn")?.classList.remove("hidden");
                 document.getElementById("userStatus").innerText = `${userData.name || user.displayName || '관리자'}님 (admin)`;
@@ -23,12 +29,26 @@ auth.onAuthStateChanged(async (user) => {
                 loadServerSuggestions();
             }
         } catch (error) {
-            alert(error.message || "관리자 권한을 확인하지 못했습니다.");
-            location.href = "index.html";
+            document.getElementById("userStatus").innerText = error.message || "권한 확인 실패";
+            setProtectedPageAccess({
+                allowed: false,
+                title: "권한 확인 실패",
+                message: "서버에서 관리자 권한을 확인하지 못했습니다.",
+                action: "retry"
+            });
         }
     } else {
-        alert("로그인이 필요합니다.");
-        location.href = "login.html";
+        currentUser = null;
+        currentUserRole = "guest";
+        document.getElementById("userStatus").innerText = "로그인이 필요합니다";
+        document.getElementById("loginBtn")?.classList.remove("hidden");
+        document.getElementById("logoutBtn")?.classList.add("hidden");
+        setProtectedPageAccess({
+            allowed: false,
+            title: "관리자 전용 공간",
+            message: "관리자 페이지를 이용하려면 로그인해 주세요.",
+            action: "login"
+        });
     }
 });
 

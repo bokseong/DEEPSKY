@@ -43,6 +43,58 @@ function getRoleName(role) {
     return "일반 회원";
 }
 
+function setProtectedPageAccess({
+    allowed,
+    title = "접근 제한",
+    message = "이 페이지에 접근할 권한이 없습니다.",
+    action = "login"
+}) {
+    const gate = document.getElementById("lockMessage");
+    const content = document.getElementById("mainContent");
+    if (!gate || !content) return;
+
+    gate.classList.toggle("hidden", allowed);
+    content.classList.toggle("hidden", !allowed);
+    if (allowed) return;
+
+    const actionConfig = {
+        login: { label: "로그인하러 가기", href: "login.html" },
+        role: { label: "등급 조정 요청하기", href: "block.html" },
+        home: { label: "홈으로 돌아가기", href: "index.html" },
+        retry: { label: "다시 시도", reload: true }
+    }[action];
+
+    const heading = document.createElement("h2");
+    heading.textContent = title;
+
+    const description = document.createElement("p");
+    description.textContent = message;
+
+    gate.replaceChildren(heading, description);
+    gate.setAttribute("role", "status");
+    gate.setAttribute("aria-live", "polite");
+
+    if (actionConfig) {
+        const actions = document.createElement("div");
+        actions.className = "access-gate__actions";
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "access-gate__action";
+        button.textContent = actionConfig.label;
+        button.addEventListener("click", () => {
+            if (actionConfig.reload) {
+                location.reload();
+            } else {
+                location.href = actionConfig.href;
+            }
+        });
+
+        actions.appendChild(button);
+        gate.appendChild(actions);
+    }
+}
+
 async function requestAuthenticatedApi(path, options = {}) {
     const user = auth.currentUser;
     if (!user) throw new Error("로그인이 필요합니다.");

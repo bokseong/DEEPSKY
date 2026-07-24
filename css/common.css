@@ -50,6 +50,50 @@ textarea:focus-visible,
     display: none !important;
 }
 
+.access-gate {
+    width: min(100%, 720px);
+    margin: 32px auto;
+    padding: 32px 24px;
+    border: 1px solid #3a5aff;
+    border-radius: 8px;
+    background: #11153a;
+    text-align: center;
+}
+
+.access-gate h2 {
+    margin: 0 0 12px;
+    color: #7fc7ff;
+    font-size: 24px;
+}
+
+.access-gate p {
+    margin: 0;
+    color: #c7cbe3;
+    line-height: 1.7;
+}
+
+.access-gate__actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 24px;
+}
+
+.access-gate__action {
+    min-height: 44px;
+    padding: 10px 22px;
+    border: 1px solid #5a7aff;
+    border-radius: 6px;
+    background: #3a5aff;
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.access-gate__action:hover {
+    background: #4a68ff;
+}
+
 .top-bar {
     display: flex;
     align-items: center;

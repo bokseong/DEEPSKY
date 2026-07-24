@@ -41,10 +41,11 @@
     </div>
 </nav>
 
-<div id="authMsg">권한을 확인하고 있습니다...</div>
+<div class="container">
+    <div id="lockMessage" class="access-gate hidden"></div>
 
-<div id="adminContent" class="container hidden">
-    <div class="card">
+    <div id="mainContent" class="hidden">
+        <div class="card">
         <h3 style="color: #7fc7ff; margin-top: 0;">전체 가입 회원 목록</h3>
         <p style="font-size: 0.85rem; color: #aaa; margin-bottom: 20px;">* 회원의 등급을 변경한 후 '저장' 버튼을 눌러주세요.</p>
         <div class="table-wrapper">
@@ -70,6 +71,7 @@
     <div class="manage-section" style="margin-top: 40px; margin-bottom: 40px;">
         <h2 style="color: #7fc7ff; border-bottom: 2px solid #1b2f80; padding-bottom: 10px;">자체 서버 건의함 내역 관리</h2>
             <div id="suggestManagerList" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;"></div>
+        </div>
         </div>
     </div>
 </div>

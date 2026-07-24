@@ -16,16 +16,39 @@ auth.onAuthStateChanged(async (user) => {
             currentUserName = userData.name || user.displayName || user.email.split('@')[0];
             currentUserRole = normalizeRole(userData.role);
             if (status) status.innerText = `${currentUserName}님 (${currentUserRole==='admin'?'관리자':(currentUserRole==='student'?'부원':'일반')})`;
-            if (isEditMode && !originalPost) initEditPage();
+            if (currentUserRole === "admin" || currentUserRole === "student") {
+                setProtectedPageAccess({ allowed: true });
+                if (isEditMode && !originalPost) initEditPage();
+            } else {
+                setProtectedPageAccess({
+                    allowed: false,
+                    title: "접근 제한",
+                    message: "게시글 작성은 동아리 부원 이상만 이용할 수 있습니다.",
+                    action: "role"
+                });
+            }
         } catch (error) {
-            alert(error.message);
-            location.href = "board.html";
+            if (status) status.innerText = error.message;
+            setProtectedPageAccess({
+                allowed: false,
+                title: "권한 확인 실패",
+                message: "서버에서 권한 정보를 확인하지 못했습니다.",
+                action: "retry"
+            });
         }
         document.getElementById("loginBtn")?.classList.add("hidden");
         document.getElementById("logoutBtn")?.classList.remove("hidden");
     } else {
-        alert("로그인 세션이 만료되었습니다. 목록으로 복귀합니다.");
-        location.href = "board.html";
+        currentUserRole = "guest";
+        if (status) status.innerText = "로그인이 필요합니다";
+        document.getElementById("loginBtn")?.classList.remove("hidden");
+        document.getElementById("logoutBtn")?.classList.add("hidden");
+        setProtectedPageAccess({
+            allowed: false,
+            title: "회원 전용 공간",
+            message: "게시글을 작성하려면 로그인해 주세요.",
+            action: "login"
+        });
     }
 });
 

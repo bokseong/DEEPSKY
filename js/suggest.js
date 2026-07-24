@@ -3,24 +3,52 @@ let currentUserRole = "guest";
 let currentUserName = "익명";
 
 auth.onAuthStateChanged(async (user) => {
+    const status = document.getElementById("userStatus");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+
     if (user) {
         currentUser = user;
+        loginBtn?.classList.add("hidden");
+        logoutBtn?.classList.remove("hidden");
         try {
             const userData = await getServerUserProfile(user);
             currentUserRole = normalizeRole(userData.role);
             currentUserName = userData.name || user.displayName || user.email.split('@')[0];
+            if (status) status.innerText = `${currentUserName}님 (${getRoleName(currentUserRole)})`;
 
-            // 열람은 학생 이상만 가능
             if(currentUserRole === 'admin' || currentUserRole === 'student') {
+                setProtectedPageAccess({ allowed: true });
                 loadSuggestions();
             } else {
-                document.getElementById("suggestList").innerHTML = "<p>건의함 내용은 동아리원 이상 열람 가능합니다. 작성만 가능합니다.</p>";
+                setProtectedPageAccess({
+                    allowed: false,
+                    title: "접근 제한",
+                    message: "건의함은 동아리 부원 이상만 접근할 수 있습니다.",
+                    action: "role"
+                });
             }
         } catch (error) {
-            document.getElementById("suggestList").innerHTML = `<p>${escapeHtml(error.message)}</p>`;
+            if (status) status.innerText = error.message;
+            setProtectedPageAccess({
+                allowed: false,
+                title: "권한 확인 실패",
+                message: "서버에서 권한 정보를 확인하지 못했습니다.",
+                action: "retry"
+            });
         }
     } else {
-        location.href = "index.html";
+        currentUser = null;
+        currentUserRole = "guest";
+        if (status) status.innerText = "로그인이 필요합니다";
+        loginBtn?.classList.remove("hidden");
+        logoutBtn?.classList.add("hidden");
+        setProtectedPageAccess({
+            allowed: false,
+            title: "회원 전용 공간",
+            message: "건의함을 이용하려면 로그인해 주세요.",
+            action: "login"
+        });
     }
 });
 

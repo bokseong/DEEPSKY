@@ -23,6 +23,9 @@
 </div>
 
 <div class="container">
+    <div id="lockMessage" class="access-gate hidden"></div>
+
+    <div id="mainContent" class="hidden">
     <h1 id="pageTitle" style="text-align:center; color:#7fc7ff; margin-bottom:30px;">새 게시글 작성</h1>
     <div class="write-card">
         <input type="text" id="postTitle" aria-label="게시글 제목" placeholder="제목을 입력하세요">
@@ -47,6 +50,7 @@
         
         <button id="submitBtn" class="btn-submit" onclick="submitPost()">게시글 등록하기</button>
         <button class="btn-cancel" onclick="history.back()">취소</button>
+    </div>
     </div>
 </div>
 

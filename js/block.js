@@ -6,7 +6,6 @@
         const mainContainer = document.getElementById("mainContainer");
 
         if (user) {
-            // [로그인 상태] 컨테이너를 보여주고 유저 정보 로드
             if (mainContainer) mainContainer.classList.remove("hidden");
 
             try {
@@ -15,15 +14,29 @@
                 const userRole = normalizeRole(userData.role);
 
                 if (status) status.innerText = `${finalName}님 (${getRoleName(userRole)})`;
+                setProtectedPageAccess({ allowed: true });
             } catch (error) {
                 if (status) status.innerText = error.message;
+                setProtectedPageAccess({
+                    allowed: false,
+                    title: "권한 확인 실패",
+                    message: "서버에서 사용자 정보를 확인하지 못했습니다.",
+                    action: "retry"
+                });
             }
 
             loginBtn?.classList.add("hidden");
             logoutBtn?.classList.remove("hidden");
         } else {
-            // [비로그인 상태] 경고 없이 즉시 로그인 페이지로 리다이렉트
-            location.href = 'login.html';
+            if (status) status.innerText = "로그인이 필요합니다";
+            loginBtn?.classList.remove("hidden");
+            logoutBtn?.classList.add("hidden");
+            setProtectedPageAccess({
+                allowed: false,
+                title: "회원 전용 공간",
+                message: "등급 조정을 요청하려면 로그인해 주세요.",
+                action: "login"
+            });
         }
     });
 
