@@ -30,9 +30,9 @@ async function runSearch(query) {
     results.replaceChildren();
 
     try {
-        const headers = new Headers({ "ngrok-skip-browser-warning": "69420" });
+        const headers = { "ngrok-skip-browser-warning": "69420" };
         if (auth.currentUser) {
-            headers.set("Authorization", `Bearer ${await auth.currentUser.getIdToken()}`);
+            headers.Authorization = `Bearer ${await auth.currentUser.getIdToken()}`;
         }
         const response = await fetch(`${API_BASE_URL}/api/search?q=${encodeURIComponent(query)}`, { headers });
         const data = await response.json().catch(() => ({}));
