@@ -26,9 +26,22 @@ auth.onAuthStateChanged(async user => {
         return;
     }
 
-    if (status) status.textContent = user.email;
-    setProtectedPageAccess({ allowed: true });
-    await loadActivities();
+    try {
+        const profile = await getServerUserProfile(user);
+        const displayName = profile.name || user.displayName || "사용자";
+        const role = normalizeRole(profile.role);
+        if (status) status.textContent = `${displayName}님 (${getRoleName(role)})`;
+        setProtectedPageAccess({ allowed: true });
+        await loadActivities();
+    } catch (error) {
+        if (status) status.textContent = "사용자 정보 확인 실패";
+        setProtectedPageAccess({
+            allowed: false,
+            title: "정보 확인 실패",
+            message: "사용자 정보를 불러오지 못했습니다.",
+            action: "retry"
+        });
+    }
 });
 
 document.getElementById("activityFilter")?.addEventListener("change", renderActivities);

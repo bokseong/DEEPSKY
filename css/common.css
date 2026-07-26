@@ -9,8 +9,8 @@ body {
 }
 
 .api-status-banner {
-    position: fixed;
-    inset: 0 0 auto;
+    position: sticky;
+    top: 0;
     z-index: 3000;
     display: flex;
     justify-content: center;
@@ -95,6 +95,8 @@ textarea:focus-visible,
 }
 
 .top-bar {
+    position: relative;
+    z-index: 1100;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -132,6 +134,7 @@ textarea:focus-visible,
 }
 
 .utility-nav {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -140,7 +143,8 @@ textarea:focus-visible,
     padding: 0 12px;
 }
 
-.utility-nav a {
+.utility-nav > a,
+.utility-trigger {
     position: relative;
     min-height: 36px;
     padding: 8px 10px;
@@ -155,10 +159,16 @@ textarea:focus-visible,
     cursor: pointer;
 }
 
-.utility-nav a:hover {
+.utility-nav > a:hover,
+.utility-trigger:hover,
+.utility-trigger[aria-expanded="true"] {
     border-color: #3a5aff;
     background: #11153a;
     color: #7fc7ff;
+}
+
+.utility-trigger {
+    appearance: none;
 }
 
 .notification-badge {
@@ -174,6 +184,166 @@ textarea:focus-visible,
     color: #fff;
     font-size: 11px;
     line-height: 1;
+}
+
+.utility-popover {
+    position: absolute;
+    z-index: 1200;
+    top: calc(100% + 12px);
+    display: grid;
+    width: min(420px, calc(100vw - 24px));
+    max-height: min(620px, calc(100vh - 90px));
+    overflow: hidden;
+    border: 1px solid #4259a6;
+    border-radius: 7px;
+    background: #0f1438;
+    box-shadow: 0 18px 44px rgb(0 0 0 / 45%);
+    color: #fff;
+}
+
+.utility-popover::before {
+    position: absolute;
+    top: -7px;
+    width: 12px;
+    height: 12px;
+    border-top: 1px solid #4259a6;
+    border-left: 1px solid #4259a6;
+    background: #0f1438;
+    content: "";
+    transform: rotate(45deg);
+}
+
+.utility-popover--search {
+    right: 0;
+}
+
+.utility-popover--search::before {
+    right: 22px;
+}
+
+.utility-popover--notification {
+    right: 0;
+}
+
+.utility-popover--notification::before {
+    right: 22px;
+}
+
+.utility-popover__header {
+    display: flex;
+    min-height: 52px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid #2d367a;
+}
+
+.utility-popover__header h2 {
+    margin: 0;
+    color: #eaf2ff;
+    font-size: 16px;
+}
+
+.utility-text-button {
+    padding: 6px 8px;
+    border: 1px solid #56649a;
+    border-radius: 4px;
+    background: transparent;
+    color: #b9ceff;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.utility-search-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 12px 14px 8px;
+}
+
+.utility-search-form input {
+    min-width: 0;
+    min-height: 40px;
+    padding: 8px 10px;
+    border: 1px solid #394881;
+    border-radius: 5px;
+    background: #080d2b;
+    color: #fff;
+    font: inherit;
+}
+
+.utility-search-form button {
+    min-height: 40px;
+    padding: 8px 14px;
+    border: 1px solid #5a7aff;
+    border-radius: 5px;
+    background: #3a5aff;
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.utility-popover__status {
+    margin: 0;
+    padding: 0 14px 10px;
+    color: #8f9bc1;
+    font-size: 12px;
+}
+
+.utility-result-list {
+    display: grid;
+    min-height: 72px;
+    overflow-y: auto;
+}
+
+.utility-result {
+    display: grid;
+    gap: 5px;
+    padding: 12px 14px;
+    border-bottom: 1px solid #252f62;
+    color: inherit;
+    text-decoration: none;
+}
+
+.utility-result:last-child {
+    border-bottom: 0;
+}
+
+.utility-result:hover {
+    background: #171e4c;
+}
+
+.utility-result strong,
+.utility-result span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.utility-result strong {
+    color: #eaf2ff;
+    font-size: 14px;
+}
+
+.utility-result span {
+    color: #b9c1dd;
+    font-size: 13px;
+}
+
+.utility-result time {
+    color: #7f8bb1;
+    font-size: 11px;
+}
+
+.utility-popover__empty {
+    margin: 0;
+    padding: 28px 18px;
+    color: #9da7c7;
+    font-size: 13px;
+    text-align: center;
 }
 
 .auth-bar button {
@@ -413,6 +583,18 @@ footer {
         justify-content: center;
         padding: 6px 10px;
         border-top: 1px solid #1b2f80;
+    }
+
+    .utility-popover {
+        top: calc(100% + 6px);
+        right: 0;
+        left: auto;
+        width: 100%;
+        max-height: min(520px, calc(100vh - 130px));
+    }
+
+    .utility-popover::before {
+        display: none;
     }
 
     .hub-toolbar {

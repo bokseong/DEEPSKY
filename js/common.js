@@ -275,13 +275,70 @@ function enhanceGlobalHeader() {
     utilityNav.className = "utility-nav";
     utilityNav.setAttribute("aria-label", "사용자 도구");
     utilityNav.innerHTML = `
-        <a href="search.html" title="통합 검색">검색</a>
+        <button type="button" id="searchPopoverToggle" class="utility-trigger"
+                onclick="toggleUtilityPopover('searchPopover', 'searchPopoverToggle')"
+                aria-expanded="false" aria-controls="searchPopover">검색</button>
         <a href="activity.html" class="auth-utility hidden" title="내 활동">내 활동</a>
-        <a href="notifications.html" class="auth-utility hidden notification-link" title="알림">
+        <button type="button" id="notificationPopoverToggle"
+                class="utility-trigger auth-utility hidden notification-link"
+                onclick="toggleUtilityPopover('notificationPopover', 'notificationPopoverToggle')"
+                aria-expanded="false" aria-controls="notificationPopover">
             알림 <span id="notificationBadge" class="notification-badge hidden">0</span>
-        </a>
+        </button>
+        <section id="searchPopover" class="utility-popover utility-popover--search hidden"
+                 aria-label="통합 검색">
+            <div class="utility-popover__header">
+                <h2>통합 검색</h2>
+            </div>
+            <form id="utilitySearchForm" class="utility-search-form" role="search"
+                  onsubmit="submitUtilitySearch(event)">
+                <input type="search" id="utilitySearchInput" minlength="2" maxlength="100"
+                       aria-label="통합 검색어" placeholder="검색어를 입력하세요" required>
+                <button type="submit">검색</button>
+            </form>
+            <p id="utilitySearchStatus" class="utility-popover__status" aria-live="polite">
+                게시글, 질문, 자료, 사진을 검색할 수 있습니다.
+            </p>
+            <div id="utilitySearchResults" class="utility-result-list"></div>
+        </section>
+        <section id="notificationPopover" class="utility-popover utility-popover--notification hidden"
+                 aria-label="알림">
+            <div class="utility-popover__header">
+                <h2>알림</h2>
+                <button type="button" id="utilityReadAllBtn" class="utility-text-button"
+                        onclick="readAllUtilityNotifications()">모두 읽음</button>
+            </div>
+            <div id="utilityNotificationList" class="utility-result-list" aria-live="polite">
+                <p class="utility-popover__empty">알림을 불러오는 중...</p>
+            </div>
+        </section>
     `;
     topBar.insertBefore(utilityNav, authBar);
+}
+
+function closeUtilityPopovers() {
+    document.querySelectorAll(".utility-popover").forEach(panel => panel.classList.add("hidden"));
+    document.querySelectorAll(".utility-trigger[aria-expanded]").forEach(button => {
+        button.setAttribute("aria-expanded", "false");
+    });
+}
+
+function toggleUtilityPopover(panelId, toggleId) {
+    const panel = document.getElementById(panelId);
+    const toggle = document.getElementById(toggleId);
+    if (!panel || !toggle) return;
+
+    const shouldOpen = panel.classList.contains("hidden");
+    closeUtilityPopovers();
+    if (!shouldOpen) return;
+
+    panel.classList.remove("hidden");
+    toggle.setAttribute("aria-expanded", "true");
+    if (panelId === "searchPopover") {
+        document.getElementById("utilitySearchInput")?.focus();
+    } else {
+        loadNotificationPopover();
+    }
 }
 
 async function refreshNotificationBadge() {
@@ -297,13 +354,142 @@ async function refreshNotificationBadge() {
     }
 }
 
+async function loadNotificationPopover() {
+    const list = document.getElementById("utilityNotificationList");
+    if (!list || !auth.currentUser) return;
+    list.innerHTML = '<p class="utility-popover__empty">알림을 불러오는 중...</p>';
+
+    try {
+        const data = await requestAuthenticatedApi("/api/notifications");
+        const unreadItems = (data.items || []).filter(item => !item.read);
+        renderNotificationPopover(unreadItems);
+    } catch (error) {
+        list.innerHTML = `<p class="utility-popover__empty">${escapeHtml(error.message)}</p>`;
+    }
+}
+
+function renderNotificationPopover(items) {
+    const list = document.getElementById("utilityNotificationList");
+    if (!list) return;
+    list.replaceChildren();
+
+    if (!items.length) {
+        list.innerHTML = '<p class="utility-popover__empty">새 알림이 없습니다.</p>';
+        return;
+    }
+
+    items.forEach(item => {
+        const link = document.createElement("a");
+        link.className = "utility-result";
+        link.href = item.href || "index.html";
+        link.innerHTML = `
+            <strong>${escapeHtml(item.title || "알림")}</strong>
+            <span>${escapeHtml(item.message || "")}</span>
+            <time>${escapeHtml(formatDateTime(item.createdAt))}</time>
+        `;
+        link.addEventListener("click", event => {
+            event.preventDefault();
+            openUtilityNotification(item);
+        });
+        list.appendChild(link);
+    });
+}
+
+async function openUtilityNotification(item) {
+    await requestAuthenticatedApi(`/api/notifications/${encodeURIComponent(item.id)}/read`, {
+        method: "PUT"
+    }).catch(() => {});
+    location.href = item.href || "index.html";
+}
+
+async function readAllUtilityNotifications() {
+    try {
+        await requestAuthenticatedApi("/api/notifications/read-all", { method: "PUT" });
+        renderNotificationPopover([]);
+        const badge = document.getElementById("notificationBadge");
+        badge?.classList.add("hidden");
+        if (badge) badge.textContent = "0";
+    } catch (error) {
+        showToast(error.message, "error");
+    }
+}
+
+async function searchFromUtilityPopover(query) {
+    const status = document.getElementById("utilitySearchStatus");
+    const results = document.getElementById("utilitySearchResults");
+    if (!status || !results) return;
+
+    status.textContent = "검색 중...";
+    results.replaceChildren();
+    try {
+        const headers = { "ngrok-skip-browser-warning": "69420" };
+        if (auth.currentUser) {
+            headers.Authorization = `Bearer ${await auth.currentUser.getIdToken()}`;
+        }
+        const response = await fetch(`${API_BASE_URL}/api/search?q=${encodeURIComponent(query)}`, { headers });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "검색에 실패했습니다.");
+        renderUtilitySearchResults(data.items || []);
+        status.textContent = `검색 결과 ${data.count || 0}건`;
+    } catch (error) {
+        status.textContent = error.message;
+        results.replaceChildren();
+    }
+}
+
+function submitUtilitySearch(event) {
+    event.preventDefault();
+    const query = document.getElementById("utilitySearchInput")?.value.trim() || "";
+    if (query.length < 2) {
+        document.getElementById("utilitySearchStatus").textContent = "검색어를 2자 이상 입력해 주세요.";
+        return false;
+    }
+    searchFromUtilityPopover(query);
+    return false;
+}
+
+function renderUtilitySearchResults(items) {
+    const results = document.getElementById("utilitySearchResults");
+    if (!results) return;
+    results.replaceChildren();
+
+    if (!items.length) {
+        results.innerHTML = '<p class="utility-popover__empty">검색 결과가 없습니다.</p>';
+        return;
+    }
+
+    const typeNames = {
+        post: "자유 게시판",
+        question: "질문",
+        resource: "자료실",
+        photo: "활동 사진"
+    };
+    items.forEach(item => {
+        const link = document.createElement("a");
+        link.className = "utility-result";
+        link.href = item.href || "#";
+        link.innerHTML = `
+            <strong>${escapeHtml(item.title || "제목 없음")}</strong>
+            <span>${escapeHtml(item.summary || "내용 없음")}</span>
+            <time>${escapeHtml(typeNames[item.type] || item.type || "")}${item.date ? ` · ${escapeHtml(formatDateTime(item.date))}` : ""}</time>
+        `;
+        results.appendChild(link);
+    });
+}
+
 function initializeUtilityNavigation() {
     enhanceGlobalHeader();
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape") closeUtilityPopovers();
+    });
+
     auth.onAuthStateChanged(user => {
         document.querySelectorAll(".auth-utility").forEach(element => {
             element.classList.toggle("hidden", !user);
         });
-        if (user) refreshNotificationBadge();
+        if (user) {
+            refreshNotificationBadge();
+        }
     });
 }
 
