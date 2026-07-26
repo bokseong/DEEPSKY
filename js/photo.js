@@ -1,6 +1,7 @@
 let currentUser = null;
 let currentUserRole = "guest";
 let allPhotos = {};
+let photoDraft = null;
 
 auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
@@ -15,6 +16,12 @@ auth.onAuthStateChanged(async (user) => {
             if (status) status.innerText = `${userData.name || user.displayName || '사용자'}님 (${getRoleName(currentUserRole)})`;
             setProtectedPageAccess({ allowed: true });
             updateUploadAccess();
+            if (currentUserRole === "student" || currentUserRole === "admin") {
+                photoDraft = setupDraftAutosave({
+                    key: `deepsky:draft:photo:${currentUser.uid}`,
+                    fields: { title: "#pTitle" }
+                });
+            }
             await loadPhotos();
         } catch (error) {
             if (status) status.innerText = error.message;
@@ -93,6 +100,7 @@ function renderPhotos(data) {
         const div = document.createElement("div");
         const canDelete = currentUserRole === 'admin' || currentUser.uid === p.uid;
         div.className = "photo-card";
+        div.id = `photo-${key}`;
         div.innerHTML = `
             <img src="${escapeAttr(imageUrl)}" alt="${escapeAttr(p.title || '활동 사진')}" loading="lazy">
             <div class="photo-info">
@@ -114,33 +122,37 @@ function renderPhotos(data) {
 async function uploadPhoto() {
     const title = document.getElementById("pTitle").value;
     const fileInput = document.getElementById("pFile");
-    if (!title || fileInput.files.length === 0) return alert("제목과 사진을 모두 선택해주세요.");
+    if (!title || fileInput.files.length === 0) return showToast("제목과 사진을 모두 선택해 주세요.", "error");
+    if (fileInput.files.length > 10) return showToast("사진은 한 번에 최대 10개까지 선택할 수 있습니다.", "error");
 
     const formData = new FormData();
     formData.append("title", title);
     formData.append("uid", currentUser.uid);
     formData.append("author", currentUser.displayName || currentUser.email.split('@')[0]);
-    formData.append("file", fileInput.files[0]);
+    formData.append("date", new Date().toISOString());
+    Array.from(fileInput.files).forEach(file => formData.append("file", file));
 
     try {
-        const token = await currentUser.getIdToken();
-        const res = await fetch(`${API_BASE_URL}/api/photos`, {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${token}`,
-                "ngrok-skip-browser-warning": "69420"
-            },
-            body: formData
+        const button = document.querySelector(".btn-upload");
+        button.disabled = true;
+        await uploadAuthenticatedForm("/api/photos", {
+            formData,
+            onProgress: value => setUploadProgress(
+                document.getElementById("photoUploadProgress"),
+                value,
+                document.getElementById("photoUploadLabel")
+            )
         });
-        if (!res.ok) {
-            const errorData = await res.json().catch(() => ({}));
-            throw new Error(errorData.error || "업로드 실패");
-        }
-        alert("사진이 등록되었습니다!");
+        showToast("사진을 등록했습니다.", "success");
         document.getElementById("pTitle").value = "";
         fileInput.value = "";
-        loadPhotos();
-    } catch (err) { alert(err.message || "업로드 실패"); }
+        photoDraft?.clear();
+        await loadPhotos();
+        button.disabled = false;
+    } catch (err) {
+        document.querySelector(".btn-upload").disabled = false;
+        showToast(err.message || "업로드 실패", "error");
+    }
 }
 
 async function deletePhoto(id) {

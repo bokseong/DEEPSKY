@@ -2,6 +2,7 @@ let currentUser = null;
 let currentUserName = "익명";
 let currentUserRole = "guest";
 let cachedData = null;
+let questionDraft = null;
 
 auth.onAuthStateChanged(async (user) => {
     currentUser = user;
@@ -12,6 +13,12 @@ auth.onAuthStateChanged(async (user) => {
             currentUserName = userData.name || user.displayName || user.email.split('@')[0];
             currentUserRole = normalizeRole(userData.role);
             if (status) status.innerText = `${currentUserName}님 (${currentUserRole==='admin'?'관리자':(currentUserRole==='student'?'부원':'일반')})`;
+            if (!questionDraft) {
+                questionDraft = setupDraftAutosave({
+                    key: `deepsky:draft:question:${currentUser.uid}`,
+                    fields: { content: "#qInput" }
+                });
+            }
             renderList(cachedData);
         } catch (error) {
             if (status) status.innerText = error.message;
@@ -52,10 +59,10 @@ async function loadQuestions() {
 
 // 💡 새로운 질문 등록 (자체 5001번 ngrok 서버 연동 및 보안 규칙 매칭 버전)
 async function addQuestion() {
-    if (!currentUser) return alert("로그인 후 질문을 등록할 수 있습니다.");
+    if (!currentUser) return showToast("로그인 후 질문을 등록할 수 있습니다.", "error");
     const textInput = document.getElementById("qInput");
     const text = textInput.value.trim();
-    if(!text) return alert("질문을 입력해주세요.");
+    if(!text) return showToast("질문을 입력해 주세요.", "error");
 
     try {
         // 보안 규칙을 통과하고 우분투 DB에 question 항목으로 적재될 데이터 구조화
@@ -81,10 +88,11 @@ async function addQuestion() {
         if(!response.ok) throw new Error("서버 저장에 실패했습니다.");
 
         textInput.value = "";
-        alert("질문이 등록되었습니다.");
+        questionDraft?.clear();
+        showToast("질문을 등록했습니다.", "success");
         loadQuestions(); // 갱신된 리스트 새로 불러오기
     } catch (err) {
-        alert("등록 실패: 서버 및 보안 규칙 상태를 확인하세요.");
+        showToast(err.message || "질문 등록에 실패했습니다.", "error");
     }
 }
 
@@ -106,7 +114,11 @@ async function saveAnswer(qKey, answerInput) {
                 "Authorization": `Bearer ${token}`,
                 "ngrok-skip-browser-warning": "69420"
             },
-            body: JSON.stringify({ content: ansText, author: currentUserName })
+            body: JSON.stringify({
+                content: ansText,
+                author: currentUserName,
+                date: new Date().toISOString()
+            })
         });
 
         if(!response.ok) throw new Error("서버에 답변을 추가하지 못했습니다.");
@@ -177,6 +189,7 @@ function renderList(data) {
 
         const card = document.createElement("div");
         card.className = "q-card";
+        card.id = `question-${qKey}`;
         const canDeleteQuestion = isAdmin || isQAuthor;
 
         const meta = document.createElement("div");
@@ -220,6 +233,8 @@ function renderList(data) {
         }
         list.appendChild(card);
     });
+    const target = location.hash ? document.querySelector(location.hash) : null;
+    if (target) requestAnimationFrame(() => target.scrollIntoView({ block: "center" }));
 }
 
 function filterQuestions() { renderList(cachedData); }

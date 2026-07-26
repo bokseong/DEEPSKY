@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="logo.png" type="image/png">
+    <title>내 활동 | DEEP SKY</title>
+    <link rel="stylesheet" href="css/common.css">
+</head>
+<body>
+<div class="top-bar">
+    <a href="index.html" class="logo-area">
+        <img src="logo.png" alt="" aria-hidden="true">
+        <span>DEEP SKY</span>
+    </a>
+    <div class="auth-bar">
+        <span id="userStatus">확인 중...</span>
+        <button id="loginBtn" onclick="location.href='login.html'">로그인</button>
+        <button id="logoutBtn" class="hidden" onclick="logout()">로그아웃</button>
+    </div>
+</div>
+
+<header><h1>내 활동</h1></header>
+<nav aria-label="주요 메뉴">
+    <div class="nav-inner">
+        <a href="index.html">홈</a>
+        <a href="question.html">질문 게시판</a>
+        <a href="board.html">자유 게시판</a>
+        <a href="photo.html">활동 사진</a>
+        <a href="resource.html">자료실</a>
+        <a href="mypage.html">정보 수정</a>
+        <a href="notifications.html">알림</a>
+    </div>
+</nav>
+
+<main class="hub-container">
+    <div id="lockMessage" class="access-gate hidden"></div>
+    <div id="mainContent" class="hidden">
+        <div class="hub-toolbar">
+            <select id="activityFilter" aria-label="활동 유형">
+                <option value="all">모든 활동</option>
+                <option value="post">게시글</option>
+                <option value="comment">댓글</option>
+                <option value="question">질문</option>
+                <option value="reply">답변</option>
+                <option value="suggestion">건의</option>
+                <option value="photo">사진</option>
+                <option value="roleRequest">권한 요청</option>
+            </select>
+        </div>
+        <div id="activityList" class="hub-list" aria-live="polite"></div>
+    </div>
+</main>
+
+<footer>
+    © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
+    <br>
+    Email : leader.deepsky@gmail.com &nbsp; | &nbsp; Designed by jw-astro09
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="js/common.js"></script>
+<script src="js/activity.js"></script>
+</body>
+</html>

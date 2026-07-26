@@ -54,7 +54,11 @@
             <h3 style="margin-top:0; color:#7fc7ff;">사진 등록</h3>
             <p style="font-size:14px; color:#ccc; margin-bottom:15px;">서버에 사진을 바로 업로드합니다.</p>
             <input type="text" id="pTitle" aria-label="사진 제목" placeholder="사진 제목">
-            <input type="file" id="pFile" accept="image/*" aria-label="업로드할 사진" style="width: 100%; padding: 12px; margin-bottom: 10px; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px;">
+            <input type="file" id="pFile" accept="image/*" multiple aria-label="업로드할 사진" style="width: 100%; padding: 12px; margin-bottom: 10px; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px;">
+            <div class="upload-progress" aria-live="polite">
+                <progress id="photoUploadProgress" max="100" value="0" hidden></progress>
+                <span id="photoUploadLabel"></span>
+            </div>
             <button class="btn-upload" onclick="uploadPhoto()">갤러리에 올리기</button>
         </div>
 

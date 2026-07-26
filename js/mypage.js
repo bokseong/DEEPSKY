@@ -1,4 +1,5 @@
 auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+let roleRequestDraft = null;
 
 // 로그인 상태 감지
 auth.onAuthStateChanged(async (user) => {
@@ -27,6 +28,15 @@ auth.onAuthStateChanged(async (user) => {
             if(status) status.innerText = `${currentName}님 (${roleName})`;
             if(displayRole) displayRole.innerText = roleName;
             if(nameInput) nameInput.value = currentName;
+            if (!roleRequestDraft) {
+                roleRequestDraft = setupDraftAutosave({
+                    key: `deepsky:draft:role-request:${user.uid}`,
+                    fields: {
+                        requestedRole: "#requestedRole",
+                        reason: "#requestReason"
+                    }
+                });
+            }
             setProtectedPageAccess({ allowed: true });
         } catch (error) {
             if(status) status.innerText = error.message;
@@ -65,7 +75,7 @@ async function updateProfile() {
     }
 }
 
-async function sendRequestEmail() {
+async function sendRequestEmail(button) {
     const user = auth.currentUser;
     const roleElement = document.getElementById("requestedRole");
     const reasonElement = document.getElementById("requestReason");
@@ -82,7 +92,7 @@ async function sendRequestEmail() {
     }
 
     if (confirm(`[${requestedRoleName}] 등급으로 조정을 요청하시겠습니까?`)) {
-        const btn = event.currentTarget;
+        const btn = button;
         const originalText = btn.innerText;
         btn.disabled = true;
         btn.innerText = "전송 중...";
@@ -107,10 +117,11 @@ async function sendRequestEmail() {
                 throw new Error(errorData.error || "등급 요청 실패");
             }
 
-            alert("성공적으로 요청을 보냈습니다. 관리자 확인 후 반영됩니다.");
+            showToast("요청을 보냈습니다. 관리자 확인 후 반영됩니다.", "success");
             reasonElement.value = "";
+            roleRequestDraft?.clear();
         } catch (error) {
-            alert("요청 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+            showToast(error.message || "요청 저장 중 오류가 발생했습니다.", "error");
         } finally {
             btn.disabled = false;
             btn.innerText = originalText;

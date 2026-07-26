@@ -2,6 +2,7 @@ let currentUser = null;
 let currentUserName = "익명";
 let currentUserRole = "guest";
 let originalPost = null;
+let postDraft = null;
 
 const urlParams = new URLSearchParams(window.location.search);
 const editPostId = urlParams.get("id");
@@ -18,7 +19,11 @@ auth.onAuthStateChanged(async (user) => {
             if (status) status.innerText = `${currentUserName}님 (${currentUserRole==='admin'?'관리자':(currentUserRole==='student'?'부원':'일반')})`;
             if (currentUserRole === "admin" || currentUserRole === "student") {
                 setProtectedPageAccess({ allowed: true });
-                if (isEditMode && !originalPost) initEditPage();
+                if (isEditMode && !originalPost) {
+                    initEditPage();
+                } else if (!isEditMode && !postDraft) {
+                    initializePostDraft();
+                }
             } else {
                 setProtectedPageAccess({
                     allowed: false,
@@ -59,7 +64,7 @@ async function initEditPage() {
     try {
         const post = await fetchPostForEdit(editPostId);
         if (post.uid !== currentUser.uid && currentUserRole !== "admin") {
-            alert("수정 권한이 없습니다.");
+            showToast("수정 권한이 없습니다.", "error");
             location.href = "board.html";
             return;
         }
@@ -75,10 +80,26 @@ async function initEditPage() {
             oldFileInfo.classList.remove("hidden");
             oldFileInfo.innerText = `현재 등록된 파일: ${post.file_name || post.fileName || "파일 존재"}`;
         }
+        initializePostDraft(true);
     } catch (err) {
-        alert(err.message || "게시글 정보를 불러오는 중 오류가 발생했습니다.");
+        showToast(err.message || "게시글 정보를 불러오는 중 오류가 발생했습니다.", "error");
         location.href = "board.html";
     }
+}
+
+function initializePostDraft(overwrite = false) {
+    if (!currentUser || postDraft) return;
+    const suffix = isEditMode ? `edit:${editPostId}` : "new";
+    postDraft = setupDraftAutosave({
+        key: `deepsky:draft:write:${currentUser.uid}:${suffix}`,
+        overwrite,
+        fields: {
+            title: "#postTitle",
+            content: "#postContent",
+            link: ".postFileUrl",
+            linkName: ".postFileName"
+        }
+    });
 }
 
 async function fetchPostForEdit(id) {
@@ -121,12 +142,11 @@ async function submitPost() {
     let link = linkInput ? linkInput.value.trim() : "";
     const linkName = linkNameInput ? linkNameInput.value.trim() : "";
 
-    if (!title || !content) return alert("제목과 내용을 입력해주세요.");
-    if (!currentUser) return alert("인증 오류가 발생했습니다.");
+    if (!title || !content) return showToast("제목과 내용을 입력해 주세요.", "error");
+    if (!currentUser) return showToast("인증 오류가 발생했습니다.", "error");
     if (link && !/^https?:\/\//i.test(link)) link = "https://" + link;
 
     try {
-        const token = await currentUser.getIdToken();
         const formData = new FormData();
         formData.append("title", title);
         formData.append("content", content);
@@ -154,24 +174,27 @@ async function submitPost() {
             formData.append("file", fileInput.files[0]);
         }
 
-        const url = isEditMode ? `${API_BASE_URL}/api/freeboard/${editPostId}` : `${API_BASE_URL}/api/freeboard`;
+        const path = isEditMode ? `/api/freeboard/${encodeURIComponent(editPostId)}` : "/api/freeboard";
         const method = isEditMode ? "PUT" : "POST";
-        const res = await fetch(url, {
+        const submitButton = document.getElementById("submitBtn");
+        submitButton.disabled = true;
+        await uploadAuthenticatedForm(path, {
             method,
-            headers: {
-                "Authorization": `Bearer ${token}`,
-                "ngrok-skip-browser-warning": "69420"
-            },
-            body: formData
+            formData,
+            onProgress: value => setUploadProgress(
+                document.getElementById("postUploadProgress"),
+                value,
+                document.getElementById("postUploadLabel")
+            )
         });
-
-        if (!res.ok) throw new Error("서버 저장 처리 실패");
-
-        alert(isEditMode ? "게시글이 성공적으로 수정되었습니다." : "게시글이 성공적으로 등록되었습니다.");
+        postDraft?.clear();
+        showToast(isEditMode ? "게시글을 수정했습니다." : "게시글을 등록했습니다.", "success", 1200);
+        await new Promise(resolve => setTimeout(resolve, 350));
         location.href = "board.html";
     } catch (err) {
         console.error(err);
-        alert("저장 중 통신 오류가 발생했습니다.");
+        showToast(err.message || "저장 중 통신 오류가 발생했습니다.", "error");
+        document.getElementById("submitBtn").disabled = false;
     }
 }
 
@@ -184,7 +207,7 @@ function getPostTime(post) {
 }
 
 function addLinkField() {
-    alert("현재 자유게시판은 공유 링크 1개만 첨부할 수 있습니다.");
+    showToast("공유 링크는 1개만 첨부할 수 있습니다.", "info");
 }
 
 function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.href="board.html"); }

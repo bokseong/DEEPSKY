@@ -47,7 +47,11 @@
     </div>
 
         <textarea id="postContent" aria-label="게시글 내용" placeholder="내용을 자유롭게 입력하세요..."></textarea>
-        
+
+        <div class="upload-progress" aria-live="polite">
+            <progress id="postUploadProgress" max="100" value="0" hidden></progress>
+            <span id="postUploadLabel"></span>
+        </div>
         <button id="submitBtn" class="btn-submit" onclick="submitPost()">게시글 등록하기</button>
         <button class="btn-cancel" onclick="history.back()">취소</button>
     </div>

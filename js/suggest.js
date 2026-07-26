@@ -1,6 +1,7 @@
 let currentUser = null;
 let currentUserRole = "guest";
 let currentUserName = "익명";
+let suggestionDraft = null;
 
 auth.onAuthStateChanged(async (user) => {
     const status = document.getElementById("userStatus");
@@ -19,6 +20,12 @@ auth.onAuthStateChanged(async (user) => {
 
             if(currentUserRole === 'admin' || currentUserRole === 'student') {
                 setProtectedPageAccess({ allowed: true });
+                if (!suggestionDraft) {
+                    suggestionDraft = setupDraftAutosave({
+                        key: `deepsky:draft:suggestion:${currentUser.uid}`,
+                        fields: { content: "#sInput" }
+                    });
+                }
                 loadSuggestions();
             } else {
                 setProtectedPageAccess({
@@ -54,7 +61,7 @@ auth.onAuthStateChanged(async (user) => {
 
 async function addSuggestion() {
 const content = document.getElementById("sInput").value.trim();
-if(!content) return alert("건의 내용을 입력하세요.");
+if(!content) return showToast("건의 내용을 입력하세요.", "error");
 
      const isAnon = document.getElementById("sAnon")?.checked;
      const authorName = isAnon ? "익명" : currentUserName;
@@ -77,12 +84,13 @@ if(!content) return alert("건의 내용을 입력하세요.");
              })
          });
          if (!response.ok) throw new Error("건의 등록 실패");
-         alert("건의가 성공적으로 접수되었습니다!");
+         showToast("건의를 접수했습니다.", "success");
          document.getElementById("sInput").value = "";
          if(document.getElementById("sAnon")) document.getElementById("sAnon").checked = false;
+         suggestionDraft?.clear();
 
          if(currentUserRole === 'admin' || currentUserRole === 'student') loadSuggestions();
-     } catch (err) { alert("접수 중 에러가 발생했습니다."); }
+     } catch (err) { showToast(err.message || "건의 접수에 실패했습니다.", "error"); }
  }
 async function submitSuggest() {
     const title = document.getElementById("sTitle").value;

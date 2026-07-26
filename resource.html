@@ -52,7 +52,11 @@
             <input type="text" id="fileTitle" aria-label="자료 제목" placeholder="자료 제목">
             <input type="text" id="fileDesc" aria-label="자료 설명" placeholder="자료 설명">
             <input type="url" id="fileLink" aria-label="자료 외부 링크" placeholder="다운로드/보기 (외부 링크)">
-            <input type="file" id="fileData" aria-label="업로드할 자료 파일" style="width: 100%; padding: 12px; margin-bottom: 10px; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px;">
+            <input type="file" id="fileData" multiple aria-label="업로드할 자료 파일" style="width: 100%; padding: 12px; margin-bottom: 10px; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px;">
+            <div class="upload-progress" aria-live="polite">
+                <progress id="resourceUploadProgress" max="100" value="0" hidden></progress>
+                <span id="resourceUploadLabel"></span>
+            </div>
             <button class="btn-main" onclick="uploadResource()">자료 게시하기</button>
         </div>
 

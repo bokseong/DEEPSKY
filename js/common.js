@@ -112,6 +112,41 @@ async function requestAuthenticatedApi(path, options = {}) {
     return data;
 }
 
+async function uploadAuthenticatedForm(path, {
+    method = "POST",
+    formData,
+    onProgress = () => {}
+} = {}) {
+    const user = auth.currentUser;
+    if (!user) throw new Error("로그인이 필요합니다.");
+    const token = await user.getIdToken();
+
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open(method, `${API_BASE_URL}${path}`);
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        xhr.setRequestHeader("ngrok-skip-browser-warning", "69420");
+        xhr.responseType = "json";
+
+        xhr.upload.addEventListener("progress", event => {
+            if (!event.lengthComputable) return;
+            onProgress(Math.round((event.loaded / event.total) * 100));
+        });
+        xhr.addEventListener("load", () => {
+            const data = xhr.response || {};
+            if (xhr.status >= 200 && xhr.status < 300) {
+                onProgress(100);
+                resolve(data);
+                return;
+            }
+            reject(new Error(data.error || `서버 요청에 실패했습니다. (${xhr.status})`));
+        });
+        xhr.addEventListener("error", () => reject(new Error("서버에 연결할 수 없습니다.")));
+        xhr.addEventListener("abort", () => reject(new Error("업로드가 취소되었습니다.")));
+        xhr.send(formData);
+    });
+}
+
 async function getServerUserProfile(user = auth.currentUser) {
     if (!user) throw new Error("로그인이 필요합니다.");
     return requestAuthenticatedApi("/api/me");
@@ -132,6 +167,182 @@ function normalizePost(post, id) {
     const normalized = post || {};
     normalized.id = normalized.id || id;
     return normalized;
+}
+
+function showToast(message, type = "info", duration = 3200) {
+    let region = document.getElementById("toast-region");
+    if (!region) {
+        region = document.createElement("div");
+        region.id = "toast-region";
+        region.className = "toast-region";
+        region.setAttribute("aria-live", "polite");
+        region.setAttribute("aria-atomic", "true");
+        document.body.appendChild(region);
+    }
+
+    const toast = document.createElement("div");
+    toast.className = `toast toast--${type}`;
+    toast.setAttribute("role", type === "error" ? "alert" : "status");
+    toast.textContent = String(message || "");
+    region.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add("toast--visible"));
+
+    window.setTimeout(() => {
+        toast.classList.remove("toast--visible");
+        window.setTimeout(() => toast.remove(), 180);
+    }, duration);
+    return toast;
+}
+
+function setupDraftAutosave({ key, fields, restore = true, overwrite = false }) {
+    const entries = Object.entries(fields || {})
+        .map(([name, target]) => [
+            name,
+            typeof target === "string" ? document.querySelector(target) : target
+        ])
+        .filter(([, element]) => element);
+    let timer = null;
+
+    const save = () => {
+        const values = Object.fromEntries(entries.map(([name, element]) => [name, element.value]));
+        if (Object.values(values).every(value => !String(value || "").trim())) {
+            localStorage.removeItem(key);
+        } else {
+            localStorage.setItem(key, JSON.stringify({ values, savedAt: new Date().toISOString() }));
+        }
+    };
+
+    const scheduleSave = () => {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(save, 500);
+    };
+
+    entries.forEach(([, element]) => element.addEventListener("input", scheduleSave));
+
+    if (restore) {
+        try {
+            const saved = JSON.parse(localStorage.getItem(key) || "null");
+            let restored = false;
+            entries.forEach(([name, element]) => {
+                const value = saved?.values?.[name];
+                if ((overwrite || !element.value) && typeof value === "string" && value) {
+                    element.value = value;
+                    restored = true;
+                }
+            });
+            if (restored) showToast("임시 저장된 내용을 복원했습니다.", "info");
+        } catch {
+            localStorage.removeItem(key);
+        }
+    }
+
+    return {
+        clear() {
+            window.clearTimeout(timer);
+            localStorage.removeItem(key);
+        },
+        save
+    };
+}
+
+function setUploadProgress(progressElement, value, labelElement = null) {
+    const progress = Math.max(0, Math.min(100, Number(value) || 0));
+    if (progressElement) {
+        progressElement.hidden = false;
+        progressElement.value = progress;
+    }
+    if (labelElement) labelElement.textContent = `업로드 ${progress}%`;
+}
+
+function formatDateTime(value) {
+    if (!value) return "";
+    const numeric = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value;
+    const date = new Date(numeric);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return new Intl.DateTimeFormat("ko-KR", {
+        dateStyle: "medium",
+        timeStyle: "short"
+    }).format(date);
+}
+
+function enhanceGlobalHeader() {
+    const topBar = document.querySelector(".top-bar");
+    const authBar = topBar?.querySelector(".auth-bar");
+    if (!topBar || !authBar || document.getElementById("utility-nav")) return;
+
+    const utilityNav = document.createElement("div");
+    utilityNav.id = "utility-nav";
+    utilityNav.className = "utility-nav";
+    utilityNav.setAttribute("aria-label", "사용자 도구");
+    utilityNav.innerHTML = `
+        <a href="search.html" title="통합 검색">검색</a>
+        <a href="activity.html" class="auth-utility hidden" title="내 활동">내 활동</a>
+        <a href="notifications.html" class="auth-utility hidden notification-link" title="알림">
+            알림 <span id="notificationBadge" class="notification-badge hidden">0</span>
+        </a>
+        <button type="button" id="installAppBtn" class="install-app-btn hidden">앱 설치</button>
+    `;
+    topBar.insertBefore(utilityNav, authBar);
+}
+
+async function refreshNotificationBadge() {
+    const badge = document.getElementById("notificationBadge");
+    if (!badge || !auth.currentUser) return;
+    try {
+        const data = await requestAuthenticatedApi("/api/notifications");
+        const count = Number(data.unreadCount) || 0;
+        badge.textContent = count > 99 ? "99+" : String(count);
+        badge.classList.toggle("hidden", count === 0);
+    } catch {
+        badge.classList.add("hidden");
+    }
+}
+
+function initializeUtilityNavigation() {
+    enhanceGlobalHeader();
+    auth.onAuthStateChanged(user => {
+        document.querySelectorAll(".auth-utility").forEach(element => {
+            element.classList.toggle("hidden", !user);
+        });
+        if (user) refreshNotificationBadge();
+    });
+}
+
+let deferredInstallPrompt = null;
+
+function initializePwa() {
+    if (!document.querySelector('link[rel="manifest"]')) {
+        const manifest = document.createElement("link");
+        manifest.rel = "manifest";
+        manifest.href = "manifest.webmanifest";
+        document.head.appendChild(manifest);
+    }
+    if (!document.querySelector('meta[name="theme-color"]')) {
+        const themeColor = document.createElement("meta");
+        themeColor.name = "theme-color";
+        themeColor.content = "#070a1d";
+        document.head.appendChild(themeColor);
+    }
+
+    if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+        navigator.serviceWorker.register("./sw.js").catch(error => {
+            console.warn("서비스 워커 등록 실패:", error);
+        });
+    }
+
+    window.addEventListener("beforeinstallprompt", event => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+        document.getElementById("installAppBtn")?.classList.remove("hidden");
+    });
+
+    document.getElementById("installAppBtn")?.addEventListener("click", async () => {
+        if (!deferredInstallPrompt) return;
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+        document.getElementById("installAppBtn")?.classList.add("hidden");
+    });
 }
 
 function getApiStatusBanner() {
@@ -176,6 +387,8 @@ async function checkApiAvailability() {
 }
 
 function startApiStatusMonitor() {
+    initializeUtilityNavigation();
+    initializePwa();
     checkApiAvailability();
     window.addEventListener("online", checkApiAvailability);
 }

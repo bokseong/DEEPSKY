@@ -2,6 +2,7 @@ let currentUser = null;
 let currentUserName = "익명";
 let currentUserRole = "guest";
 let allResources = {};
+let resourceDraft = null;
 
 auth.onAuthStateChanged(async (user) => {
     currentUser = user;
@@ -21,6 +22,16 @@ auth.onAuthStateChanged(async (user) => {
                 setProtectedPageAccess({ allowed: true });
                 loadResources();
                 document.getElementById("adminUpload")?.classList.toggle("hidden", currentUserRole !== 'admin');
+                if (currentUserRole === "admin" && !resourceDraft) {
+                    resourceDraft = setupDraftAutosave({
+                        key: `deepsky:draft:resource:${currentUser.uid}`,
+                        fields: {
+                            title: "#fileTitle",
+                            description: "#fileDesc",
+                            link: "#fileLink"
+                        }
+                    });
+                }
             } else {
                 document.getElementById("adminUpload")?.classList.add("hidden");
                 setProtectedPageAccess({
@@ -90,6 +101,7 @@ function renderResources(data) {
         const item = data[key] || {};
         const div = document.createElement("div");
         div.className = "resource-item";
+        div.id = `resource-${key}`;
         div.innerHTML = `
             <div style="margin-bottom:10px;"><strong>${escapeHtml(item.title || '제목 없음')}</strong> (${escapeHtml(formatResourceDate(item.date))})</div>
             <div style="font-size:14px; color:#ddd;">${escapeHtml(item.content || '')}</div>
@@ -154,14 +166,15 @@ function renderResources(data) {
 
 // 파일과 데이터를 자체 서버로 업로드 (multipart/form-data)
 async function uploadResource() {
-if (currentUserRole !== 'admin') return alert("관리자만 업로드할 수 있습니다.");
+if (currentUserRole !== 'admin') return showToast("관리자만 업로드할 수 있습니다.", "error");
 
      const title = document.getElementById("fileTitle").value.trim();
      const desc = document.getElementById("fileDesc").value.trim();
      const link = document.getElementById("fileLink").value.trim();
      const fileInput = document.getElementById("fileData"); // 수정된 ID 매칭
 
-     if (!title) return alert("제목을 입력하세요.");
+     if (!title) return showToast("제목을 입력하세요.", "error");
+     if (fileInput?.files.length > 10) return showToast("파일은 한 번에 최대 10개까지 선택할 수 있습니다.", "error");
 
      const formData = new FormData();
      formData.append("title", title);
@@ -169,29 +182,31 @@ if (currentUserRole !== 'admin') return alert("관리자만 업로드할 수 있
      formData.append("link", link);
      formData.append("author", currentUserName);
      formData.append("date", new Date().toLocaleDateString('ko-KR'));
-     if (fileInput && fileInput.files.length > 0) formData.append("file", fileInput.files[0]);
+     if (fileInput) Array.from(fileInput.files).forEach(file => formData.append("file", file));
 
      try {
-         const token = await currentUser.getIdToken();
-         const res = await fetch(`${API_BASE_URL}/api/resources`, {
-             method: "POST",
-             headers: {
-                 "Authorization": `Bearer ${token}`,
-                 "ngrok-skip-browser-warning": "69420"
-             },
-             body: formData
+         const button = document.querySelector("#adminUpload .btn-main");
+         button.disabled = true;
+         await uploadAuthenticatedForm("/api/resources", {
+             formData,
+             onProgress: value => setUploadProgress(
+                 document.getElementById("resourceUploadProgress"),
+                 value,
+                 document.getElementById("resourceUploadLabel")
+             )
          });
-         if (!res.ok) {
-             const errorData = await res.json().catch(() => ({}));
-             throw new Error(errorData.error || "업로드 실패");
-         }
-         alert("자료 등록 완료");
+         showToast("자료를 등록했습니다.", "success");
          document.getElementById("fileTitle").value = "";
          document.getElementById("fileDesc").value = "";
          document.getElementById("fileLink").value = "";
          if(fileInput) fileInput.value = "";
-         loadResources();
-    } catch (err) { alert(err.message || "업로드 에러"); }
+         resourceDraft?.clear();
+         await loadResources();
+         button.disabled = false;
+    } catch (err) {
+        document.querySelector("#adminUpload .btn-main").disabled = false;
+        showToast(err.message || "업로드 에러", "error");
+    }
 }
 
 async function deleteResource(id) {

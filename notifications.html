@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="logo.png" type="image/png">
+    <title>알림 | DEEP SKY</title>
+    <link rel="stylesheet" href="css/common.css">
+</head>
+<body>
+<div class="top-bar">
+    <a href="index.html" class="logo-area">
+        <img src="logo.png" alt="" aria-hidden="true">
+        <span>DEEP SKY</span>
+    </a>
+    <div class="auth-bar">
+        <span id="userStatus">확인 중...</span>
+        <button id="loginBtn" onclick="location.href='login.html'">로그인</button>
+        <button id="logoutBtn" class="hidden" onclick="logout()">로그아웃</button>
+    </div>
+</div>
+
+<header><h1>알림</h1></header>
+<nav aria-label="주요 메뉴">
+    <div class="nav-inner">
+        <a href="index.html">홈</a>
+        <a href="question.html">질문 게시판</a>
+        <a href="board.html">자유 게시판</a>
+        <a href="activity.html">내 활동</a>
+        <a href="mypage.html">정보 수정</a>
+    </div>
+</nav>
+
+<main class="hub-container">
+    <div id="lockMessage" class="access-gate hidden"></div>
+    <div id="mainContent" class="hidden">
+        <div class="hub-toolbar">
+            <button type="button" id="readAllBtn" class="hub-button hub-button--secondary">모두 읽음</button>
+        </div>
+        <div id="notificationList" class="hub-list" aria-live="polite"></div>
+    </div>
+</main>
+
+<footer>
+    © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
+    <br>
+    Email : leader.deepsky@gmail.com &nbsp; | &nbsp; Designed by jw-astro09
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="js/common.js"></script>
+<script src="js/notifications.js"></script>
+</body>
+</html>
