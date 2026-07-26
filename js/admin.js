@@ -1,5 +1,23 @@
 let currentUser = null;
 let currentUserRole = "guest";
+let adminActivityItems = [];
+
+const ADMIN_ACTIVITY_CATEGORY_LABELS = {
+    post: "게시글",
+    comment: "댓글",
+    question: "질문",
+    reply: "답변",
+    suggestion: "건의",
+    photo: "사진",
+    resource: "자료",
+    other: "기타"
+};
+
+const ADMIN_ACTIVITY_ACTION_LABELS = {
+    create: "작성",
+    update: "수정",
+    delete: "삭제"
+};
 
 // 관리자 권한 검증 및 초기화 데이터 로드
 auth.onAuthStateChanged(async (user) => {
@@ -27,6 +45,7 @@ auth.onAuthStateChanged(async (user) => {
                 loadAllUsers();
                 loadRoleRequests();
                 loadServerSuggestions();
+                loadAdminActivity();
             }
         } catch (error) {
             document.getElementById("userStatus").innerText = error.message || "권한 확인 실패";
@@ -51,6 +70,128 @@ auth.onAuthStateChanged(async (user) => {
         });
     }
 });
+
+document.getElementById("adminActivityFilter")?.addEventListener("change", renderAdminActivity);
+document.getElementById("adminActivityRefresh")?.addEventListener("click", loadAdminActivity);
+
+async function loadAdminActivity() {
+    const list = document.getElementById("adminActivityList");
+    const summary = document.getElementById("adminActivitySummary");
+    const refreshButton = document.getElementById("adminActivityRefresh");
+    if (!list || !summary || !refreshButton) return;
+
+    refreshButton.disabled = true;
+    refreshButton.textContent = "불러오는 중";
+    summary.textContent = "최근 활동 기록을 불러오는 중입니다.";
+
+    try {
+        const data = await requestAuthenticatedApi("/api/admin/activity");
+        adminActivityItems = Array.isArray(data.items) ? data.items : [];
+        renderAdminActivity();
+    } catch (error) {
+        adminActivityItems = [];
+        list.innerHTML = "";
+        const message = document.createElement("p");
+        message.className = "admin-activity-empty admin-activity-error";
+        message.textContent = error.message || "서버 활동 기록을 불러오지 못했습니다.";
+        list.appendChild(message);
+        summary.textContent = "활동 기록 조회에 실패했습니다.";
+    } finally {
+        refreshButton.disabled = false;
+        refreshButton.textContent = "새로고침";
+    }
+}
+
+function renderAdminActivity() {
+    const list = document.getElementById("adminActivityList");
+    const summary = document.getElementById("adminActivitySummary");
+    const filter = document.getElementById("adminActivityFilter");
+    if (!list || !summary) return;
+
+    const selectedCategory = filter?.value || "all";
+    const visibleItems = selectedCategory === "all"
+        ? adminActivityItems
+        : adminActivityItems.filter(item => item.category === selectedCategory);
+
+    list.innerHTML = "";
+    summary.textContent = `최근 7일 전체 ${adminActivityItems.length}건 · 현재 ${visibleItems.length}건 표시`;
+
+    if (visibleItems.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "admin-activity-empty";
+        empty.textContent = selectedCategory === "all"
+            ? "최근 7일 동안 기록된 활동이 없습니다."
+            : "선택한 종류의 활동이 없습니다.";
+        list.appendChild(empty);
+        return;
+    }
+
+    visibleItems.forEach(item => {
+        const article = document.createElement("article");
+        article.className = `admin-activity-item action-${item.action || "create"}`;
+
+        const meta = document.createElement("div");
+        meta.className = "admin-activity-meta";
+
+        const labels = document.createElement("div");
+        labels.className = "admin-activity-labels";
+
+        const category = document.createElement("span");
+        category.className = "admin-activity-category";
+        category.textContent = ADMIN_ACTIVITY_CATEGORY_LABELS[item.category] || ADMIN_ACTIVITY_CATEGORY_LABELS.other;
+
+        const action = document.createElement("span");
+        action.className = `admin-activity-action action-${item.action || "create"}`;
+        action.textContent = ADMIN_ACTIVITY_ACTION_LABELS[item.action] || "활동";
+        labels.append(category, action);
+
+        const time = document.createElement("time");
+        time.dateTime = item.occurredAt || "";
+        time.textContent = formatAdminActivityTime(item.occurredAt);
+        meta.append(labels, time);
+
+        const title = document.createElement("h3");
+        title.textContent = item.title || "제목 없음";
+
+        const actor = document.createElement("p");
+        actor.className = "admin-activity-actor";
+        const actorName = item.actorName || item.actorEmail || "알 수 없음";
+        actor.textContent = item.actorEmail && item.actorEmail !== actorName
+            ? `${actorName} (${item.actorEmail})`
+            : actorName;
+
+        article.append(meta, title, actor);
+
+        if (item.detail) {
+            const detail = document.createElement("p");
+            detail.className = "admin-activity-detail";
+            detail.textContent = item.detail;
+            article.appendChild(detail);
+        }
+
+        if (item.href) {
+            const link = document.createElement("a");
+            link.className = "admin-activity-link";
+            link.href = item.href;
+            link.textContent = item.action === "delete" ? "관련 목록 보기" : "내용 보기";
+            article.appendChild(link);
+        }
+
+        list.appendChild(article);
+    });
+}
+
+function formatAdminActivityTime(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value || "시간 정보 없음";
+    return new Intl.DateTimeFormat("ko-KR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+    }).format(date);
+}
 
 // ==========================================
 // [기능 1] 전체 회원 목록 및 등급 관리

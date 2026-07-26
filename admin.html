@@ -73,6 +73,30 @@
             <div id="suggestManagerList" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;"></div>
         </div>
         </div>
+
+        <section class="admin-activity-section" aria-labelledby="adminActivityTitle">
+            <div class="admin-activity-header">
+                <div>
+                    <h2 id="adminActivityTitle">최근 7일 서버 활동</h2>
+                    <p id="adminActivitySummary" aria-live="polite">활동 기록을 불러오는 중입니다.</p>
+                </div>
+                <div class="admin-activity-controls">
+                    <label for="adminActivityFilter">종류</label>
+                    <select id="adminActivityFilter">
+                        <option value="all">전체</option>
+                        <option value="post">게시글</option>
+                        <option value="comment">댓글</option>
+                        <option value="question">질문</option>
+                        <option value="reply">답변</option>
+                        <option value="suggestion">건의</option>
+                        <option value="photo">사진</option>
+                        <option value="resource">자료</option>
+                    </select>
+                    <button id="adminActivityRefresh" type="button">새로고침</button>
+                </div>
+            </div>
+            <div id="adminActivityList" class="admin-activity-list" aria-live="polite"></div>
+        </section>
     </div>
 </div>
 
