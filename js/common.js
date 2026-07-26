@@ -280,7 +280,6 @@ function enhanceGlobalHeader() {
         <a href="notifications.html" class="auth-utility hidden notification-link" title="알림">
             알림 <span id="notificationBadge" class="notification-badge hidden">0</span>
         </a>
-        <button type="button" id="installAppBtn" class="install-app-btn hidden">앱 설치</button>
     `;
     topBar.insertBefore(utilityNav, authBar);
 }
@@ -308,41 +307,12 @@ function initializeUtilityNavigation() {
     });
 }
 
-let deferredInstallPrompt = null;
-
-function initializePwa() {
-    if (!document.querySelector('link[rel="manifest"]')) {
-        const manifest = document.createElement("link");
-        manifest.rel = "manifest";
-        manifest.href = "manifest.webmanifest";
-        document.head.appendChild(manifest);
-    }
-    if (!document.querySelector('meta[name="theme-color"]')) {
-        const themeColor = document.createElement("meta");
-        themeColor.name = "theme-color";
-        themeColor.content = "#070a1d";
-        document.head.appendChild(themeColor);
-    }
-
+function cleanupLegacyPwa() {
     if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
-        navigator.serviceWorker.register("./sw.js").catch(error => {
-            console.warn("서비스 워커 등록 실패:", error);
-        });
+        navigator.serviceWorker.getRegistrations()
+            .then(registrations => Promise.all(registrations.map(registration => registration.update())))
+            .catch(() => {});
     }
-
-    window.addEventListener("beforeinstallprompt", event => {
-        event.preventDefault();
-        deferredInstallPrompt = event;
-        document.getElementById("installAppBtn")?.classList.remove("hidden");
-    });
-
-    document.getElementById("installAppBtn")?.addEventListener("click", async () => {
-        if (!deferredInstallPrompt) return;
-        deferredInstallPrompt.prompt();
-        await deferredInstallPrompt.userChoice;
-        deferredInstallPrompt = null;
-        document.getElementById("installAppBtn")?.classList.add("hidden");
-    });
 }
 
 function getApiStatusBanner() {
@@ -388,7 +358,7 @@ async function checkApiAvailability() {
 
 function startApiStatusMonitor() {
     initializeUtilityNavigation();
-    initializePwa();
+    cleanupLegacyPwa();
     checkApiAvailability();
     window.addEventListener("online", checkApiAvailability);
 }

@@ -140,8 +140,7 @@ textarea:focus-visible,
     padding: 0 12px;
 }
 
-.utility-nav a,
-.install-app-btn {
+.utility-nav a {
     position: relative;
     min-height: 36px;
     padding: 8px 10px;
@@ -156,8 +155,7 @@ textarea:focus-visible,
     cursor: pointer;
 }
 
-.utility-nav a:hover,
-.install-app-btn:hover {
+.utility-nav a:hover {
     border-color: #3a5aff;
     background: #11153a;
     color: #7fc7ff;
