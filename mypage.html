@@ -119,6 +119,25 @@
             </tbody>
         </table>
     </div>
+
+    <section id="activitySection" class="activity-section" aria-labelledby="activityTitle">
+        <div class="activity-section__header">
+            <h2 id="activityTitle">내 활동</h2>
+            <select id="activityFilter" aria-label="활동 유형">
+                <option value="all">모든 활동</option>
+                <option value="post">게시글</option>
+                <option value="comment">댓글</option>
+                <option value="question">질문</option>
+                <option value="reply">답변</option>
+                <option value="suggestion">건의</option>
+                <option value="photo">사진</option>
+                <option value="roleRequest">권한 요청</option>
+            </select>
+        </div>
+        <div id="activityList" class="hub-list" aria-live="polite">
+            <div class="hub-empty">활동 내역을 불러오는 중...</div>
+        </div>
+    </section>
     </div>
 </div>
 

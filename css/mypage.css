@@ -75,6 +75,42 @@
             font-weight: bold; font-size: 13px;
         }
 
+        .activity-section {
+            padding-top: 16px;
+            scroll-margin-top: 90px;
+        }
+
+        .activity-section__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .activity-section__header h2 {
+            margin: 0;
+            color: #7fc7ff;
+            font-size: 22px;
+        }
+
+        .activity-section__header select {
+            min-height: 42px;
+            padding: 8px 12px;
+            border: 1px solid #2d367a;
+            border-radius: 6px;
+            background: #11153a;
+            color: #fff;
+            font: inherit;
+        }
+
+        @media (max-width: 600px) {
+            .activity-section__header {
+                align-items: stretch;
+                flex-direction: column;
+            }
+        }
+
         footer { padding: 30px 20px;
             font-size: 12px;
             width: 100%; margin-top: 50px;}

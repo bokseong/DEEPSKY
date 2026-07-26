@@ -278,7 +278,7 @@ function enhanceGlobalHeader() {
         <button type="button" id="searchPopoverToggle" class="utility-trigger"
                 onclick="toggleUtilityPopover('searchPopover', 'searchPopoverToggle')"
                 aria-expanded="false" aria-controls="searchPopover">검색</button>
-        <a href="activity.html" class="auth-utility hidden" title="내 활동">내 활동</a>
+        <a href="mypage.html#activitySection" class="auth-utility hidden" title="내 활동">내 활동</a>
         <button type="button" id="notificationPopoverToggle"
                 class="utility-trigger auth-utility hidden notification-link"
                 onclick="toggleUtilityPopover('notificationPopover', 'notificationPopoverToggle')"

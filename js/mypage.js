@@ -1,5 +1,16 @@
 auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
 let roleRequestDraft = null;
+let myActivities = [];
+
+const myActivityTypeNames = {
+    post: "게시글",
+    comment: "댓글",
+    question: "질문",
+    reply: "답변",
+    suggestion: "건의",
+    photo: "사진",
+    roleRequest: "권한 요청"
+};
 
 // 로그인 상태 감지
 auth.onAuthStateChanged(async (user) => {
@@ -38,6 +49,7 @@ auth.onAuthStateChanged(async (user) => {
                 });
             }
             setProtectedPageAccess({ allowed: true });
+            await loadMyActivities();
         } catch (error) {
             if(status) status.innerText = error.message;
             setProtectedPageAccess({
@@ -59,6 +71,55 @@ auth.onAuthStateChanged(async (user) => {
         });
     }
 });
+
+document.getElementById("activityFilter")?.addEventListener("change", renderMyActivities);
+
+async function loadMyActivities() {
+    const list = document.getElementById("activityList");
+    if (!list) return;
+    list.innerHTML = '<div class="hub-empty">활동 내역을 불러오는 중...</div>';
+    try {
+        const data = await requestAuthenticatedApi("/api/me/activity");
+        myActivities = data.items || [];
+        renderMyActivities();
+        if (location.hash === "#activitySection") {
+            requestAnimationFrame(() => {
+                document.getElementById("activitySection")?.scrollIntoView({ block: "start" });
+            });
+        }
+    } catch (error) {
+        list.innerHTML = `<div class="hub-empty">${escapeHtml(error.message)}</div>`;
+    }
+}
+
+function renderMyActivities() {
+    const list = document.getElementById("activityList");
+    if (!list) return;
+    const filter = document.getElementById("activityFilter")?.value || "all";
+    const filtered = filter === "all"
+        ? myActivities
+        : myActivities.filter(item => item.type === filter);
+    list.replaceChildren();
+
+    if (!filtered.length) {
+        list.innerHTML = '<div class="hub-empty">표시할 활동 내역이 없습니다.</div>';
+        return;
+    }
+
+    filtered.forEach(item => {
+        const link = document.createElement("a");
+        link.className = "hub-item";
+        link.href = item.href || "#";
+        link.innerHTML = `
+            <div class="hub-item__top">
+                <h2>${escapeHtml(item.title)}</h2>
+                <span class="hub-item__meta">${escapeHtml(myActivityTypeNames[item.type] || item.type)}${item.date ? ` · ${escapeHtml(formatDateTime(item.date))}` : ""}</span>
+            </div>
+            <p>${escapeHtml(item.summary || "내용 없음")}</p>
+        `;
+        list.appendChild(link);
+    });
+}
 
 // 프로필 업데이트
 async function updateProfile() {
