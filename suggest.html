@@ -50,12 +50,11 @@
     <div id="lockMessage" class="access-gate hidden"></div>
 
     <div id="mainContent" class="hidden">
-        <div class="card">
+        <div id="suggestFormCard" class="card hidden">
             <h3 style="color: #7fc7ff; margin-top: 0;">의견 남기기</h3>
             <div class="desc-box">
-                <p>더 나은 DEEP SKY를 위한 소중한 의견<br>
-                동아리 운영이나 홈페이지 개선에 대한 의견을 자유롭게 남겨주세요!(익명 기능도 있습니다)<br>
-                <b>반영 완료된 항목은 7일 후 자동으로 리스트에서 삭제됩니다.</b>
+                <p>동아리 운영이나 홈페이지 개선에 대한 의견을 남겨주세요.<br>
+                제출된 내용은 관리자만 확인할 수 있으며 익명으로도 제출할 수 있습니다.</p>
             </div>
             <textarea id="sInput" aria-label="건의 내용" placeholder="건의 내용을 상세히 입력해주세요..."></textarea>
             <div class="form-footer">
@@ -66,9 +65,16 @@
             </div>
         </div>
 
-        <div id="suggestList">
-            <p style="text-align:center; color:#888;">아직 등록된 글이 없습니다.</p>
-        </div>
+        <section id="suggestAdminPanel" class="suggest-admin-panel hidden" aria-labelledby="suggestAdminTitle">
+            <div class="suggest-admin-header">
+                <div>
+                    <h2 id="suggestAdminTitle">접수된 건의사항</h2>
+                    <p id="suggestSummary" aria-live="polite">목록을 불러오는 중입니다.</p>
+                </div>
+                <button id="suggestRefreshBtn" type="button">새로고침</button>
+            </div>
+            <div id="suggestList" class="suggest-list" aria-live="polite"></div>
+        </section>
     </div>
 </div>
 

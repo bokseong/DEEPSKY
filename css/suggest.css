@@ -24,7 +24,7 @@ nav a {
         /* 5. 메인 컨텐츠 & 건의 게시판 전용 카드 */
         .container { max-width: 1000px; margin: 35px auto; padding: 0 20px 100px; }
         .card {
-            background: #161b4a; padding: 25px; border-radius: 15px;
+            background: #161b4a; padding: 25px; border-radius: 8px;
             border: 1px solid #2d367a; margin-bottom: 25px;
         }
 
@@ -37,9 +37,41 @@ nav a {
         .btn-main { padding: 10px 25px; background: #3a5aff; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
 
         /* 건의 리스트 아이템 */
-        .suggest-item { background: #1c225a; padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #2d367a; }
+        .suggest-admin-panel { padding-top: 4px; }
+        .suggest-admin-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+        .suggest-admin-header h2 { margin: 0 0 6px; font-size: 1.35rem; color: #f4f7ff; }
+        .suggest-admin-header p { margin: 0; color: #9ca6c8; font-size: 0.85rem; }
+        .suggest-admin-header button {
+            min-height: 38px;
+            padding: 0 14px;
+            border: 1px solid #4660bd;
+            border-radius: 6px;
+            background: #3157d5;
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .suggest-admin-header button:disabled { opacity: 0.55; cursor: wait; }
+        .suggest-list { display: grid; gap: 12px; }
+        .suggest-item { background: #1c225a; padding: 20px; border-radius: 8px; border: 1px solid #2d367a; }
+        .suggest-item h3 { margin: 0 0 10px; color: #fff; font-size: 1rem; }
         .suggest-meta { font-size: 12px; color: #7fc7ff; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .suggest-text { font-size: 1rem; line-height: 1.5; white-space: pre-wrap; color: #eee; }
+        .suggest-text { margin: 0; font-size: 1rem; line-height: 1.5; white-space: pre-wrap; color: #eee; overflow-wrap: anywhere; }
+        .suggest-empty {
+            margin: 0;
+            padding: 30px 16px;
+            border: 1px dashed #35417f;
+            border-radius: 8px;
+            color: #929cbd;
+            text-align: center;
+        }
+        .suggest-error { color: #ff9aa3; }
 
         /* 상태 배지 */
         .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
@@ -48,6 +80,16 @@ nav a {
         .status-done { background: #27ae60; color: white; }
 
         .admin-controls { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #2d367a; display: flex; gap: 8px; }
+        .suggest-delete-btn {
+            min-height: 34px;
+            padding: 0 13px;
+            border: 1px solid #a74450;
+            border-radius: 5px;
+            background: #802d38;
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+        }
         .btn-status { font-size: 11px; padding: 6px 12px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
 
         /* 6. Footer (인덱스와 100% 동일) */
@@ -58,4 +100,9 @@ nav a {
             nav a { padding: 10px 12px; font-size: 13px;}
             header h1 { font-size: 22px; }
             .header-logo { width: 100px; height: 100px; }
+            .form-footer { align-items: stretch; flex-direction: column; gap: 14px; }
+            .btn-main { width: 100%; }
+            .suggest-admin-header { align-items: stretch; flex-direction: column; }
+            .suggest-admin-header button { width: 100%; }
+            .suggest-meta { align-items: flex-start; flex-direction: column; gap: 5px; }
         }
