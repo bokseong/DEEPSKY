@@ -98,14 +98,23 @@ async function loadUpdateLogs() {
         if (!response.ok) throw new Error("로그 로드 실패");
 
         const rawLogs = await response.json();
-        const logs = Array.isArray(rawLogs) ? rawLogs : Object.values(rawLogs || {});
+        const logs = Array.isArray(rawLogs)
+            ? rawLogs
+            : Object.entries(rawLogs || {}).map(([id, log]) => ({ id, ...log }));
         logList.innerHTML = "";
 
-        // 💡 백엔드가 주는 데이터를 최신순(timestamp 내림차순) 정렬
+        // 서버 생성 시각을 우선하고, 이전 기록은 날짜와 버전으로 최신순을 판정합니다.
         logs.sort((a, b) => {
-            const timeA = a.timestamp || 0;
-            const timeB = b.timestamp || 0;
-            return timeB - timeA;
+            const timeDifference = getUpdateLogTime(b) - getUpdateLogTime(a);
+            if (timeDifference) return timeDifference;
+
+            const versionDifference = String(b.version || "").localeCompare(
+                String(a.version || ""),
+                undefined,
+                { numeric: true, sensitivity: "base" }
+            );
+            if (versionDifference) return versionDifference;
+            return String(b.id || "").localeCompare(String(a.id || ""));
         });
 
         if (logs.length === 0) {
@@ -129,6 +138,23 @@ async function loadUpdateLogs() {
         console.error("업데이트 로그 로드 에러:", error);
         logList.innerHTML = "<p style='text-align:center; padding:20px; color:#888;'>로그를 불러올 수 없습니다.</p>";
     }
+}
+
+function getUpdateLogTime(log) {
+    const rawTimestamp = log?.timestamp;
+    if (typeof rawTimestamp === "number" && Number.isFinite(rawTimestamp)) {
+        return rawTimestamp < 1e12 ? rawTimestamp * 1000 : rawTimestamp;
+    }
+    if (rawTimestamp && typeof rawTimestamp === "object" && Number.isFinite(rawTimestamp.seconds)) {
+        return rawTimestamp.seconds * 1000;
+    }
+
+    for (const value of [rawTimestamp, log?.createdAt, log?.date]) {
+        if (!value) continue;
+        const parsed = Date.parse(String(value));
+        if (!Number.isNaN(parsed)) return parsed;
+    }
+    return 0;
 }
 
 // 7. 관리자: 공지 수정 (자체 서버 전송 버전)
