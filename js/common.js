@@ -13,9 +13,102 @@ if (!firebase.apps.length) {
 }
 
 const auth = firebase.auth();
-const API_BASE_URL = String(
+const API_PRIMARY_BASE_URL = String(
     window.DEEPSKY_API_BASE_URL || "https://hypocrite-depletion-until.ngrok-free.dev"
 ).replace(/\/+$/, "");
+const API_FALLBACK_BASE_URL = String(
+    window.DEEPSKY_API_FALLBACK_URL || "https://bs-server.tail886d19.ts.net"
+).replace(/\/+$/, "");
+let API_BASE_URL = API_PRIMARY_BASE_URL;
+const nativeFetch = window.fetch.bind(window);
+
+function getApiRequestUrl(input) {
+    if (typeof input === "string") return input;
+    if (input instanceof URL) return input.href;
+    if (input instanceof Request) return input.url;
+    return "";
+}
+
+function getApiRequestMethod(input, options) {
+    return String(options?.method || (input instanceof Request ? input.method : "GET")).toUpperCase();
+}
+
+function getKnownApiBase(url) {
+    try {
+        const origin = new URL(url).origin;
+        return [API_PRIMARY_BASE_URL, API_FALLBACK_BASE_URL]
+            .find(base => new URL(base).origin === origin) || "";
+    } catch {
+        return "";
+    }
+}
+
+function rewriteApiRequest(input, sourceBase, targetBase) {
+    const currentUrl = new URL(getApiRequestUrl(input));
+    const sourceUrl = new URL(sourceBase);
+    const targetUrl = new URL(targetBase);
+    currentUrl.protocol = targetUrl.protocol;
+    currentUrl.host = targetUrl.host;
+    if (sourceUrl.pathname !== "/" && currentUrl.pathname.startsWith(sourceUrl.pathname)) {
+        currentUrl.pathname = `${targetUrl.pathname.replace(/\/$/, "")}${currentUrl.pathname.slice(sourceUrl.pathname.length)}`;
+    }
+
+    if (input instanceof Request) return new Request(currentUrl.href, input);
+    if (input instanceof URL) return currentUrl;
+    return currentUrl.href;
+}
+
+async function classifyPrimaryApiFailure(response) {
+    if ([502, 503, 504].includes(response.status)) return "gateway";
+    if (response.status !== 403) return "";
+
+    const errorCode = response.headers.get("x-ngrok-error-code") || "";
+    if (/ERR_NGROK_725/i.test(errorCode)) return "ngrok-limit";
+
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("text/html")) return "";
+    const body = await response.clone().text().catch(() => "");
+    return /ERR_NGROK_725|reached its network bandwidth limit/i.test(body)
+        ? "ngrok-limit"
+        : "";
+}
+
+function activateFallbackApi() {
+    if (API_BASE_URL === API_FALLBACK_BASE_URL) return;
+    API_BASE_URL = API_FALLBACK_BASE_URL;
+    window.dispatchEvent(new CustomEvent("deepsky-api-endpoint-change", {
+        detail: { baseUrl: API_BASE_URL, fallback: true }
+    }));
+}
+
+window.fetch = async function fetchWithApiFallback(input, options) {
+    const requestUrl = getApiRequestUrl(input);
+    const sourceBase = getKnownApiBase(requestUrl);
+    if (!sourceBase) return nativeFetch(input, options);
+
+    const method = getApiRequestMethod(input, options);
+    const safelyRepeatable = ["GET", "HEAD", "OPTIONS"].includes(method);
+    const reusableInput = input instanceof Request ? input.clone() : input;
+    const activeInput = sourceBase === API_BASE_URL
+        ? input
+        : rewriteApiRequest(input, sourceBase, API_BASE_URL);
+
+    try {
+        const response = await nativeFetch(activeInput, options);
+        const failureType = API_BASE_URL === API_PRIMARY_BASE_URL
+            ? await classifyPrimaryApiFailure(response)
+            : "";
+        if (!failureType || (!safelyRepeatable && failureType !== "ngrok-limit")) {
+            return response;
+        }
+    } catch (error) {
+        if (API_BASE_URL !== API_PRIMARY_BASE_URL || !safelyRepeatable) throw error;
+    }
+
+    activateFallbackApi();
+    const retryInput = rewriteApiRequest(reusableInput, sourceBase, API_FALLBACK_BASE_URL);
+    return nativeFetch(retryInput, options);
+};
 
 function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, char => ({
@@ -120,6 +213,21 @@ async function uploadAuthenticatedForm(path, {
     const user = auth.currentUser;
     if (!user) throw new Error("로그인이 필요합니다.");
     const token = await user.getIdToken();
+
+    const healthController = new AbortController();
+    const healthTimeout = setTimeout(() => healthController.abort(), 5000);
+    try {
+        const healthResponse = await fetch(`${API_BASE_URL}/api/health`, {
+            headers: { "ngrok-skip-browser-warning": "69420" },
+            cache: "no-store",
+            signal: healthController.signal
+        });
+        if (!healthResponse.ok) {
+            throw new Error(`서버 상태 확인에 실패했습니다. (${healthResponse.status})`);
+        }
+    } finally {
+        clearTimeout(healthTimeout);
+    }
 
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
