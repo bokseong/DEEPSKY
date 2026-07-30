@@ -123,19 +123,26 @@ function renderResources(data) {
             const fileActions = document.createElement("div");
             fileActions.className = "resource-file-actions";
 
-            const previewButton = document.createElement("button");
-            previewButton.type = "button";
-            previewButton.className = "btn-file btn-preview";
-            previewButton.textContent = "미리보기";
-            previewButton.addEventListener("click", () => openResourceFile(path, filename, "preview"));
-
             const downloadButton = document.createElement("button");
             downloadButton.type = "button";
             downloadButton.className = "btn-file btn-download";
             downloadButton.textContent = "다운로드";
             downloadButton.addEventListener("click", () => openResourceFile(path, filename, "download"));
 
-            fileActions.append(previewButton, downloadButton);
+            if (isPreviewableResource(filename)) {
+                const previewButton = document.createElement("button");
+                previewButton.type = "button";
+                previewButton.className = "btn-file btn-preview";
+                previewButton.textContent = "미리보기";
+                previewButton.addEventListener("click", () => openResourceFile(path, filename, "preview"));
+                fileActions.appendChild(previewButton);
+            } else {
+                const previewUnavailable = document.createElement("span");
+                previewUnavailable.className = "resource-preview-unavailable";
+                previewUnavailable.textContent = "미리보기 미지원";
+                fileActions.appendChild(previewUnavailable);
+            }
+            fileActions.appendChild(downloadButton);
             fileRow.append(fileName, fileActions);
             actions.appendChild(fileRow);
         });
@@ -291,34 +298,36 @@ async function openResourceFile(path, filename, mode) {
         if (mode === "preview" && !previewWindow) {
             throw new Error("팝업이 차단되어 미리보기를 열 수 없습니다.");
         }
-        const token = await currentUser.getIdToken();
-        const url = `${API_BASE_URL}/api/download?path=${encodeURIComponent(path)}&mode=${mode}`;
-        const res = await fetch(url, {
-            headers: {
-                "Authorization": `Bearer ${token}`,
-                "ngrok-skip-browser-warning": "69420"
-            }
+        const linkData = await requestAuthenticatedApi("/api/download-link", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path, filename, mode })
         });
-        if (!res.ok) throw new Error("파일을 불러오지 못했습니다.");
-        const blob = await res.blob();
-        const objectUrl = URL.createObjectURL(blob);
+        if (!linkData.url) throw new Error("파일 링크를 발급받지 못했습니다.");
+        const directUrl = /^https?:\/\//i.test(linkData.url)
+            ? linkData.url
+            : `${API_BASE_URL}${linkData.url}`;
 
         if (mode === "preview") {
             previewWindow.opener = null;
-            previewWindow.location.href = objectUrl;
+            previewWindow.location.replace(directUrl);
         } else {
-            const downloadLink = document.createElement("a");
-            downloadLink.href = objectUrl;
-            downloadLink.download = filename;
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            downloadLink.remove();
+            const downloadFrame = document.createElement("iframe");
+            downloadFrame.hidden = true;
+            downloadFrame.title = "파일 다운로드";
+            downloadFrame.src = directUrl;
+            document.body.appendChild(downloadFrame);
+            setTimeout(() => downloadFrame.remove(), 300000);
         }
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 300000);
     } catch (err) {
         if (previewWindow) previewWindow.close();
         alert(err.message || (mode === "preview" ? "미리보기 실패" : "다운로드 실패"));
     }
+}
+
+function isPreviewableResource(filename) {
+    const extension = String(filename || "").split(".").pop()?.toLowerCase();
+    return ["pdf", "png", "jpg", "jpeg", "gif", "webp", "txt", "csv"].includes(extension);
 }
 
 function getResourceTime(item) {
