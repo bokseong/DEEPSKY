@@ -3,6 +3,7 @@ let currentUserName = "익명";
 let currentUserRole = "guest";
 let allResources = {};
 let resourceDraft = null;
+let isResourceUploading = false;
 
 auth.onAuthStateChanged(async (user) => {
     currentUser = user;
@@ -166,46 +167,64 @@ function renderResources(data) {
 
 // 파일과 데이터를 자체 서버로 업로드 (multipart/form-data)
 async function uploadResource() {
-if (currentUserRole !== 'admin') return showToast("관리자만 업로드할 수 있습니다.", "error");
+    if (currentUserRole !== 'admin') return showToast("관리자만 업로드할 수 있습니다.", "error");
+    if (isResourceUploading) return;
 
-     const title = document.getElementById("fileTitle").value.trim();
-     const desc = document.getElementById("fileDesc").value.trim();
-     const link = document.getElementById("fileLink").value.trim();
-     const fileInput = document.getElementById("fileData"); // 수정된 ID 매칭
+    const title = document.getElementById("fileTitle").value.trim();
+    const desc = document.getElementById("fileDesc").value.trim();
+    const link = document.getElementById("fileLink").value.trim();
+    const fileInput = document.getElementById("fileData");
 
-     if (!title) return showToast("제목을 입력하세요.", "error");
-     if (fileInput?.files.length > 10) return showToast("파일은 한 번에 최대 10개까지 선택할 수 있습니다.", "error");
+    if (!title) return showToast("제목을 입력하세요.", "error");
+    if (fileInput?.files.length > 10) return showToast("파일은 한 번에 최대 10개까지 선택할 수 있습니다.", "error");
 
-     const formData = new FormData();
-     formData.append("title", title);
-     formData.append("content", desc);
-     formData.append("link", link);
-     formData.append("author", currentUserName);
-     formData.append("date", new Date().toLocaleDateString('ko-KR'));
-     if (fileInput) Array.from(fileInput.files).forEach(file => formData.append("file", file));
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("content", desc);
+    formData.append("link", link);
+    formData.append("author", currentUserName);
+    formData.append("date", new Date().toLocaleDateString('ko-KR'));
+    if (fileInput) Array.from(fileInput.files).forEach(file => formData.append("file", file));
 
-     try {
-         const button = document.querySelector("#adminUpload .btn-main");
-         button.disabled = true;
-         await uploadAuthenticatedForm("/api/resources", {
-             formData,
-             onProgress: value => setUploadProgress(
-                 document.getElementById("resourceUploadProgress"),
-                 value,
-                 document.getElementById("resourceUploadLabel")
-             )
-         });
-         showToast("자료를 등록했습니다.", "success");
-         document.getElementById("fileTitle").value = "";
-         document.getElementById("fileDesc").value = "";
-         document.getElementById("fileLink").value = "";
-         if(fileInput) fileInput.value = "";
-         resourceDraft?.clear();
-         await loadResources();
-         button.disabled = false;
+    isResourceUploading = true;
+    setResourceUploadBusy(true);
+    try {
+        await uploadAuthenticatedForm("/api/resources", {
+            formData,
+            onProgress: value => setUploadProgress(
+                document.getElementById("resourceUploadProgress"),
+                value,
+                document.getElementById("resourceUploadLabel")
+            )
+        });
+        showToast("자료를 등록했습니다.", "success");
+        document.getElementById("fileTitle").value = "";
+        document.getElementById("fileDesc").value = "";
+        document.getElementById("fileLink").value = "";
+        if (fileInput) fileInput.value = "";
+        resourceDraft?.clear();
+        await loadResources();
     } catch (err) {
-        document.querySelector("#adminUpload .btn-main").disabled = false;
         showToast(err.message || "업로드 에러", "error");
+    } finally {
+        isResourceUploading = false;
+        setResourceUploadBusy(false);
+    }
+}
+
+function setResourceUploadBusy(isBusy) {
+    const uploadPanel = document.getElementById("adminUpload");
+    if (!uploadPanel) return;
+
+    uploadPanel.classList.toggle("is-uploading", isBusy);
+    uploadPanel.setAttribute("aria-busy", String(isBusy));
+    uploadPanel.querySelectorAll("input, textarea, select, button").forEach(control => {
+        control.disabled = isBusy;
+    });
+
+    const submitButton = uploadPanel.querySelector(".btn-main");
+    if (submitButton) {
+        submitButton.textContent = isBusy ? "업로드 중..." : "자료 게시하기";
     }
 }
 
