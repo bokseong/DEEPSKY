@@ -200,7 +200,9 @@ async function requestAuthenticatedApi(path, options = {}) {
     const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-        throw new Error(data.error || `서버 요청에 실패했습니다. (${response.status})`);
+        const error = new Error(data.error || `서버 요청에 실패했습니다. (${response.status})`);
+        error.status = response.status;
+        throw error;
     }
     return data;
 }
@@ -255,9 +257,9 @@ async function uploadAuthenticatedForm(path, {
     });
 }
 
-async function getServerUserProfile(user = auth.currentUser) {
+async function getServerUserProfile(user = auth.currentUser, options = {}) {
     if (!user) throw new Error("로그인이 필요합니다.");
-    return requestAuthenticatedApi("/api/me");
+    return requestAuthenticatedApi("/api/me", options);
 }
 
 async function syncServerUserProfile(user, name) {
