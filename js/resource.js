@@ -179,7 +179,8 @@ async function uploadResource() {
 
     const title = document.getElementById("fileTitle").value.trim();
     const desc = document.getElementById("fileDesc").value.trim();
-    const link = document.getElementById("fileLink").value.trim();
+    let link = document.getElementById("fileLink").value.trim();
+    if (link && !/^https?:\/\//i.test(link)) link = `https://${link}`;
     const fileInput = document.getElementById("fileData");
 
     if (!title) return showToast("제목을 입력하세요.", "error");
@@ -304,20 +305,18 @@ async function openResourceFile(path, filename, mode) {
             body: JSON.stringify({ path, filename, mode })
         });
         if (!linkData.url) throw new Error("파일 링크를 발급받지 못했습니다.");
-        const directUrl = /^https?:\/\//i.test(linkData.url)
+        const directUrl = new URL(/^https?:\/\//i.test(linkData.url)
             ? linkData.url
-            : `${API_BASE_URL}${linkData.url}`;
+            : `${API_BASE_URL}${linkData.url}`);
+        directUrl.searchParams.set("ngrok-skip-browser-warning", "69420");
 
         if (mode === "preview") {
             previewWindow.opener = null;
-            previewWindow.location.replace(directUrl);
+            previewWindow.location.replace(directUrl.href);
         } else {
-            const downloadFrame = document.createElement("iframe");
-            downloadFrame.hidden = true;
-            downloadFrame.title = "파일 다운로드";
-            downloadFrame.src = directUrl;
-            document.body.appendChild(downloadFrame);
-            setTimeout(() => downloadFrame.remove(), 300000);
+            // 서버가 Content-Disposition: attachment로 스트리밍하므로 현재 창에서
+            // 이동을 시작해야 브라우저가 비동기 hidden iframe 다운로드를 차단하지 않습니다.
+            window.location.assign(directUrl.href);
         }
     } catch (err) {
         if (previewWindow) previewWindow.close();
