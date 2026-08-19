@@ -289,6 +289,7 @@ function normalizeLink(link) {
 
 async function openResourceFile(path, filename, mode) {
     const previewWindow = mode === "preview" ? window.open("about:blank", "_blank") : null;
+    let objectUrl = "";
     try {
         if (!String(path || "").startsWith("/uploads/resources/")) {
             throw new Error("허용되지 않는 파일 경로입니다.");
@@ -310,15 +311,46 @@ async function openResourceFile(path, filename, mode) {
             : `${API_BASE_URL}${linkData.url}`);
         directUrl.searchParams.set("ngrok-skip-browser-warning", "69420");
 
+        const fileResponse = await fetch(directUrl.href, {
+            method: "GET",
+            headers: { "ngrok-skip-browser-warning": "69420" },
+            cache: "no-store"
+        });
+        if (!fileResponse.ok) {
+            const errorData = await fileResponse.json().catch(() => ({}));
+            throw new Error(errorData.error || `파일을 불러오지 못했습니다. (${fileResponse.status})`);
+        }
+
+        const fileBlob = await fileResponse.blob();
+        const contentType = fileResponse.headers.get("content-type") || fileBlob.type || "";
+        if (contentType.includes("text/html")) {
+            const html = await fileBlob.text().catch(() => "");
+            if (/ERR_NGROK|ngrok|network bandwidth limit/i.test(html)) {
+                throw new Error("ngrok 연결 한도로 인해 파일을 불러오지 못했습니다.");
+            }
+        }
+        objectUrl = URL.createObjectURL(fileBlob);
+
         if (mode === "preview") {
             previewWindow.opener = null;
-            previewWindow.location.replace(directUrl.href);
+            previewWindow.location.replace(objectUrl);
+            const cleanupTimer = window.setInterval(() => {
+                if (!previewWindow.closed) return;
+                window.clearInterval(cleanupTimer);
+                URL.revokeObjectURL(objectUrl);
+            }, 1000);
         } else {
-            // 서버가 Content-Disposition: attachment로 스트리밍하므로 현재 창에서
-            // 이동을 시작해야 브라우저가 비동기 hidden iframe 다운로드를 차단하지 않습니다.
-            window.location.assign(directUrl.href);
+            const downloadLink = document.createElement("a");
+            downloadLink.href = objectUrl;
+            downloadLink.download = String(filename || "download");
+            downloadLink.hidden = true;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            downloadLink.remove();
+            window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
         }
     } catch (err) {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
         if (previewWindow) previewWindow.close();
         alert(err.message || (mode === "preview" ? "미리보기 실패" : "다운로드 실패"));
     }
