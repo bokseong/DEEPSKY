@@ -1,156 +1,29 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="logo.png" type="image/png">
-    <title>DEEP SKY</title>
-    <link rel="stylesheet" href="css/common.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="apple-touch-icon" href="logo.png">
+<title>DEEP SKY | My Page</title>
+  <link rel="stylesheet" href="css/common.css">
 <link rel="stylesheet" href="css/mypage.css">
 </head>
 <body>
-
-<div class="top-bar">
-    <a href="index.html" class="logo-area">
-        <img src="logo.png" alt="" aria-hidden="true">
-        <span>DEEP SKY</span>
-    </a>
-    <div class="auth-bar">
-        <span id="userStatus">불러오는 중...</span>
-        <button id="loginBtn" onclick="location.href='login.html'">로그인</button>
-        <button id="logoutBtn" class="hidden" onclick="logout()">로그아웃</button>
-    </div>
-</div>
-<header><h1>정보 수정</h1></header>
-<nav aria-label="주요 메뉴">
-    <div class="nav-inner">
-        <a href="index.html">홈</a>
-        <a href="introduce.html">동아리 소개</a>
-        <a href="question.html">질문 게시판</a>
-        <a href="board.html">자유 게시판</a>
-        <a href="photo.html">활동 사진</a>
-        <a href="resource.html">자료실</a>
-        <a href="weather.html">기상 정보</a>
-        <a href="mypage.html">정보 수정</a>
-        <a href="suggest.html">건의함</a>
-        <a href="admin.html">ADMIN</a>
-        <a href="block.html">등급 조정 요청</a>
-        <a href="https://hq-syrtn.github.io/SYRTN/index.html">SYRTN</a>
-    </div>
-</nav>
-
-<div class="container">
-    <div id="lockMessage" class="access-gate hidden"></div>
-
-    <div id="mainContent" class="hidden">
-    <div class="card">
-        <h3 style="color: #7fc7ff; margin-top: 0; margin-bottom: 25px; text-align: center;">프로필 수정</h3>
-        
-        <div class="info-group">
-            <label>활동 이름 (닉네임)</label>
-            <input type="text" id="userName" aria-label="이름" autocomplete="name" placeholder="이름을 입력하세요">
-        </div>
-        <button class="btn-save" onclick="updateProfile()">정보 저장하기</button>
-
-        <hr style="border: 0; border-top: 1px solid #1b2f80; margin: 30px 0;">
-
-        <div class="info-group">
-            <label>이메일 계정 (수정 불가)</label>
-            <input type="text" id="userEmail" aria-label="이메일" disabled>
-        </div>
-
-        <div class="info-group">
-            <label>보안 설정</label>
-            <button class="btn-pw-reset" onclick="resetPassword()">비밀번호 재설정 메일 발송</button>
-        </div>
-
-        <div class="danger-zone">
-            <p style="font-size: 12px; color: #888; margin-bottom: 15px;">계정 삭제 시 모든 데이터가 즉시 소멸됩니다.</p>
-            <button class="btn-withdraw" onclick="deleteAccount()">회원 탈퇴</button>
-        </div>
-    </div>
-
-    <div class="card">
-        <h3 style="color: #7fc7ff; font-size: 18px; margin-top: 0; text-align: center;">등급 관리 및 신청</h3>
-        
-        <div class="role-badge-box">
-            <div class="role-title">나의 회원 등급</div>
-            <div id="displayRole" class="role-name">확인 중...</div>
-        </div>
-
-        <div id="requestSection" style="margin-top: 30px; background: rgba(58, 90, 255, 0.05); padding: 20px; border-radius: 12px; border: 1px solid #2d367a;">
-            <p style="font-size: 14px; color: #7fc7ff; text-align: center; margin-bottom: 15px; font-weight: bold;">[ 등급 조정 요청 양식 ]</p>
-            
-            <div class="info-group">
-                <label>희망 등급</label>
-                <select id="requestedRole" aria-label="요청할 등급">
-                    <option value="student">동아리 부원</option>
-                    <option value="admin">관리자</option>
-                    <option value="member">일반 회원</option>
-                </select>
-            </div>
-
-            <div class="info-group">
-                <label>조정 사유</label>
-                <textarea id="requestReason" aria-label="등급 조정 요청 사유" style="height: 150px; resize: none;"
-                    placeholder="작성 예시:&#10;1. ~&#10;2. ~ 등 &#10;상세 사유 작성"></textarea>
-            </div>
-
-            <button class="btn-save" style="background:#28a745; margin-bottom: 0;" onclick="sendRequestEmail(this)">관리자에게 조정 요청 보내기</button>
-        </div>
-
-        <h3 style="color: #7fc7ff; font-size: 16px; margin: 30px 0 10px;">등급별 권한 안내</h3>
-        <table class="permission-table">
-            <thead>
-                <tr>
-                    <th>권한 범위</th>
-                    <th>일반</th>
-                    <th>부원</th>
-                    <th>관리자</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr><td>질문 작성</td><td class="check">V</td><td class="check">V</td><td class="check">V</td></tr>
-                <tr><td>질문 답변</td><td class="check">-</td><td class="check">V</td><td class="check">V</td></tr>
-                <tr><td>자유 게시판 보기</td><td class="check">V</td><td class="check">V</td><td class="check">V</td></tr>
-                <tr><td>자유 게시판 글쓰기</td><td class="check">-</td><td class="check">V</td><td class="check">V</td></tr>
-                <tr><td>자료실 접근</td><td class="check">-</td><td class="check">V</td><td class="check">V</td></tr>
-                <tr><td>관리자 메뉴</td><td class="check">-</td><td class="check">-</td><td class="check">V</td></tr>
-            </tbody>
-        </table>
-    </div>
-
-    <section id="activitySection" class="activity-section" aria-labelledby="activityTitle">
-        <div class="activity-section__header">
-            <h2 id="activityTitle">내 활동</h2>
-            <select id="activityFilter" aria-label="활동 유형">
-                <option value="all">모든 활동</option>
-                <option value="post">게시글</option>
-                <option value="comment">댓글</option>
-                <option value="question">질문</option>
-                <option value="reply">답변</option>
-                <option value="suggestion">건의</option>
-                <option value="photo">사진</option>
-                <option value="roleRequest">권한 요청</option>
-            </select>
-        </div>
-        <div id="activityList" class="hub-list" aria-live="polite">
-            <div class="hub-empty">활동 내역을 불러오는 중...</div>
-        </div>
-    </section>
-    </div>
-</div>
-
+<div class="auth-bar"><a href="index.html" class="logo-link"><img src="logo.png" alt="DEEP SKY logo" class="nav-logo"><span>DEEP SKY</span></a><div class="auth-user-zone"><a href="login.html" id="login-link" class="auth-btn">LOGIN</a><span id="user-name" style="display:none;color:var(--accent);font-weight:700"></span><button id="logout-btn" class="auth-btn" style="display:none">LOGOUT</button></div></div>
+<header class="hero"><h1>My Page</h1><p>Profile and authority information</p></header><nav class="sub-nav-container" aria-label="주요 메뉴"><div class="nav-menu"><a href="index.html">HOME</a><a href="introduction.html">INTRODUCTION</a><a href="talk.html">TALK</a><a href="resource.html">RESOURCE</a><a href="suggest.html">SUGGESTION</a><a href="mypage.html" class="active">MY PAGE</a><a href="adjust.html">REQUEST AUTHORITY</a><a href="admin.html">ADMIN</a></div></nav>
+<main class="container">
+  <section class="panel"><h1 class="section-title">My Page</h1><label for="display-email">이메일</label><input id="display-email" readonly><label for="display-school">학교</label><input id="display-school" readonly><label for="edit-name">이름</label><input id="edit-name" autocomplete="name"><label for="display-role">현재 등급</label><input id="display-role" readonly><div class="actions"><button class="btn btn-primary" id="update-profile-btn">적용</button><button class="btn" id="card-logout-btn">Logout</button></div></section>
+  <section id="bookmarks" class="feature-section"><div class="section-heading-row"><h2 class="section-title">저장한 글</h2></div><div id="bookmark-list" class="feature-list"><div class="loading-state">불러오는 중입니다.</div></div></section>
+  <section class="feature-section"><div class="section-heading-row"><h2 class="section-title">최근 본 글</h2></div><div id="recent-list" class="feature-list"><div class="loading-state">불러오는 중입니다.</div></div></section>
+  <section class="panel danger-zone"><h2 class="section-title">회원탈퇴</h2><p>탈퇴하면 로그인 계정과 권한 요청 정보가 삭제됩니다. 작성한 게시글과 댓글은 사이트 기록 유지를 위해 남지만 작성자 정보는 <strong>탈퇴한 사용자</strong>로 바뀝니다.</p><label for="delete-confirm-input">확인을 위해 아래에 <strong>회원탈퇴</strong>를 입력하세요.</label><input id="delete-confirm-input" autocomplete="off" placeholder="회원탈퇴"><div class="actions"><button class="btn btn-danger" id="delete-account-btn">회원탈퇴</button></div></section>
+</main>
 <footer>
-    © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
-    <br>
-    Email : leader.deepsky@gmail.com &nbsp;	| &nbsp; Designed by jw-astro09
+  <p>&copy; 2026 DEEP SKY. All Rights Reserved.</p>
+  <p>복성고등학교 천문·항공우주 동아리</p>
+  <p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p>
 </footer>
-
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
-<script src="js/common.js"></script>
-<script src="js/mypage.js"></script>
+<script type="module" src="js/mypage.js"></script>
+<script type="module" src="frontend-access-control.js"></script>
 </body>
 </html>

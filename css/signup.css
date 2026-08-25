@@ -1,0 +1,51 @@
+.terms-box {
+    max-height: 190px;
+    overflow-y: auto;
+    margin-top: 20px;
+    padding: 18px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, .32);
+    color: rgba(255, 255, 255, .82);
+    font-size: .9rem;
+}
+
+.terms-box h2 {
+    margin: 0 0 10px;
+    color: var(--accent);
+    font-size: 1rem;
+}
+
+.terms-box p {
+    margin: 0 0 10px;
+}
+
+.terms-box ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.terms-box li {
+    margin: 6px 0;
+}
+
+.agree-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 14px;
+    color: #ddd;
+}
+
+.agree-label input {
+    width: auto;
+    margin-top: 5px;
+    flex: none;
+}
+
+@media (max-width: 700px) {
+    .terms-box {
+        max-height: 220px;
+        padding: 15px;
+    }
+}

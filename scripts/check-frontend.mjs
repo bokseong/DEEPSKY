@@ -75,13 +75,14 @@ for (const file of jsFiles) {
     if (syntax.status !== 0) fail(file, `JavaScript 문법 오류: ${syntax.stderr.trim()}`);
 }
 
-const questionSource = fs.readFileSync(path.join(root, "js", "question.js"), "utf8");
-const adminSource = fs.readFileSync(path.join(root, "js", "admin.js"), "utf8");
-if (/onclick\s*=\s*["'][^"']*\$\{/.test(questionSource) || /onclick\s*=\s*["'][^"']*\$\{/.test(adminSource)) {
-    fail(path.join(root, "js"), "서버 식별자를 인라인 이벤트 처리기에 삽입하고 있습니다.");
+const resourceSource = fs.readFileSync(path.join(root, "js", "resource.js"), "utf8");
+if (/innerHTML\s*=\s*filtered\.map/.test(resourceSource)) {
+    fail(path.join(root, "js", "resource.js"), "서버 자료를 innerHTML 템플릿으로 렌더링하고 있습니다.");
 }
-if (/\bADMIN_EMAIL\b/.test(files.filter(file => file.endsWith(".js")).map(file => fs.readFileSync(file, "utf8")).join("\n"))) {
-    fail(path.join(root, "js"), "관리자 권한을 이메일 상수로 판정하고 있습니다.");
+for (const field of ["title", "category", "author_name"]) {
+    if (!new RegExp(`\\.textContent\\s*=\\s*post\\.${field}`).test(resourceSource)) {
+        fail(path.join(root, "js", "resource.js"), `${field} 필드가 textContent로 렌더링되지 않습니다.`);
+    }
 }
 
 for (const file of files) {

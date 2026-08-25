@@ -1,3 +1,6 @@
-This is official DEEP SKY homepage<br>
-DEEP SKY is club about astronomy and aerospace club of Suncheon Bokseong Highschool in S.Korea<br>
-<a href="https://jw-astro09.github.io/DEEPSKY/">visit site</a>
+# DEEP SKY
+
+Official website of the **DEEP SKY Astronomy and Aerospace Club** at
+Suncheon Bokseong High School in South Korea.
+
+[Visit the website](https://jw-astro09.github.io/DEEPSKY/)

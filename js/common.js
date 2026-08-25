@@ -1,4 +1,102 @@
-const firebaseConfig = Object.freeze({
+import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app-check.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const NGROK_API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
+const TAILSCALE_API_BASE_URL = "https://bs-server.tail886d19.ts.net";
+const CONFIGURED_API_BASE_URL = String(
+    globalThis.DEEPSKY_API_BASE_URL || NGROK_API_BASE_URL
+).replace(/\/+$/, "");
+const API_BASE_CANDIDATES = [...new Set([
+    CONFIGURED_API_BASE_URL,
+    NGROK_API_BASE_URL,
+    TAILSCALE_API_BASE_URL
+])];
+const API_SELECTION_CACHE_MS = 60_000;
+
+export let API_BASE_URL = CONFIGURED_API_BASE_URL;
+
+let apiSelectionPromise = null;
+let apiSelectionCheckedAt = 0;
+
+function setApiBaseUrl(baseUrl) {
+    API_BASE_URL = baseUrl;
+    document.documentElement.dataset.apiEndpoint =
+        baseUrl === NGROK_API_BASE_URL ? "ngrok" :
+        baseUrl === TAILSCALE_API_BASE_URL ? "tailscale" :
+        "custom";
+}
+
+async function probeApiBaseUrl(baseUrl) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    try {
+        const response = await fetch(`${baseUrl}/api/jhimap/health`, {
+            headers: { "ngrok-skip-browser-warning": "69420" },
+            cache: "no-store",
+            signal: controller.signal
+        });
+        return response.ok;
+    } catch {
+        return false;
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
+export async function selectAvailableApi(force = false) {
+    const now = Date.now();
+    if (!force && apiSelectionCheckedAt && now - apiSelectionCheckedAt < API_SELECTION_CACHE_MS) {
+        return API_BASE_URL;
+    }
+    if (apiSelectionPromise) return apiSelectionPromise;
+
+    apiSelectionPromise = (async () => {
+        for (const baseUrl of API_BASE_CANDIDATES) {
+            if (await probeApiBaseUrl(baseUrl)) {
+                setApiBaseUrl(baseUrl);
+                apiSelectionCheckedAt = Date.now();
+                return baseUrl;
+            }
+        }
+        apiSelectionCheckedAt = Date.now();
+        throw new Error("사용 가능한 API 서버가 없습니다.");
+    })();
+
+    try {
+        return await apiSelectionPromise;
+    } finally {
+        apiSelectionPromise = null;
+    }
+}
+
+export async function apiFetch(path, options = {}) {
+    await selectAvailableApi().catch(() => {});
+
+    const requestBaseUrl = API_BASE_URL;
+    let response;
+    try {
+        response = await fetch(`${requestBaseUrl}${path}`, options);
+    } catch (error) {
+        if (requestBaseUrl !== NGROK_API_BASE_URL) throw error;
+        await selectAvailableApi(true);
+        if (API_BASE_URL === requestBaseUrl) throw error;
+        return fetch(`${API_BASE_URL}${path}`, options);
+    }
+
+    if (requestBaseUrl === NGROK_API_BASE_URL && response.status === 403) {
+        await selectAvailableApi(true).catch(() => {});
+        if (API_BASE_URL !== requestBaseUrl) {
+            return fetch(`${API_BASE_URL}${path}`, options);
+        }
+    }
+    return response;
+}
+
+// 다른 화면 모듈이 초기 데이터를 요청하기 전부터 사용 가능한 경로를 선택합니다.
+selectAvailableApi().catch(() => {});
+
+export const firebaseConfig = {
     apiKey: "AIzaSyArvtIZ3QkwUcvz0SLu-AnLRifhkOtQ9CY",
     authDomain: "bokseong-deep-sky.firebaseapp.com",
     projectId: "bokseong-deep-sky",
@@ -6,609 +104,99 @@ const firebaseConfig = Object.freeze({
     messagingSenderId: "800777151311",
     appId: "1:800777151311:web:8c901fcf0ded04b1941b3a",
     measurementId: "G-LNZFCW099Z"
-});
-
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-
-const auth = firebase.auth();
-const API_PRIMARY_BASE_URL = String(
-    window.DEEPSKY_API_BASE_URL || "https://hypocrite-depletion-until.ngrok-free.dev"
-).replace(/\/+$/, "");
-const API_FALLBACK_BASE_URL = String(
-    window.DEEPSKY_API_FALLBACK_URL || "https://bs-server.tail886d19.ts.net"
-).replace(/\/+$/, "");
-let API_BASE_URL = API_PRIMARY_BASE_URL;
-const nativeFetch = window.fetch.bind(window);
-
-function getApiRequestUrl(input) {
-    if (typeof input === "string") return input;
-    if (input instanceof URL) return input.href;
-    if (input instanceof Request) return input.url;
-    return "";
-}
-
-function getApiRequestMethod(input, options) {
-    return String(options?.method || (input instanceof Request ? input.method : "GET")).toUpperCase();
-}
-
-function getKnownApiBase(url) {
-    try {
-        const origin = new URL(url).origin;
-        return [API_PRIMARY_BASE_URL, API_FALLBACK_BASE_URL]
-            .find(base => new URL(base).origin === origin) || "";
-    } catch {
-        return "";
-    }
-}
-
-function rewriteApiRequest(input, sourceBase, targetBase) {
-    const currentUrl = new URL(getApiRequestUrl(input));
-    const sourceUrl = new URL(sourceBase);
-    const targetUrl = new URL(targetBase);
-    currentUrl.protocol = targetUrl.protocol;
-    currentUrl.host = targetUrl.host;
-    if (sourceUrl.pathname !== "/" && currentUrl.pathname.startsWith(sourceUrl.pathname)) {
-        currentUrl.pathname = `${targetUrl.pathname.replace(/\/$/, "")}${currentUrl.pathname.slice(sourceUrl.pathname.length)}`;
-    }
-
-    if (input instanceof Request) return new Request(currentUrl.href, input);
-    if (input instanceof URL) return currentUrl;
-    return currentUrl.href;
-}
-
-async function classifyPrimaryApiFailure(response) {
-    if ([502, 503, 504].includes(response.status)) return "gateway";
-    if (response.status !== 403) return "";
-
-    const errorCode = response.headers.get("x-ngrok-error-code") || "";
-    if (/ERR_NGROK_725/i.test(errorCode)) return "ngrok-limit";
-
-    const contentType = response.headers.get("content-type") || "";
-    if (!contentType.includes("text/html")) return "";
-    const body = await response.clone().text().catch(() => "");
-    return /ERR_NGROK_725|reached its network bandwidth limit/i.test(body)
-        ? "ngrok-limit"
-        : "";
-}
-
-function activateFallbackApi() {
-    if (API_BASE_URL === API_FALLBACK_BASE_URL) return;
-    API_BASE_URL = API_FALLBACK_BASE_URL;
-    window.dispatchEvent(new CustomEvent("deepsky-api-endpoint-change", {
-        detail: { baseUrl: API_BASE_URL, fallback: true }
-    }));
-}
-
-window.fetch = async function fetchWithApiFallback(input, options) {
-    const requestUrl = getApiRequestUrl(input);
-    const sourceBase = getKnownApiBase(requestUrl);
-    if (!sourceBase) return nativeFetch(input, options);
-
-    const method = getApiRequestMethod(input, options);
-    const safelyRepeatable = ["GET", "HEAD", "OPTIONS"].includes(method);
-    const reusableInput = input instanceof Request ? input.clone() : input;
-    const activeInput = sourceBase === API_BASE_URL
-        ? input
-        : rewriteApiRequest(input, sourceBase, API_BASE_URL);
-
-    try {
-        const response = await nativeFetch(activeInput, options);
-        const failureType = API_BASE_URL === API_PRIMARY_BASE_URL
-            ? await classifyPrimaryApiFailure(response)
-            : "";
-        if (!failureType || (!safelyRepeatable && failureType !== "ngrok-limit")) {
-            return response;
-        }
-    } catch (error) {
-        if (API_BASE_URL !== API_PRIMARY_BASE_URL || !safelyRepeatable) throw error;
-    }
-
-    activateFallbackApi();
-    const retryInput = rewriteApiRequest(reusableInput, sourceBase, API_FALLBACK_BASE_URL);
-    return nativeFetch(retryInput, options);
 };
 
-function escapeHtml(value) {
-    return String(value ?? "").replace(/[&<>"']/g, char => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;"
-    }[char]));
-}
+export const roleLabelMap = {
+    admin: "관리자",
+    teacher: "교사",
+    leader: "동아리 리더",
+    student: "동아리 부원",
+    member: "일반 회원",
+    guest: "비회원"
+};
 
-function escapeAttr(value) {
-    return escapeHtml(value).replaceAll("`", "&#096;");
-}
+const AI_ALLOWED_ROLES = new Set([
+    "admin", "teacher", "leader", "student"
+]);
 
-function normalizeRole(role) {
-    if (role === "관리자") return "admin";
-    if (role === "부원" || role === "동아리 부원") return "student";
-    return role || "member";
-}
+export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-function getRoleName(role) {
-    if (role === "admin") return "관리자";
-    if (role === "student") return "동아리 부원";
-    return "일반 회원";
-}
+let appCheckEnabled = false;
+const RECAPTCHA_V3_SITE_KEY = String(
+    globalThis.DEEPSKY_RECAPTCHA_V3_SITE_KEY || ""
+).trim();
 
-function setProtectedPageAccess({
-    allowed,
-    title = "접근 제한",
-    message = "이 페이지에 접근할 권한이 없습니다.",
-    action = "login"
-}) {
-    const gate = document.getElementById("lockMessage");
-    const content = document.getElementById("mainContent");
-    if (!gate || !content) return;
-
-    gate.classList.toggle("hidden", allowed);
-    content.classList.toggle("hidden", !allowed);
-    if (allowed) return;
-
-    const actionConfig = {
-        login: { label: "로그인하러 가기", href: "login.html" },
-        role: { label: "등급 조정 요청하기", href: "block.html" },
-        home: { label: "홈으로 돌아가기", href: "index.html" },
-        retry: { label: "다시 시도", reload: true }
-    }[action];
-
-    const heading = document.createElement("h2");
-    heading.textContent = title;
-
-    const description = document.createElement("p");
-    description.textContent = message;
-
-    gate.replaceChildren(heading, description);
-    gate.setAttribute("role", "status");
-    gate.setAttribute("aria-live", "polite");
-
-    if (actionConfig) {
-        const actions = document.createElement("div");
-        actions.className = "access-gate__actions";
-
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "access-gate__action";
-        button.textContent = actionConfig.label;
-        button.addEventListener("click", () => {
-            if (actionConfig.reload) {
-                location.reload();
-            } else {
-                location.href = actionConfig.href;
-            }
-        });
-
-        actions.appendChild(button);
-        gate.appendChild(actions);
-    }
-}
-
-async function requestAuthenticatedApi(path, options = {}) {
-    const user = auth.currentUser;
-    if (!user) throw new Error("로그인이 필요합니다.");
-
-    const token = await user.getIdToken();
-    const headers = new Headers(options.headers || {});
-    headers.set("Authorization", `Bearer ${token}`);
-    headers.set("ngrok-skip-browser-warning", "69420");
-
-    const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-        const error = new Error(data.error || `서버 요청에 실패했습니다. (${response.status})`);
-        error.status = response.status;
-        throw error;
-    }
-    return data;
-}
-
-async function uploadAuthenticatedForm(path, {
-    method = "POST",
-    formData,
-    onProgress = () => {}
-} = {}) {
-    const user = auth.currentUser;
-    if (!user) throw new Error("로그인이 필요합니다.");
-    const token = await user.getIdToken();
-
-    const healthController = new AbortController();
-    const healthTimeout = setTimeout(() => healthController.abort(), 5000);
-    try {
-        const healthResponse = await fetch(`${API_BASE_URL}/api/health`, {
-            headers: { "ngrok-skip-browser-warning": "69420" },
-            cache: "no-store",
-            signal: healthController.signal
-        });
-        if (!healthResponse.ok) {
-            throw new Error(`서버 상태 확인에 실패했습니다. (${healthResponse.status})`);
-        }
-    } finally {
-        clearTimeout(healthTimeout);
-    }
-
-    return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open(method, `${API_BASE_URL}${path}`);
-        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-        xhr.setRequestHeader("ngrok-skip-browser-warning", "69420");
-        xhr.responseType = "json";
-
-        xhr.upload.addEventListener("progress", event => {
-            if (!event.lengthComputable) return;
-            onProgress(Math.round((event.loaded / event.total) * 100));
-        });
-        xhr.addEventListener("load", () => {
-            const data = xhr.response || {};
-            if (xhr.status >= 200 && xhr.status < 300) {
-                onProgress(100);
-                resolve(data);
-                return;
-            }
-            reject(new Error(data.error || `서버 요청에 실패했습니다. (${xhr.status})`));
-        });
-        xhr.addEventListener("error", () => reject(new Error("서버에 연결할 수 없습니다.")));
-        xhr.addEventListener("abort", () => reject(new Error("업로드가 취소되었습니다.")));
-        xhr.send(formData);
+export function ensureAppCheck() {
+    if (appCheckEnabled || !RECAPTCHA_V3_SITE_KEY) return;
+    initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(RECAPTCHA_V3_SITE_KEY),
+        isTokenAutoRefreshEnabled: true
     });
+    appCheckEnabled = true;
 }
 
-async function getServerUserProfile(user = auth.currentUser, options = {}) {
+ensureAppCheck();
+
+export const auth = getAuth(app);
+
+let profileUid = null;
+let profilePromise = null;
+
+export async function authHeaders(user = auth.currentUser, json = false) {
     if (!user) throw new Error("로그인이 필요합니다.");
-    return requestAuthenticatedApi("/api/me", options);
+    const headers = {
+        Authorization: `Bearer ${await user.getIdToken()}`,
+        "ngrok-skip-browser-warning": "69420"
+    };
+    if (json) headers["Content-Type"] = "application/json";
+    return headers;
 }
 
-async function syncServerUserProfile(user, name) {
-    return requestAuthenticatedApi("/api/me", {
+export async function apiRequest(path, options = {}, user = auth.currentUser) {
+    const headers = new Headers(options.headers || {});
+    const authValues = await authHeaders(user);
+    Object.entries(authValues).forEach(([key, value]) => headers.set(key, value));
+    const requestOptions = { ...options, headers };
+    const response = await apiFetch(path, requestOptions);
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `요청에 실패했습니다. (${response.status})`);
+    }
+    return response;
+}
+
+export function clearProfileCache() {
+    profileUid = null;
+    profilePromise = null;
+}
+
+export async function getCurrentProfile(user = auth.currentUser, force = false) {
+    if (!user) return { uid: null, email: "", name: "", school: "", role: "guest" };
+    if (!force && profileUid === user.uid && profilePromise) return profilePromise;
+    profileUid = user.uid;
+    profilePromise = apiRequest("/api/jhimap/me", {}, user)
+        .then(response => response.json())
+        .catch(error => {
+            clearProfileCache();
+            throw error;
+        });
+    return profilePromise;
+}
+
+export async function updateCurrentProfile(profile, user = auth.currentUser) {
+    const response = await apiRequest("/api/jhimap/me", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            name: name || user.displayName || user.email?.split("@")[0] || "사용자",
-            lastLogin: new Date().toISOString()
-        })
-    });
+        body: JSON.stringify(profile)
+    }, user);
+    clearProfileCache();
+    return response.json();
 }
 
-function normalizePost(post, id) {
-    const normalized = post || {};
-    normalized.id = normalized.id || id;
-    return normalized;
-}
-
-function showToast(message, type = "info", duration = 3200) {
-    let region = document.getElementById("toast-region");
-    if (!region) {
-        region = document.createElement("div");
-        region.id = "toast-region";
-        region.className = "toast-region";
-        region.setAttribute("aria-live", "polite");
-        region.setAttribute("aria-atomic", "true");
-        document.body.appendChild(region);
-    }
-
-    const toast = document.createElement("div");
-    toast.className = `toast toast--${type}`;
-    toast.setAttribute("role", type === "error" ? "alert" : "status");
-    toast.textContent = String(message || "");
-    region.appendChild(toast);
-    requestAnimationFrame(() => toast.classList.add("toast--visible"));
-
-    window.setTimeout(() => {
-        toast.classList.remove("toast--visible");
-        window.setTimeout(() => toast.remove(), 180);
-    }, duration);
-    return toast;
-}
-
-function setupDraftAutosave({ key, fields, restore = true, overwrite = false }) {
-    const entries = Object.entries(fields || {})
-        .map(([name, target]) => [
-            name,
-            typeof target === "string" ? document.querySelector(target) : target
-        ])
-        .filter(([, element]) => element);
-    let timer = null;
-
-    const save = () => {
-        const values = Object.fromEntries(entries.map(([name, element]) => [name, element.value]));
-        if (Object.values(values).every(value => !String(value || "").trim())) {
-            localStorage.removeItem(key);
-        } else {
-            localStorage.setItem(key, JSON.stringify({ values, savedAt: new Date().toISOString() }));
-        }
-    };
-
-    const scheduleSave = () => {
-        window.clearTimeout(timer);
-        timer = window.setTimeout(save, 500);
-    };
-
-    entries.forEach(([, element]) => element.addEventListener("input", scheduleSave));
-
-    if (restore) {
-        try {
-            const saved = JSON.parse(localStorage.getItem(key) || "null");
-            let restored = false;
-            entries.forEach(([name, element]) => {
-                const value = saved?.values?.[name];
-                if ((overwrite || !element.value) && typeof value === "string" && value) {
-                    element.value = value;
-                    restored = true;
-                }
-            });
-            if (restored) showToast("임시 저장된 내용을 복원했습니다.", "info");
-        } catch {
-            localStorage.removeItem(key);
-        }
-    }
-
-    return {
-        clear() {
-            window.clearTimeout(timer);
-            localStorage.removeItem(key);
-        },
-        save
-    };
-}
-
-function setUploadProgress(progressElement, value, labelElement = null) {
-    const progress = Math.max(0, Math.min(100, Number(value) || 0));
-    if (progressElement) {
-        progressElement.hidden = false;
-        progressElement.value = progress;
-    }
-    if (labelElement) labelElement.textContent = `업로드 ${progress}%`;
-}
-
-function formatDateTime(value) {
-    if (!value) return "";
-    const numeric = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value;
-    const date = new Date(numeric);
-    if (Number.isNaN(date.getTime())) return String(value);
-    return new Intl.DateTimeFormat("ko-KR", {
-        dateStyle: "medium",
-        timeStyle: "short"
-    }).format(date);
-}
-
-function enhanceGlobalHeader() {
-    const topBar = document.querySelector(".top-bar");
-    const authBar = topBar?.querySelector(".auth-bar");
-    if (!topBar || !authBar || document.getElementById("utility-nav")) return;
-
-    const utilityNav = document.createElement("div");
-    utilityNav.id = "utility-nav";
-    utilityNav.className = "utility-nav";
-    utilityNav.setAttribute("aria-label", "사용자 도구");
-    utilityNav.innerHTML = `
-        <button type="button" id="searchPopoverToggle" class="utility-trigger"
-                onclick="toggleUtilityPopover('searchPopover', 'searchPopoverToggle')"
-                aria-expanded="false" aria-controls="searchPopover">검색</button>
-        <a href="mypage.html#activitySection" class="auth-utility hidden" title="내 활동">내 활동</a>
-        <button type="button" id="notificationPopoverToggle"
-                class="utility-trigger auth-utility hidden notification-link"
-                onclick="toggleUtilityPopover('notificationPopover', 'notificationPopoverToggle')"
-                aria-expanded="false" aria-controls="notificationPopover">
-            알림 <span id="notificationBadge" class="notification-badge hidden">0</span>
-        </button>
-        <section id="searchPopover" class="utility-popover utility-popover--search hidden"
-                 aria-label="통합 검색">
-            <div class="utility-popover__header">
-                <h2>통합 검색</h2>
-            </div>
-            <form id="utilitySearchForm" class="utility-search-form" role="search"
-                  onsubmit="submitUtilitySearch(event)">
-                <input type="search" id="utilitySearchInput" minlength="2" maxlength="100"
-                       aria-label="통합 검색어" placeholder="검색어를 입력하세요" required>
-                <button type="submit">검색</button>
-            </form>
-            <p id="utilitySearchStatus" class="utility-popover__status" aria-live="polite">
-                게시글, 질문, 자료, 사진을 검색할 수 있습니다.
-            </p>
-            <div id="utilitySearchResults" class="utility-result-list"></div>
-        </section>
-        <section id="notificationPopover" class="utility-popover utility-popover--notification hidden"
-                 aria-label="알림">
-            <div class="utility-popover__header">
-                <h2>알림</h2>
-                <button type="button" id="utilityReadAllBtn" class="utility-text-button"
-                        onclick="readAllUtilityNotifications()">모두 읽음</button>
-            </div>
-            <div id="utilityNotificationList" class="utility-result-list" aria-live="polite">
-                <p class="utility-popover__empty">알림을 불러오는 중...</p>
-            </div>
-        </section>
-    `;
-    topBar.insertBefore(utilityNav, authBar);
-}
-
-function closeUtilityPopovers() {
-    document.querySelectorAll(".utility-popover").forEach(panel => panel.classList.add("hidden"));
-    document.querySelectorAll(".utility-trigger[aria-expanded]").forEach(button => {
-        button.setAttribute("aria-expanded", "false");
-    });
-}
-
-function toggleUtilityPopover(panelId, toggleId) {
-    const panel = document.getElementById(panelId);
-    const toggle = document.getElementById(toggleId);
-    if (!panel || !toggle) return;
-
-    const shouldOpen = panel.classList.contains("hidden");
-    closeUtilityPopovers();
-    if (!shouldOpen) return;
-
-    panel.classList.remove("hidden");
-    toggle.setAttribute("aria-expanded", "true");
-    if (panelId === "searchPopover") {
-        document.getElementById("utilitySearchInput")?.focus();
-    } else {
-        loadNotificationPopover();
-    }
-}
-
-async function refreshNotificationBadge() {
-    const badge = document.getElementById("notificationBadge");
-    if (!badge || !auth.currentUser) return;
-    try {
-        const data = await requestAuthenticatedApi("/api/notifications");
-        const count = Number(data.unreadCount) || 0;
-        badge.textContent = count > 99 ? "99+" : String(count);
-        badge.classList.toggle("hidden", count === 0);
-    } catch {
-        badge.classList.add("hidden");
-    }
-}
-
-async function loadNotificationPopover() {
-    const list = document.getElementById("utilityNotificationList");
-    if (!list || !auth.currentUser) return;
-    list.innerHTML = '<p class="utility-popover__empty">알림을 불러오는 중...</p>';
-
-    try {
-        const data = await requestAuthenticatedApi("/api/notifications");
-        const unreadItems = (data.items || []).filter(item => !item.read);
-        renderNotificationPopover(unreadItems);
-    } catch (error) {
-        list.innerHTML = `<p class="utility-popover__empty">${escapeHtml(error.message)}</p>`;
-    }
-}
-
-function renderNotificationPopover(items) {
-    const list = document.getElementById("utilityNotificationList");
-    if (!list) return;
-    list.replaceChildren();
-
-    if (!items.length) {
-        list.innerHTML = '<p class="utility-popover__empty">새 알림이 없습니다.</p>';
-        return;
-    }
-
-    items.forEach(item => {
-        const link = document.createElement("a");
-        link.className = "utility-result";
-        link.href = item.href || "index.html";
-        link.innerHTML = `
-            <strong>${escapeHtml(item.title || "알림")}</strong>
-            <span>${escapeHtml(item.message || "")}</span>
-            <time>${escapeHtml(formatDateTime(item.createdAt))}</time>
-        `;
-        link.addEventListener("click", event => {
-            event.preventDefault();
-            openUtilityNotification(item);
-        });
-        list.appendChild(link);
-    });
-}
-
-async function openUtilityNotification(item) {
-    await requestAuthenticatedApi(`/api/notifications/${encodeURIComponent(item.id)}/read`, {
-        method: "PUT"
-    }).catch(() => {});
-    location.href = item.href || "index.html";
-}
-
-async function readAllUtilityNotifications() {
-    try {
-        await requestAuthenticatedApi("/api/notifications/read-all", { method: "PUT" });
-        renderNotificationPopover([]);
-        const badge = document.getElementById("notificationBadge");
-        badge?.classList.add("hidden");
-        if (badge) badge.textContent = "0";
-    } catch (error) {
-        showToast(error.message, "error");
-    }
-}
-
-async function searchFromUtilityPopover(query) {
-    const status = document.getElementById("utilitySearchStatus");
-    const results = document.getElementById("utilitySearchResults");
-    if (!status || !results) return;
-
-    status.textContent = "검색 중...";
-    results.replaceChildren();
-    try {
-        const headers = { "ngrok-skip-browser-warning": "69420" };
-        if (auth.currentUser) {
-            headers.Authorization = `Bearer ${await auth.currentUser.getIdToken()}`;
-        }
-        const response = await fetch(`${API_BASE_URL}/api/search?q=${encodeURIComponent(query)}`, { headers });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || "검색에 실패했습니다.");
-        renderUtilitySearchResults(data.items || []);
-        status.textContent = `검색 결과 ${data.count || 0}건`;
-    } catch (error) {
-        status.textContent = error.message;
-        results.replaceChildren();
-    }
-}
-
-function submitUtilitySearch(event) {
-    event.preventDefault();
-    const query = document.getElementById("utilitySearchInput")?.value.trim() || "";
-    if (query.length < 2) {
-        document.getElementById("utilitySearchStatus").textContent = "검색어를 2자 이상 입력해 주세요.";
-        return false;
-    }
-    searchFromUtilityPopover(query);
-    return false;
-}
-
-function renderUtilitySearchResults(items) {
-    const results = document.getElementById("utilitySearchResults");
-    if (!results) return;
-    results.replaceChildren();
-
-    if (!items.length) {
-        results.innerHTML = '<p class="utility-popover__empty">검색 결과가 없습니다.</p>';
-        return;
-    }
-
-    const typeNames = {
-        post: "자유 게시판",
-        question: "질문",
-        resource: "자료실",
-        photo: "활동 사진"
-    };
-    items.forEach(item => {
-        const link = document.createElement("a");
-        link.className = "utility-result";
-        link.href = item.href || "#";
-        link.innerHTML = `
-            <strong>${escapeHtml(item.title || "제목 없음")}</strong>
-            <span>${escapeHtml(item.summary || "내용 없음")}</span>
-            <time>${escapeHtml(typeNames[item.type] || item.type || "")}${item.date ? ` · ${escapeHtml(formatDateTime(item.date))}` : ""}</time>
-        `;
-        results.appendChild(link);
-    });
-}
-
-function initializeUtilityNavigation() {
-    enhanceGlobalHeader();
-    document.addEventListener("keydown", event => {
-        if (event.key === "Escape") closeUtilityPopovers();
-    });
-
-    auth.onAuthStateChanged(user => {
-        document.querySelectorAll(".auth-utility").forEach(element => {
-            element.classList.toggle("hidden", !user);
-        });
-        if (user) {
-            refreshNotificationBadge();
-        }
-    });
-}
-
-function cleanupLegacyPwa() {
-    if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
-        navigator.serviceWorker.getRegistrations()
-            .then(registrations => Promise.all(registrations.map(registration => registration.update())))
-            .catch(() => {});
-    }
+export async function logoutTo(target = "index.html") {
+    clearProfileCache();
+    await signOut(auth);
+    location.href = target;
 }
 
 function getApiStatusBanner() {
@@ -632,35 +220,769 @@ function getApiStatusBanner() {
     return banner;
 }
 
-async function checkApiAvailability() {
+export async function checkApiAvailability() {
     const banner = getApiStatusBanner();
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
     try {
-        const response = await fetch(`${API_BASE_URL}/api/health`, {
-            headers: { "ngrok-skip-browser-warning": "69420" },
-            signal: controller.signal
-        });
-        if (!response.ok) throw new Error(`Health check failed (${response.status})`);
+        await selectAvailableApi(true);
         banner.hidden = true;
         return true;
     } catch {
         banner.hidden = false;
         return false;
-    } finally {
-        clearTimeout(timeout);
     }
 }
 
 function startApiStatusMonitor() {
-    initializeUtilityNavigation();
-    cleanupLegacyPwa();
     checkApiAvailability();
     window.addEventListener("online", checkApiAvailability);
+    setInterval(checkApiAvailability, 5 * 60_000);
+}
+
+function addFeatureNavigationLinks() {
+    const items = [
+        { href: "schedule.html", label: "SCHEDULE" },
+        { href: "ai.html", label: "AI" }
+    ];
+    document.querySelectorAll(".nav-menu").forEach(menu => {
+        const suggestionLink = menu.querySelector('a[href="suggest.html"]');
+        items.forEach(item => {
+            let link = menu.querySelector(`a[href="${item.href}"]`);
+            if (!link) {
+                link = document.createElement("a");
+                link.href = item.href;
+                link.textContent = item.label;
+                menu.insertBefore(link, suggestionLink);
+            }
+            if (location.pathname.endsWith(`/${item.href}`)) {
+                link.classList.add("active");
+                link.setAttribute("aria-current", "page");
+            }
+        });
+    });
+}
+
+function removeMergedAuthorityLinks() {
+    document.querySelectorAll('.nav-menu a[href="adjust.html"]').forEach(link => link.remove());
+}
+
+function createSearchPopover() {
+    const userZone = document.querySelector(".auth-user-zone");
+    if (!userZone || document.getElementById("search-popover")) return;
+    const authBar = userZone.closest(".auth-bar");
+    if (authBar) authBar.style.zIndex = "1600";
+
+    const popover = document.createElement("div");
+    popover.id = "search-popover";
+    popover.className = "search-popover";
+
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "search-trigger";
+    trigger.textContent = "검색";
+    trigger.title = "통합 검색 열기";
+    trigger.setAttribute("aria-label", "통합 검색 열기");
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.setAttribute("aria-controls", "search-quick-panel");
+    trigger.hidden = true;
+
+    const panel = document.createElement("aside");
+    panel.id = "search-quick-panel";
+    panel.className = "search-quick-panel";
+    panel.hidden = true;
+    panel.setAttribute("aria-label", "빠른 통합 검색");
+
+    const header = document.createElement("div");
+    header.className = "search-quick-header";
+    const title = document.createElement("strong");
+    title.textContent = "통합 검색";
+    const summary = document.createElement("span");
+    summary.className = "search-quick-summary";
+    header.append(title, summary);
+
+    const form = document.createElement("form");
+    form.className = "search-quick-form";
+    const input = document.createElement("input");
+    input.type = "search";
+    input.maxLength = 120;
+    input.placeholder = "제목, 내용, 작성자, 첨부파일";
+    input.setAttribute("aria-label", "검색어");
+    const submit = document.createElement("button");
+    submit.type = "submit";
+    submit.textContent = "검색";
+    form.append(input, submit);
+
+    const results = document.createElement("div");
+    results.className = "search-quick-results";
+    results.setAttribute("aria-live", "polite");
+
+    const fullSearchLink = document.createElement("a");
+    fullSearchLink.href = "search.html";
+    fullSearchLink.className = "search-quick-full-link";
+    fullSearchLink.textContent = "상세 검색 열기";
+
+    panel.append(header, form, results, fullSearchLink);
+    popover.append(trigger, panel);
+
+    const notificationPopover = userZone.querySelector("#notification-popover");
+    const logoutButton = userZone.querySelector("#logout-btn, #logoutBtn");
+    userZone.insertBefore(popover, notificationPopover || logoutButton || null);
+
+    let currentUser = null;
+    let requestSequence = 0;
+
+    function renderMessage(message) {
+        results.replaceChildren();
+        const empty = document.createElement("p");
+        empty.className = "search-quick-empty";
+        empty.textContent = message;
+        results.appendChild(empty);
+    }
+
+    function renderResults(items) {
+        results.replaceChildren();
+        summary.textContent = `${items.length}개`;
+        if (!items.length) {
+            renderMessage("검색 결과가 없습니다.");
+            return;
+        }
+        items.slice(0, 8).forEach(item => {
+            const href = safeSiteLink(item.link);
+            const result = document.createElement(href ? "a" : "article");
+            result.className = "search-quick-item";
+            if (href) result.href = href;
+
+            const itemTitle = document.createElement("strong");
+            itemTitle.textContent = item.title || "제목 없음";
+            const excerpt = document.createElement("p");
+            excerpt.textContent = item.excerpt || "내용 미리보기가 없습니다.";
+            const meta = document.createElement("span");
+            meta.textContent = `${searchCollectionLabel(item.collection_name)} · ${item.category || "기타"}`;
+            result.append(itemTitle, excerpt, meta);
+            results.appendChild(result);
+        });
+    }
+
+    async function runQuickSearch() {
+        const query = input.value.trim();
+        fullSearchLink.href = query ? `search.html?q=${encodeURIComponent(query)}` : "search.html";
+        if (!query) {
+            summary.textContent = "";
+            renderMessage("검색어를 입력해 주세요.");
+            return;
+        }
+        const sequence = ++requestSequence;
+        submit.disabled = true;
+        submit.textContent = "검색 중";
+        summary.textContent = "";
+        renderMessage("검색 중입니다.");
+        try {
+            const response = await apiRequest(
+                `/api/jhimap/search?q=${encodeURIComponent(query)}`,
+                {},
+                currentUser
+            );
+            const items = await response.json();
+            if (sequence === requestSequence) renderResults(items);
+        } catch (error) {
+            if (sequence === requestSequence) renderMessage(error.message);
+        } finally {
+            if (sequence === requestSequence) {
+                submit.disabled = false;
+                submit.textContent = "검색";
+            }
+        }
+    }
+
+    function setOpen(open) {
+        panel.hidden = !open;
+        trigger.setAttribute("aria-expanded", String(open));
+        if (open) {
+            window.dispatchEvent(new CustomEvent("deepsky:account-popover-open", {
+                detail: { id: popover.id }
+            }));
+            input.focus();
+        }
+    }
+
+    trigger.addEventListener("click", () => setOpen(panel.hidden));
+    form.addEventListener("submit", event => {
+        event.preventDefault();
+        runQuickSearch();
+    });
+    input.addEventListener("input", () => {
+        const query = input.value.trim();
+        fullSearchLink.href = query ? `search.html?q=${encodeURIComponent(query)}` : "search.html";
+    });
+    document.addEventListener("click", event => {
+        if (!panel.hidden && !popover.contains(event.target)) setOpen(false);
+    });
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !panel.hidden) {
+            setOpen(false);
+            trigger.focus();
+        }
+    });
+    window.addEventListener("deepsky:account-popover-open", event => {
+        if (event.detail?.id !== popover.id && !panel.hidden) setOpen(false);
+    });
+
+    renderMessage("검색어를 입력해 주세요.");
+    onAuthStateChanged(auth, user => {
+        currentUser = user;
+        trigger.hidden = !user;
+        if (!user) setOpen(false);
+    });
+}
+
+function createNotificationPopover() {
+    const userZone = document.querySelector(".auth-user-zone");
+    if (!userZone || document.getElementById("notification-popover")) return;
+    const authBar = userZone.closest(".auth-bar");
+    if (authBar) authBar.style.zIndex = "1600";
+
+    const popover = document.createElement("div");
+    popover.id = "notification-popover";
+    popover.className = "notification-popover";
+
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "notification-trigger";
+    trigger.textContent = "알림";
+    trigger.title = "알림 열기";
+    trigger.setAttribute("aria-label", "알림 열기");
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.setAttribute("aria-controls", "notification-panel");
+    trigger.hidden = true;
+
+    const badge = document.createElement("span");
+    badge.className = "notification-trigger-badge";
+    badge.hidden = true;
+    trigger.appendChild(badge);
+
+    const panel = document.createElement("aside");
+    panel.id = "notification-panel";
+    panel.className = "notification-panel";
+    panel.hidden = true;
+    panel.setAttribute("aria-label", "알림 목록");
+
+    const panelHeader = document.createElement("div");
+    panelHeader.className = "notification-panel-header";
+    const title = document.createElement("strong");
+    title.textContent = "새 알림";
+    const readAllButton = document.createElement("button");
+    readAllButton.type = "button";
+    readAllButton.className = "notification-read-all";
+    readAllButton.textContent = "전체 읽음";
+    readAllButton.disabled = true;
+    panelHeader.append(title, readAllButton);
+
+    const list = document.createElement("div");
+    list.className = "notification-popover-list";
+    list.setAttribute("aria-live", "polite");
+
+    const historyLink = document.createElement("a");
+    historyLink.href = "notifications.html";
+    historyLink.className = "notification-history-link";
+    historyLink.textContent = "지난 알림 기록 보기";
+
+    panel.append(panelHeader, list, historyLink);
+    popover.append(trigger, panel);
+
+    const logoutButton = userZone.querySelector("#logout-btn, #logoutBtn");
+    userZone.insertBefore(popover, logoutButton || null);
+
+    let currentUser = null;
+    let unreadCount = 0;
+
+    function updateCount(count) {
+        unreadCount = Math.max(0, Number(count || 0));
+        badge.textContent = unreadCount > 99 ? "99+" : String(unreadCount);
+        badge.hidden = unreadCount === 0;
+        readAllButton.disabled = unreadCount === 0;
+        trigger.setAttribute(
+            "aria-label",
+            unreadCount ? `읽지 않은 알림 ${unreadCount}개` : "새 알림 없음"
+        );
+        const dashboardUnread = document.getElementById("dashboard-unread");
+        if (dashboardUnread) dashboardUnread.textContent = String(unreadCount);
+    }
+
+    function renderEmpty(message = "새로운 알림이 없습니다.") {
+        list.replaceChildren();
+        const empty = document.createElement("p");
+        empty.className = "notification-popover-empty";
+        empty.textContent = message;
+        list.appendChild(empty);
+    }
+
+    function renderNotifications(notifications) {
+        list.replaceChildren();
+        if (!notifications.length) {
+            renderEmpty();
+            return;
+        }
+        notifications.forEach(notification => {
+            const item = document.createElement("article");
+            item.className = "notification-popover-item";
+
+            const itemTitle = document.createElement("strong");
+            itemTitle.textContent = notification.title || "알림";
+            const message = document.createElement("p");
+            message.textContent = notification.message || "";
+            const time = document.createElement("time");
+            time.textContent = formatNotificationDate(notification.created_at);
+            if (notification.created_at) time.dateTime = notification.created_at;
+            item.append(itemTitle, message, time);
+
+            const href = safeNotificationLink(notification.link);
+            if (href) {
+                item.classList.add("is-link");
+                item.tabIndex = 0;
+                item.setAttribute("role", "link");
+                const openNotification = async () => {
+                    await markNotificationRead(notification.id);
+                    location.href = href;
+                };
+                item.addEventListener("click", openNotification);
+                item.addEventListener("keydown", event => {
+                    if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        openNotification();
+                    }
+                });
+            }
+            list.appendChild(item);
+        });
+    }
+
+    async function loadUnreadCount() {
+        if (!currentUser) return;
+        try {
+            const response = await apiRequest("/api/jhimap/notifications/unread-count", {}, currentUser);
+            const data = await response.json();
+            updateCount(data.count);
+        } catch {
+            // Keep the last known count when only the count request is interrupted.
+        }
+    }
+
+    async function loadNotifications() {
+        if (!currentUser) return;
+        list.innerHTML = '<p class="notification-popover-empty">알림을 불러오는 중입니다.</p>';
+        try {
+            const response = await apiRequest("/api/jhimap/notifications?unread=1&limit=30", {}, currentUser);
+            const notifications = await response.json();
+            renderNotifications(notifications);
+            updateCount(notifications.length);
+            await loadUnreadCount();
+        } catch (error) {
+            renderEmpty(error.message);
+        }
+    }
+
+    async function markNotificationRead(id) {
+        try {
+            await apiRequest(`/api/jhimap/notifications/${encodeURIComponent(String(id))}/read`, {
+                method: "PUT"
+            }, currentUser);
+            updateCount(unreadCount - 1);
+        } catch {
+            // The destination remains available if recording the read state fails.
+        }
+    }
+
+    function setOpen(open) {
+        panel.hidden = !open;
+        trigger.setAttribute("aria-expanded", String(open));
+        if (open) {
+            window.dispatchEvent(new CustomEvent("deepsky:account-popover-open", {
+                detail: { id: popover.id }
+            }));
+            loadNotifications();
+        }
+    }
+
+    trigger.addEventListener("click", () => setOpen(panel.hidden));
+    readAllButton.addEventListener("click", async () => {
+        if (!currentUser || unreadCount === 0) return;
+        readAllButton.disabled = true;
+        readAllButton.textContent = "처리 중";
+        try {
+            await apiRequest("/api/jhimap/notifications/read-all", { method: "PUT" }, currentUser);
+            updateCount(0);
+            renderEmpty();
+            window.dispatchEvent(new CustomEvent("deepsky:notifications-cleared"));
+        } catch (error) {
+            renderEmpty(error.message);
+            readAllButton.disabled = false;
+        } finally {
+            readAllButton.textContent = "전체 읽음";
+        }
+    });
+
+    document.addEventListener("click", event => {
+        if (!panel.hidden && !popover.contains(event.target)) setOpen(false);
+    });
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !panel.hidden) {
+            setOpen(false);
+            trigger.focus();
+        }
+    });
+    window.addEventListener("deepsky:notifications-cleared", () => {
+        updateCount(0);
+        renderEmpty();
+    });
+    window.addEventListener("deepsky:notifications-changed", loadUnreadCount);
+    window.addEventListener("deepsky:account-popover-open", event => {
+        if (event.detail?.id !== popover.id && !panel.hidden) setOpen(false);
+    });
+
+    onAuthStateChanged(auth, user => {
+        currentUser = user;
+        trigger.hidden = !user;
+        if (!user) {
+            setOpen(false);
+            updateCount(0);
+            renderEmpty();
+            return;
+        }
+        loadUnreadCount();
+    });
+}
+
+function formatNotificationDate(value) {
+    return value ? new Date(value).toLocaleString("ko-KR") : "";
+}
+
+function safeNotificationLink(value) {
+    return safeSiteLink(value);
+}
+
+function announcementPopupVersion(announcement) {
+    const source = [
+        announcement.id,
+        announcement.title,
+        announcement.content,
+        announcement.starts_at,
+        announcement.expires_at
+    ].join("|");
+    let hash = 5381;
+    for (let index = 0; index < source.length; index += 1) {
+        hash = ((hash << 5) + hash) ^ source.charCodeAt(index);
+    }
+    return `${announcement.id}-${(hash >>> 0).toString(36)}`;
+}
+
+function storageValue(storage, key) {
+    try {
+        return storage.getItem(key);
+    } catch {
+        return null;
+    }
+}
+
+function storeValue(storage, key, value) {
+    try {
+        storage.setItem(key, value);
+    } catch {
+        // The popup still works when private browsing blocks web storage.
+    }
+}
+
+function localDateKey() {
+    const now = new Date();
+    return [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, "0"),
+        String(now.getDate()).padStart(2, "0")
+    ].join("-");
+}
+
+function isAnnouncementPopupDismissed(announcement) {
+    const version = announcementPopupVersion(announcement);
+    return (
+        storageValue(sessionStorage, `deepsky:popup:session:${version}`) === "1"
+        || storageValue(localStorage, `deepsky:popup:day:${version}`) === localDateKey()
+    );
+}
+
+function dismissAnnouncementPopups(announcements, forToday) {
+    announcements.forEach(announcement => {
+        const version = announcementPopupVersion(announcement);
+        storeValue(sessionStorage, `deepsky:popup:session:${version}`, "1");
+        if (forToday) {
+            storeValue(localStorage, `deepsky:popup:day:${version}`, localDateKey());
+        }
+    });
+}
+
+function showAnnouncementPopup(announcements) {
+    if (!announcements.length || document.getElementById("site-announcement-dialog")) return;
+
+    const dialog = document.createElement("dialog");
+    dialog.id = "site-announcement-dialog";
+    dialog.className = "site-announcement-dialog";
+    dialog.setAttribute("aria-labelledby", "site-announcement-dialog-title");
+
+    const header = document.createElement("header");
+    header.className = "site-announcement-dialog-header";
+    const headingGroup = document.createElement("div");
+    const eyebrow = document.createElement("span");
+    eyebrow.className = "site-announcement-dialog-eyebrow";
+    eyebrow.textContent = "DEEP SKY NOTICE";
+    const heading = document.createElement("h2");
+    heading.id = "site-announcement-dialog-title";
+    heading.textContent = announcements.length > 1 ? `중요 공지 ${announcements.length}건` : "중요 공지";
+    headingGroup.append(eyebrow, heading);
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.className = "site-announcement-dialog-close";
+    closeButton.textContent = "닫기";
+    closeButton.setAttribute("aria-label", "공지 팝업 닫기");
+    header.append(headingGroup, closeButton);
+
+    const list = document.createElement("div");
+    list.className = "site-announcement-dialog-list";
+    announcements.forEach(announcement => {
+        const article = document.createElement("article");
+        const title = document.createElement("h3");
+        title.textContent = announcement.title || "공지";
+        const content = document.createElement("p");
+        content.textContent = announcement.content || "";
+        const time = document.createElement("time");
+        if (announcement.created_at) time.dateTime = announcement.created_at;
+        time.textContent = announcement.created_at
+            ? new Date(announcement.created_at).toLocaleString("ko-KR")
+            : "";
+        article.append(title, content, time);
+        list.appendChild(article);
+    });
+
+    const footer = document.createElement("footer");
+    footer.className = "site-announcement-dialog-footer";
+    const todayLabel = document.createElement("label");
+    const todayCheckbox = document.createElement("input");
+    todayCheckbox.type = "checkbox";
+    todayLabel.append(todayCheckbox, document.createTextNode(" 오늘 하루 보지 않기"));
+    const detailsLink = document.createElement("a");
+    detailsLink.href = "talk.html#talk-announcement-title";
+    detailsLink.className = "btn btn-primary";
+    detailsLink.textContent = "전체 공지 보기";
+    footer.append(todayLabel, detailsLink);
+    dialog.append(header, list, footer);
+    document.body.appendChild(dialog);
+
+    let dismissed = false;
+    const dismiss = () => {
+        if (dismissed) return;
+        dismissed = true;
+        dismissAnnouncementPopups(announcements, todayCheckbox.checked);
+    };
+    closeButton.addEventListener("click", () => {
+        dismiss();
+        dialog.close();
+    });
+    detailsLink.addEventListener("click", dismiss);
+    dialog.addEventListener("cancel", dismiss);
+    dialog.addEventListener("click", event => {
+        if (event.target !== dialog) return;
+        const bounds = dialog.getBoundingClientRect();
+        const inside = (
+            event.clientX >= bounds.left
+            && event.clientX <= bounds.right
+            && event.clientY >= bounds.top
+            && event.clientY <= bounds.bottom
+        );
+        if (!inside) {
+            dismiss();
+            dialog.close();
+        }
+    });
+    dialog.showModal();
+}
+
+async function createAnnouncementPopup() {
+    try {
+        const params = new URLSearchParams({ scope: "all", active: "1" });
+        const response = await apiFetch(`/api/jhimap/announcements?${params}`, {
+            headers: { "ngrok-skip-browser-warning": "69420" }
+        });
+        if (!response.ok) return;
+        const announcements = await response.json();
+        const visible = announcements.filter(announcement => (
+            announcement.importance === "important"
+            && !isAnnouncementPopupDismissed(announcement)
+        ));
+        showAnnouncementPopup(visible);
+    } catch {
+        // A failed popup request must not interrupt the rest of the site.
+    }
+}
+
+function safeSiteLink(value) {
+    if (!value) return "";
+    try {
+        const url = new URL(value, location.href);
+        return url.origin === location.origin ? url.href : "";
+    } catch {
+        return "";
+    }
+}
+
+function searchCollectionLabel(value) {
+    return {
+        resources: "공용 자료",
+        "club-board": "동아리 게시판"
+    }[value] || value || "자료";
+}
+
+function createAiLauncher() {
+    const page = location.pathname.split("/").pop() || "index.html";
+    if (["ai.html", "login.html", "signup.html", "block.html"].includes(page)) return;
+    if (document.getElementById("ai-launcher")) return;
+
+    const launcher = document.createElement("div");
+    launcher.id = "ai-launcher";
+    launcher.className = "ai-launcher";
+    launcher.hidden = true;
+
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "ai-launcher-toggle";
+    toggle.textContent = "AI";
+    toggle.title = "DEEP SKY AI 열기";
+    toggle.setAttribute("aria-label", "DEEP SKY AI 열기");
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-controls", "ai-quick-panel");
+
+    const panel = document.createElement("aside");
+    panel.id = "ai-quick-panel";
+    panel.className = "ai-quick-panel";
+    panel.hidden = true;
+    panel.setAttribute("aria-label", "DEEP SKY AI 빠른 질문");
+
+    const header = document.createElement("div");
+    header.className = "ai-quick-header";
+    const title = document.createElement("strong");
+    title.textContent = "DEEP SKY AI";
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "ai-quick-close";
+    close.textContent = "×";
+    close.title = "닫기";
+    close.setAttribute("aria-label", "AI 창 닫기");
+    header.append(title, close);
+
+    const output = document.createElement("div");
+    output.className = "ai-quick-output";
+    output.setAttribute("role", "status");
+    output.setAttribute("aria-live", "polite");
+    output.textContent = "천문·물리 질문을 입력해 주세요.";
+
+    const form = document.createElement("form");
+    form.className = "ai-quick-form";
+    const input = document.createElement("textarea");
+    input.maxLength = 500;
+    input.rows = 2;
+    input.placeholder = "질문 입력";
+    input.setAttribute("aria-label", "AI에게 질문");
+    const submit = document.createElement("button");
+    submit.type = "submit";
+    submit.className = "btn btn-primary";
+    submit.textContent = "보내기";
+    form.append(input, submit);
+
+    const fullPage = document.createElement("a");
+    fullPage.href = "ai.html";
+    fullPage.className = "ai-quick-full-link";
+    fullPage.textContent = "AI 페이지에서 계속";
+
+    panel.append(header, output, form, fullPage);
+    launcher.append(panel, toggle);
+    document.body.append(launcher);
+
+    const setOpen = open => {
+        panel.hidden = !open;
+        toggle.setAttribute("aria-expanded", String(open));
+        if (open) input.focus();
+    };
+
+    let aiAccessAllowed = false;
+    let authSequence = 0;
+    onAuthStateChanged(auth, async user => {
+        const sequence = ++authSequence;
+        aiAccessAllowed = false;
+        launcher.hidden = true;
+        setOpen(false);
+        if (!user) return;
+        try {
+            const profile = await getCurrentProfile(user);
+            if (sequence !== authSequence) return;
+            aiAccessAllowed = AI_ALLOWED_ROLES.has(profile.role);
+            launcher.hidden = !aiAccessAllowed;
+        } catch {
+            if (sequence === authSequence) launcher.hidden = true;
+        }
+    });
+
+    toggle.addEventListener("click", () => setOpen(panel.hidden));
+    close.addEventListener("click", () => setOpen(false));
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !panel.hidden) setOpen(false);
+    });
+
+    const history = [];
+    form.addEventListener("submit", async event => {
+        event.preventDefault();
+        const message = input.value.trim();
+        if (!message) return;
+        if (!auth.currentUser || !aiAccessAllowed) {
+            location.href = "block.html";
+            return;
+        }
+
+        submit.disabled = true;
+        submit.textContent = "응답 중";
+        output.textContent = "답변을 준비하고 있습니다.";
+        try {
+            const response = await apiRequest("/api/jhimap/ai/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    message,
+                    history: history.slice(-4),
+                    saveConversation: false
+                })
+            });
+            const data = await response.json();
+            output.textContent = data.answer;
+            history.push(
+                { role: "user", content: message },
+                { role: "model", content: data.answer }
+            );
+            input.value = "";
+        } catch (error) {
+            output.textContent = error.message;
+        } finally {
+            submit.disabled = false;
+            submit.textContent = "보내기";
+        }
+    });
+}
+
+function initializeCommonUi() {
+    startApiStatusMonitor();
+    addFeatureNavigationLinks();
+    removeMergedAuthorityLinks();
+    createSearchPopover();
+    createNotificationPopover();
+    createAiLauncher();
+    createAnnouncementPopup();
 }
 
 if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", startApiStatusMonitor, { once: true });
+    document.addEventListener("DOMContentLoaded", initializeCommonUi, { once: true });
 } else {
-    startApiStatusMonitor();
+    initializeCommonUi();
 }

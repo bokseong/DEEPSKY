@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="logo.png" type="image/png">
+    <link rel="apple-touch-icon" href="logo.png">
+    <title>DEEP SKY | View</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/school-view.css">
+</head>
+<body>
+<div class="auth-bar">
+    <a href="index.html" class="logo-link"><img src="logo.png" alt="Logo" class="nav-logo"><span>DEEP SKY</span></a>
+    <div class="auth-user-zone"><a href="login.html" id="login-link" class="auth-btn">LOGIN</a><span id="user-name" style="display:none;"></span><button id="logout-btn" class="auth-btn" style="display:none;">LOGOUT</button></div>
+</div>
+<nav class="sub-nav-container" aria-label="주요 메뉴"><div class="nav-menu"><a href="index.html">HOME</a><a href="introduction.html">INTRODUCTION</a><a href="talk.html" class="active">TALK</a><a href="resource.html">RESOURCE</a><a href="suggest.html">SUGGESTION</a><a href="mypage.html">MY PAGE</a><a href="adjust.html">REQUEST AUTHORITY</a><a href="admin.html">ADMIN</a></div></nav>
+
+<main class="container">
+    <article class="post-card">
+        <div class="post-meta"><span class="tag" id="post-category">-</span><span id="post-author">-</span><span id="post-date">-</span></div>
+        <h1 id="post-title">불러오는 중...</h1>
+        <div id="post-content" class="content"></div>
+        <div id="post-links" class="links"></div>
+        <div class="actions">
+            <button id="btn-bookmark" class="btn-small hidden">저장</button>
+            <button id="btn-report" class="btn-small hidden">신고</button>
+            <button id="btn-edit" class="btn-small btn-primary hidden">수정</button>
+            <button id="btn-delete" class="btn-small btn-danger hidden">삭제</button>
+            <button id="btn-list" class="btn-small">목록</button>
+        </div>
+    </article>
+
+    <section class="comment-panel">
+        <div class="comment-form"><input id="comment-input" class="comment-input" type="text" aria-label="댓글" placeholder="의견을 남겨보세요."><button id="comment-submit" class="btn-primary">등록</button></div>
+        <div id="comment-list"></div>
+    </section>
+</main>
+
+<footer>
+  <p>&copy; 2026 DEEP SKY. All Rights Reserved.</p>
+  <p>복성고등학교 천문·항공우주 동아리</p>
+  <p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p>
+</footer>
+
+<script type="module" src="js/school-view.js"></script>
+<script type="module" src="frontend-access-control.js"></script>
+</body>
+</html>

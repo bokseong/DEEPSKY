@@ -1,29 +1,69 @@
+.social-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 24px 0 14px;
+    color: rgba(255, 255, 255, .42);
+    font-size: .78rem;
+    text-transform: uppercase;
+}
 
-        body { font-family: "Segoe UI", sans-serif; min-height: 100vh; display: flex; flex-direction: column;}
-        .top-bar { padding: 0 20px; height: 60px;}
-        .logo-area img { width: 35px; height: 35px; margin-right: 10px;}
-        .logo-area span { font-size: 18px;}
+.social-divider::before,
+.social-divider::after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    background: var(--border-color);
+}
 
-        .login-container { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .login-box { width: 100%; max-width: 400px; background: #161b4a; padding: 40px 30px; border-radius: 20px; border: 1px solid #2d367a; text-align: center; }
-        .login-box h2 { color: #7fc7ff; margin-bottom: 30px; }
+.login-alt-actions {
+    flex-direction: column;
+    align-items: stretch;
+    margin-top: 0;
+}
 
-        .input-group { margin-bottom: 15px; text-align: left; }
-        .input-group label { display: block; font-size: 13px; color: #aaa; margin-bottom: 5px; }
-        input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #1b2f80; background: #0b0f2b; color: white; outline: none; }
-        input:focus { border-color: #3a5aff; }
+.google-btn {
+    width: 100%;
+    min-height: 46px;
+    background: #fff;
+    border: 1px solid #dadce0;
+    color: #202124;
+    font-size: .94rem;
+    font-weight: 700;
+    justify-content: center;
+}
 
-        .btn-group { margin-top: 25px; display: flex; flex-direction: column; gap: 10px; }
-        button { width: 100%; padding: 13px; border-radius: 8px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .btn-login { background: #3a5aff; color: white; }
-        .btn-signup { background: transparent; color: #7fc7ff; border: 1px solid #3a5aff; }
-        .btn-google { background: white; color: #444; border: 1px solid #ddd; }
-        .btn-github { background: #24292e; color: white; }
-        .btn-github img { filter: invert(1); }
+.google-btn::before {
+    content: "G";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    margin-right: 10px;
+    color: #4285f4;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
 
-        .link-group { margin-top: 15px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
-        .sub-link { color: #7fc7ff; font-size: 13px; text-decoration: none; cursor: pointer; }
-        .sub-link:hover { text-decoration: underline; }
-        .info-text { margin-top: 20px; font-size: 12px; color: #666; }
+.google-btn:hover,
+.google-btn:focus-visible {
+    background: #f8fafd;
+    border-color: #9aa0a6;
+    color: #202124;
+    outline: none;
+}
 
-        footer { padding: 20px; font-size: 12px;}
+.signup-link {
+    width: 100%;
+    border-color: transparent;
+    color: rgba(255, 255, 255, .72);
+    text-align: center;
+}
+
+.signup-link:hover,
+.signup-link:focus-visible {
+    border-color: var(--border-color);
+    color: var(--accent);
+    outline: none;
+}

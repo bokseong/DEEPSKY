@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="apple-touch-icon" href="logo.png">
+<title>DEEP SKY | Signup</title>
+  <link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/signup.css">
+</head>
+<body>
+<div class="auth-bar">
+  <a href="index.html" class="logo-link">
+    <img src="logo.png" alt="DEEP SKY logo" class="nav-logo">
+    <span>DEEP SKY</span>
+  </a>
+  <div class="auth-user-zone">
+    <a href="login.html" id="login-link" class="auth-btn">LOGIN</a>
+    <span id="user-name" style="display:none;color:var(--accent);font-weight:700"></span>
+    <button id="logout-btn" class="auth-btn" style="display:none">LOGOUT</button>
+  </div>
+</div>
+<nav class="sub-nav-container" aria-label="주요 메뉴">
+  <div class="nav-menu">
+    <a href="index.html">HOME</a>
+    <a href="introduction.html">INTRODUCTION</a>
+    <a href="talk.html">TALK</a>
+    <a href="resource.html">RESOURCE</a>
+    <a href="suggest.html">SUGGESTION</a>
+    <a href="mypage.html">MY PAGE</a>
+    <a href="adjust.html">REQUEST AUTHORITY</a>
+    <a href="admin.html">ADMIN</a>
+  </div>
+</nav>
+<main class="container" style="margin-top:120px">
+  <section class="panel">
+    <h1 class="section-title">Sign up</h1>
+    <form id="signup-form">
+      <label for="name">이름</label>
+      <input id="name" autocomplete="name" required>
+      <label for="school">학교</label>
+      <select id="school" required>
+        <option value="Suncheon Bokseong High School">복성고등학교</option>
+      </select>
+      <label for="email">이메일</label>
+      <input id="email" type="email" autocomplete="email" required>
+      <label for="password">비밀번호</label>
+      <input id="password" type="password" minlength="8" autocomplete="new-password" required>
+      <div class="terms-box" aria-label="이용 약관 및 개인정보 수집 안내">
+        <h2>이용 약관 및 개인정보 수집 안내</h2>
+        <p>DEEP SKY는 동아리 홈페이지 운영과 회원 권한 관리를 위해 필요한 최소한의 정보를 사용합니다.</p>
+        <ul>
+          <li>수집 항목: 이름, 학교, 이메일, 회원 역할 등</li>
+          <li>이용 목적: 계정 식별, 학교별 권한 부여, 게시판 및 자료실 이용, 운영 공지, 회원 관리</li>
+          <li>보관 기간: 회원 탈퇴 또는 서비스 운영 종료 시까지</li>
+          <li>이용자는 허위 정보 입력, 타인 계정 사용, 무단 접근, 불법 또는 유해 게시물 등록 등의 행위 적발 시 강제로 회원 탈퇴시킬 예정입니다.</li>
+          <li>게시글, 댓글, 첨부파일은 서비스 운영을 위해 저장될 수 있습니다.</li>
+          <li>메일 주소와 이름 등의 계정 정보는 Google Firebase 인증 서비스를 통해 처리됩니다.</li>
+          <li>이 약관을 거부 시 회원가입이 불가하며 이에 따른 문제에 대해서는 책임지지 않습니다.</li>
+        </ul>
+      </div>
+      <label class="agree-label">
+        <input id="privacy" type="checkbox" required>
+        <span>이용 약관 및 개인정보 수집 안내에 동의합니다.</span>
+      </label>
+      <div class="actions">
+        <button class="btn btn-primary" id="submit-btn">Sign up</button>
+      </div>
+    </form>
+  </section>
+</main>
+<footer>
+  <p>&copy; 2026 DEEP SKY. All Rights Reserved.</p>
+  <p>복성고등학교 천문·항공우주 동아리</p>
+  <p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p>
+</footer>
+<script type="module" src="js/signup.js"></script>
+<script type="module" src="frontend-access-control.js"></script>
+</body>
+</html>

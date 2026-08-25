@@ -1,116 +1,31 @@
-/* 1. 공통 스타일 */
+.btn-danger {
+    border-color: #ff5d5d;
+    color: #ff7a7a;
+}
 
-        body { font-family: "Segoe UI", sans-serif; line-height: 1.6;}
+.btn-danger:hover {
+    background: #ff5d5d;
+    color: #000;
+}
 
-        /* 2. 상단 바 */
-        .top-bar { justify-content: space-between;
-            padding: 0 20px;
-            height: 60px; position: sticky; top: 0; z-index: 1000;}
-        .logo-area img { width: 35px; height: 35px; margin-right: 10px;}
-        .logo-area span { font-size: 18px;}
-        .auth-bar button {
-            padding: 5px 12px;}
+.panel + .panel {
+    margin-top: 22px;
+}
 
-        /* 3. 헤더 및 내비게이션 */
-        header { padding: 40px 20px;}
-        nav a { display: inline-block;}
+.danger-zone {
+    border-color: rgba(255, 93, 93, .45);
+    background: rgba(255, 93, 93, .045);
+}
 
-        /* 4. 본문 컨테이너 */
-        .container { max-width: 700px; margin: 30px auto; padding: 0 20px 100px; }
+.danger-zone .section-title {
+    border-left-color: #ff5d5d;
+}
 
-        .card {
-            background: #161b4a; padding: 30px; border-radius: 15px;
-            border: 1px solid #2d367a; margin-bottom: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
+.danger-zone p {
+    color: #cfcfcf;
+    margin: 0 0 14px;
+}
 
-        /* 등급 표시 칸 */
-        .role-badge-box {
-            background: rgba(58, 90, 255, 0.15); border: 1px solid #3a5aff;
-            padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 10px;
-        }
-        .role-title { font-size: 14px; color: #7fc7ff; margin-bottom: 5px; }
-        .role-name { font-size: 24px; font-weight: bold; color: white; letter-spacing: 1px; }
-
-        /* 입력 폼 스타일 */
-        .info-group { margin-bottom: 20px; }
-        .info-group label { display: block; font-size: 13px; color: #7fc7ff; margin-bottom: 8px; font-weight: bold; }
-        .info-group input, .info-group select, .info-group textarea {
-            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #1b2f80;
-            background: #0b0f2b; color: white; font-size: 15px; outline: none; font-family: inherit;
-        }
-        .info-group input:disabled { background: #070a1d; color: #666; cursor: not-allowed; }
-
-        .btn-save {
-            width: 100%; padding: 14px; background: #3a5aff; color: white;
-            border: none; border-radius: 8px; font-weight: bold; cursor: pointer;
-            font-size: 16px; transition: 0.3s; margin-bottom: 10px;
-        }
-        .btn-save:hover { background: #2846d1; }
-
-        .btn-pw-reset {
-            width: 100%; padding: 12px; background: transparent; color: #7fc7ff;
-            border: 1px solid #3a5aff; border-radius: 8px; font-weight: bold; cursor: pointer;
-            font-size: 14px; transition: 0.3s;
-        }
-        .btn-pw-reset:hover { background: rgba(58, 90, 255, 0.1); }
-
-        /* 권한 안내 표 */
-        .permission-table {
-            width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px;
-        }
-        .permission-table th, .permission-table td {
-            padding: 10px; border: 1px solid #2d367a; text-align: center;
-        }
-        .permission-table th { background: rgba(58, 90, 255, 0.2); color: #7fc7ff; }
-        .check { color: #3a5aff; font-weight: bold; }
-
-        .danger-zone {
-            margin-top: 40px; border-top: 1px solid #2d367a; padding-top: 25px;
-            text-align: center;
-        }
-        .btn-withdraw {
-            background: #ff4d4d; color: white; border: none;
-            padding: 10px 20px; border-radius: 6px; cursor: pointer;
-            font-weight: bold; font-size: 13px;
-        }
-
-        .activity-section {
-            padding-top: 16px;
-            scroll-margin-top: 90px;
-        }
-
-        .activity-section__header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-
-        .activity-section__header h2 {
-            margin: 0;
-            color: #7fc7ff;
-            font-size: 22px;
-        }
-
-        .activity-section__header select {
-            min-height: 42px;
-            padding: 8px 12px;
-            border: 1px solid #2d367a;
-            border-radius: 6px;
-            background: #11153a;
-            color: #fff;
-            font: inherit;
-        }
-
-        @media (max-width: 600px) {
-            .activity-section__header {
-                align-items: stretch;
-                flex-direction: column;
-            }
-        }
-
-        footer { padding: 30px 20px;
-            font-size: 12px;
-            width: 100%; margin-top: 50px;}
+.danger-zone strong {
+    color: #ff9a9a;
+}

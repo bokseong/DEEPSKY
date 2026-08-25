@@ -1,48 +1,191 @@
-/* 1. 공통 스타일 */
+:root {
+  --home-text: #f4f7f9;
+  --home-muted: #aeb8c0;
+  --home-line: rgba(255, 255, 255, .15);
+}
 
-        body { font-family: "Pretendard", "Segoe UI", sans-serif; overflow-x: hidden;}
-        /* 2. 상단 바 */
-        .top-bar { justify-content: space-between;padding: 0 30px;height: 65px; position: sticky; top: 0; z-index: 1000;}
-        .logo-area img { width: 40px; height: 40px; margin-right: 12px;}
-        .logo-area span { font-size: 20px; letter-spacing: 1px;}
-        .auth-bar button { padding: 7px 16px;}
-        /* 3. 헤더 */
-        header { padding: 70px 20px;background: linear-gradient(to bottom, #0d1b52, #1b2f80);}
-        .header-content { display: flex; align-items: center; justify-content: center; gap: 30px; max-width: 1000px; margin: 0 auto; }
-        .header-logo { width: 150px; height: 150px; background: white;border-radius: 50%; padding: 5px; box-shadow: 0 0 15px rgba(58, 90, 255, 0.5);flex-shrink: 0; }
-        .header-logo img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-        .header-text { text-align: left; }
-        .header-text h1 { margin: 0; font-size: 2.8rem; font-weight: bold; color: white; letter-spacing: 2px; }
-        .header-text p { margin: 5px 0 0; font-size: 1.1rem; color: #7fc7ff; font-weight: bold; }/* 4. 내비게이션 (한번에 다 나오도록 수정됨) */
+body {
+  background: #050607;
+  color: var(--home-text);
+}
 
-        nav a { display: inline-block; transition: 0.2s;}
-        /* 업데이트 로그 게시판 */
-        .log-item { border-bottom: 1px solid #2d367a; padding: 10px 0; }
-        .log-item:last-child { border-bottom: none; }
-        .log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        .log-version { color: #7fc7ff; font-weight: bold; font-size: 0.9rem; }
-        .log-date { color: #888; font-size: 0.8rem; }
-        .log-text { color: #ccc; line-height: 1.4; white-space: pre-wrap; }
-        /* 5. 메인 컨텐츠 & 카드 */
-        .container { max-width: 1000px; margin: 35px auto; padding: 0 20px; }
-        .card { background: #161b4a; padding: 25px; border-radius: 15px; border: 1px solid #2d367a; margin-bottom: 25px; }
-        #adminBox { border: 1px solid #ff4d4d; background: rgba(255, 77, 77, 0.05); }
-        textarea { width: 100%; height: 90px; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px; padding: 12px; margin-top: 15px; resize: none; }
-        /* 6. 사진 슬라이드 */
-        .slide-container { position: relative; max-width: 1000px; margin: 30px auto; height: 550px; overflow: hidden; border-radius: 15px; border: 1px solid #1b2f80; background: #000; }
-        .slide-header { position: absolute; top: 0; width: 100%; z-index: 20; background: rgba(0,0,0,0.5); padding: 15px; text-align: center; }
-        .slide-item { position: absolute; width: 100%; height: 100%; display: none; }
-        .slide-item.active { display: block; }
-        .slide-item img { width: 100%; height: 100%; object-fit: contain; }
-        .slide-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; width: 45px; height: 45px; cursor: pointer; font-size: 18px; border-radius: 50%; z-index: 30; }
-        .btn-prev { left: 15px; }
-        .btn-next { right: 15px; }
-        .slide-pause { position: absolute; right: 15px; bottom: 15px; z-index: 30; padding: 7px 12px; border: 1px solid rgba(255,255,255,.7); border-radius: 6px; background: rgba(0,0,0,.65); color: #fff; cursor: pointer; }
-        .slide-btn:focus-visible, .slide-pause:focus-visible { outline: 3px solid #7fc7ff; outline-offset: 2px; }
-        footer { padding: 35px 20px; font-size: 13px;}
-        @media (max-width: 600px) {
-            .logo-area span { font-size: 16px;}
-            nav a { padding: 10px 12px; font-size: 13px;}
-            header h1 { font-size: 22px; }
-            .header-logo { width: 100px; height: 100px; }
-        }
+.auth-bar {
+  background: rgba(5, 6, 7, .92);
+  backdrop-filter: blur(12px);
+}
+
+.sub-nav-container {
+  background: #0b0d0f;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.sub-nav-container::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.nav-menu a[aria-current="page"] {
+  color: #fff;
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.hero {
+  position: relative;
+  min-height: 520px;
+  height: 68vh;
+  max-height: 720px;
+  padding: 96px 20px 52px;
+  overflow: hidden;
+  background: url("../assets/images/deepsky-observatory.webp") center 58% / cover no-repeat;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(0, 0, 0, .35), rgba(0, 0, 0, .78));
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(760px, 100%);
+}
+
+.hero-logo {
+  width: 92px;
+  height: 92px;
+  margin-bottom: 22px;
+  border-radius: 50%;
+  background: #fff;
+  object-fit: contain;
+}
+
+.hero h1 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(2.8rem, 8vw, 5rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
+.hero p {
+  margin: 16px 0 0;
+  color: rgba(255, 255, 255, .82);
+  font-size: clamp(.95rem, 2.2vw, 1.15rem);
+  text-align: center;
+}
+
+.home-main {
+  min-height: 300px;
+}
+
+.home-dashboard {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.dashboard-metric {
+  color: var(--home-muted);
+  text-decoration: none;
+}
+
+.dashboard-metric:hover span {
+  color: #fff;
+}
+
+.home-intro {
+  width: min(760px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 76px 0 90px;
+  text-align: center;
+}
+
+.home-intro h2 {
+  margin: 0;
+  color: var(--home-text);
+  font-size: clamp(1.55rem, 4vw, 2.15rem);
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+.home-intro p {
+  margin: 18px auto 0;
+  color: var(--home-muted);
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.home-links {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.home-links a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid var(--home-line);
+  border-radius: 4px;
+  color: var(--home-text);
+  font-size: .9rem;
+  text-decoration: none;
+}
+
+.home-links a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+footer {
+  background: #030404;
+  border-top-color: var(--home-line);
+}
+
+@media (max-width: 700px) {
+  .hero {
+    min-height: 420px;
+    height: 58vh;
+    padding: 86px 18px 42px;
+    background-position: 62% center;
+  }
+
+  .hero-logo {
+    width: 76px;
+    height: 76px;
+    margin-bottom: 18px;
+  }
+
+  .home-intro {
+    width: min(100% - 32px, 760px);
+    padding: 58px 0 70px;
+  }
+
+  .home-intro p {
+    font-size: .94rem;
+  }
+
+  .home-dashboard {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 390px) {
+  .home-links {
+    flex-direction: column;
+  }
+
+  .home-links a {
+    width: 100%;
+  }
+}

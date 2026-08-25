@@ -4,112 +4,168 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="logo.png" type="image/png">
-    <title>DEEP SKY</title>
-    <link rel="stylesheet" href="css/common.css">
-<link rel="stylesheet" href="css/admin.css">
+    <link rel="apple-touch-icon" href="logo.png">
+    <title>DEEP SKY | Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/admin.css">
 </head>
 <body>
-
-<div class="top-bar">
-    <a href="index.html" class="logo-area">
-        <img src="logo.png" alt="" aria-hidden="true">
+<div class="auth-bar">
+    <a href="index.html" class="logo-link">
+        <img src="logo.png" alt="DEEP SKY Logo" class="nav-logo">
         <span>DEEP SKY</span>
     </a>
-    <div class="auth-bar">
-        <span id="userStatus">접속 중...</span>
-        <button id="loginBtn" class="hidden" onclick="location.href='login.html'">로그인</button>
-        <button id="logoutBtn" class="hidden" onclick="logout()">로그아웃</button>
+    <div class="auth-user-zone">
+        <span id="user-name" style="display:none; font-size:.9rem; color:var(--accent);"></span>
+        <button id="logout-btn" class="auth-btn" style="display:none;">LOGOUT</button>
     </div>
 </div>
-
-<header><h1>ADMIN</h1></header>
-
-<nav aria-label="주요 메뉴">
-    <div class="nav-inner">
-        <a href="index.html">홈</a>
-        <a href="introduce.html">동아리 소개</a>
-        <a href="question.html">질문 게시판</a>
-        <a href="board.html">자유 게시판</a>
-        <a href="photo.html">활동 사진</a>
-        <a href="resource.html">자료실</a>
-        <a href="weather.html">기상 정보</a>
-        <a href="mypage.html">정보 수정</a>
-        <a href="suggest.html">건의함</a>
-        <a href="admin.html">ADMIN</a>
-        <a href="block.html">등급 조정 요청</a>
-        <a href="https://hq-syrtn.github.io/SYRTN/index.html">SYRTN</a>
+<header class="intro-hero">
+    <h1>Admin Panel</h1>
+    <p>부원 권한 관리 및 접수된 요청 확인</p>
+</header>
+<nav class="sub-nav-container" aria-label="주요 메뉴">
+    <div class="nav-menu">
+        <a href="index.html">HOME</a>
+        <a href="introduction.html">INTRODUCTION</a>
+        <a href="talk.html">TALK</a>
+        <a href="resource.html">RESOURCE</a>
+        <a href="suggest.html">SUGGESTION</a>
+        <a href="mypage.html">MY PAGE</a>
+        <a href="adjust.html">REQUEST AUTHORITY</a>
+        <a href="admin.html" class="active">ADMIN</a>
     </div>
 </nav>
-
-<div class="container">
-    <div id="lockMessage" class="access-gate hidden"></div>
-
-    <div id="mainContent" class="hidden">
-        <div class="card">
-        <h3 style="color: #7fc7ff; margin-top: 0;">전체 가입 회원 목록</h3>
-        <p style="font-size: 0.85rem; color: #aaa; margin-bottom: 20px;">* 회원의 등급을 변경한 후 '저장' 버튼을 눌러주세요.</p>
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>이름</th>
-                        <th>이메일</th>
-                        <th>현재 등급</th>
-                        <th>등급 변경</th>
-                        <th>동작</th>
-                    </tr>
-                </thead>
-                <tbody id="userList"></tbody>
-            </table>
+<main class="content-section">
+    <div class="section-title" id="recent-activity">최근 7일 서버 활동</div>
+    <p class="section-note">최근 7일 동안 작성된 게시글과 댓글을 사용자별로 확인합니다.</p>
+    <div class="activity-summary" aria-label="최근 활동 요약">
+        <div class="activity-stat"><strong id="activity-total">0</strong><span>전체 활동</span></div>
+        <div class="activity-stat"><strong id="activity-posts">0</strong><span>게시글</span></div>
+        <div class="activity-stat"><strong id="activity-comments">0</strong><span>댓글</span></div>
+    </div>
+    <div class="activity-toolbar">
+        <div class="activity-filter" role="group" aria-label="활동 유형 필터">
+            <button type="button" class="activity-filter-btn active" data-activity-filter="all" aria-pressed="true">전체</button>
+            <button type="button" class="activity-filter-btn" data-activity-filter="post" aria-pressed="false">게시글</button>
+            <button type="button" class="activity-filter-btn" data-activity-filter="comment" aria-pressed="false">댓글</button>
         </div>
-        <div class="manage-section" style="margin-top: 40px; margin-bottom: 40px;">
-            <h2 style="color: #7fc7ff; border-bottom: 2px solid #1b2f80; padding-bottom: 10px;">등급 승인 요청 관리</h2>
-            <div id="roleRequestList" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
+        <button type="button" class="btn-update activity-refresh" id="activity-refresh">새로고침</button>
+    </div>
+    <div class="admin-card table-scroll">
+        <table class="user-table activity-table">
+            <thead>
+                <tr>
+                    <th>일시</th>
+                    <th>사용자</th>
+                    <th>활동</th>
+                    <th>게시판</th>
+                    <th>작성 내용</th>
+                </tr>
+            </thead>
+            <tbody id="activity-list">
+                <tr><td colspan="5" style="text-align:center;padding:30px;">최근 활동을 불러오는 중...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section-title">부원 권한 관리</div>
+    <p class="section-note">각 학교별 역할에 맞게 등급을 조정합니다. 관리자만 이 화면에 접근할 수 있습니다.</p>
+    <div class="admin-card">
+        <table class="user-table">
+            <thead>
+                <tr>
+                    <th>이름</th>
+                    <th>학교</th>
+                    <th>이메일</th>
+                    <th>현재 등급</th>
+                    <th>조정</th>
+                </tr>
+            </thead>
+            <tbody id="user-list">
+                <tr>
+                    <td colspan="5" style="text-align:center; padding:50px;">데이터를 불러오는 중...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section-title" id="role-permissions">등급별 기능 권한</div>
+    <p class="section-note">각 등급이 사용할 수 있는 기능을 선택합니다. 관리자 핵심 권한은 보안을 위해 고정됩니다.</p>
+    <div class="permission-panel">
+        <div class="permission-panel-toolbar">
+            <p>변경 내용은 서버 API 권한 검사에 즉시 적용됩니다.</p>
+            <button id="permission-refresh" type="button" class="btn-update">새로고침</button>
+        </div>
+        <div id="role-permission-matrix" class="role-permission-grid" aria-live="polite">
+            <p class="permission-status">권한 설정을 불러오는 중입니다.</p>
         </div>
     </div>
 
-    <div class="manage-section" style="margin-top: 40px; margin-bottom: 40px;">
-        <h2 style="color: #7fc7ff; border-bottom: 2px solid #1b2f80; padding-bottom: 10px;">자체 서버 건의함 내역 관리</h2>
-            <div id="suggestManagerList" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;"></div>
-        </div>
-        </div>
-
-        <section class="admin-activity-section" aria-labelledby="adminActivityTitle">
-            <div class="admin-activity-header">
-                <div>
-                    <h2 id="adminActivityTitle">최근 7일 서버 활동</h2>
-                    <p id="adminActivitySummary" aria-live="polite">활동 기록을 불러오는 중입니다.</p>
-                </div>
-                <div class="admin-activity-controls">
-                    <label for="adminActivityFilter">종류</label>
-                    <select id="adminActivityFilter">
-                        <option value="all">전체</option>
-                        <option value="post">게시글</option>
-                        <option value="comment">댓글</option>
-                        <option value="question">질문</option>
-                        <option value="reply">답변</option>
-                        <option value="suggestion">건의</option>
-                        <option value="photo">사진</option>
-                        <option value="resource">자료</option>
-                    </select>
-                    <button id="adminActivityRefresh" type="button">새로고침</button>
-                </div>
-            </div>
-            <div id="adminActivityList" class="admin-activity-list" aria-live="polite"></div>
-        </section>
+    <div class="section-title">접수된 건의 사항</div>
+    <div class="admin-card">
+        <table class="user-table">
+            <thead>
+                <tr>
+                    <th>날짜</th>
+                    <th>분류</th>
+                    <th>제목 및 내용</th>
+                    <th>작성자</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="suggestion-list">
+                <tr>
+                    <td colspan="5" style="text-align:center; padding:50px;">데이터를 불러오는 중...</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
-</div>
 
+    <div class="section-title">접수된 등급 조정 요청</div>
+    <div class="admin-card">
+        <table class="user-table">
+            <thead>
+                <tr>
+                    <th>요청일</th>
+                    <th>이름</th>
+                    <th>학교</th>
+                    <th>요청 등급</th>
+                    <th>사유</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="request-list">
+                <tr>
+                    <td colspan="6" style="text-align:center; padding:50px;">데이터를 불러오는 중...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section-title" id="reports">콘텐츠 신고</div>
+    <div class="admin-card table-scroll">
+        <table class="user-table">
+            <thead><tr><th>접수일</th><th>대상</th><th>사유</th><th>신고자</th><th>상태</th><th>처리</th></tr></thead>
+            <tbody id="report-list"><tr><td colspan="6" style="text-align:center;padding:30px;">데이터를 불러오는 중...</td></tr></tbody>
+        </table>
+    </div>
+
+    <div class="section-title">운영 감사 로그</div>
+    <div class="admin-card table-scroll">
+        <table class="user-table">
+            <thead><tr><th>일시</th><th>작업</th><th>대상</th><th>작업자</th><th>상세</th></tr></thead>
+            <tbody id="audit-list"><tr><td colspan="5" style="text-align:center;padding:30px;">데이터를 불러오는 중...</td></tr></tbody>
+        </table>
+    </div>
+</main>
 <footer>
-    © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
-    <br>
-    Email : leader.deepsky@gmail.com &nbsp; | &nbsp; Designed by jw-astro09
+  <p>&copy; 2026 DEEP SKY. All Rights Reserved.</p>
+  <p>복성고등학교 천문·항공우주 동아리</p>
+  <p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p>
 </footer>
-
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
-<script src="js/common.js"></script>
-<script src="js/admin.js"></script>
+<script type="module" src="js/admin.js?v=20260820-1"></script>
+<script type="module" src="frontend-access-control.js"></script>
 </body>
 </html>

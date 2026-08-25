@@ -1,296 +1,276 @@
-const params = new URLSearchParams(location.search);
-const postId = params.get("id");
-
+import { API_BASE_URL, apiFetch, auth, authHeaders, getCurrentProfile } from "./common.js";
+import { appendCommentReportButton, setupPostTools } from "./post-tools.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+const COLLECTION = "resources";
+const postId = new URLSearchParams(window.location.search).get('id');
+const encodedPostId = postId ? encodeURIComponent(postId) : '';
 let currentUser = null;
-let currentUserName = "익명";
-let currentUserRole = "guest";
-let postAuthorUid = "";
+    let currentRole = 'guest';
+    let currentUserName = '익명';
+    let postData = null;
 
-auth.onAuthStateChanged(async (user) => {
-    currentUser = user;
-    const status = document.getElementById("userStatus");
-    if (user) {
+    if (!postId) location.replace('block.html');
+    document.getElementById('logoutBtn').addEventListener('click', async () => { if (confirm('로그아웃 하시겠습니까?')) { await signOut(auth); location.reload(); } });
+
+    onAuthStateChanged(auth, async (user) => {
+        currentUser = user;
+        if (!user) {
+            setAuthUi(false);
+            currentRole = 'guest';
+            await loadPost();
+            await loadComments();
+            return;
+        }
         try {
-            const userData = await getServerUserProfile(user);
-            currentUserName = userData.name || user.displayName || user.email.split('@')[0];
-            currentUserRole = normalizeRole(userData.role);
-            if (status) status.innerText = `${currentUserName}님 (${currentUserRole==='admin'?'관리자':(currentUserRole==='student'?'부원':'일반')})`;
-            loadPostDetail();
-        } catch (error) {
-            if (status) status.innerText = error.message;
-            loadPostDetail();
+            const userData = await getCurrentProfile(user);
+            currentRole = userData.role || 'member';
+            currentUserName = userData.name || user.displayName || '사용자';
+            setAuthUi(true);
+            await loadPost();
+            await loadComments();
+        } catch (err) {
+            console.error(err);
+            currentRole = 'member';
+            setAuthUi(true);
+            await loadPost();
+            await loadComments();
         }
-        document.getElementById("loginBtn")?.classList.add("hidden");
-        document.getElementById("logoutBtn")?.classList.remove("hidden");
-    } else {
-        currentUserRole = "guest";
-        if (status) status.innerText = "로그인 해주세요";
-        document.getElementById("loginBtn")?.classList.remove("hidden");
-        document.getElementById("logoutBtn")?.classList.add("hidden");
-        loadPostDetail();
+    });
+
+    function setAuthUi(isLoggedIn) {
+        document.getElementById('loginBtn').classList.toggle('hidden', isLoggedIn);
+        document.getElementById('logoutBtn').classList.toggle('hidden', !isLoggedIn);
+        document.getElementById('userNameDisplay').classList.toggle('hidden', !isLoggedIn);
+        document.getElementById('commentFormArea').classList.toggle('hidden', !isLoggedIn);
+        document.getElementById('loginNotice').classList.toggle('hidden', isLoggedIn);
+        if (isLoggedIn) document.getElementById('userNameDisplay').innerText = `${currentUserName}님`;
     }
-});
 
-// 상세조회 바인딩 및 다운로드 링크 세팅
-async function loadPostDetail() {
-    if (!postId) return alert("비정상적인 접근 경로입니다.");
-    try {
-        const post = await fetchPostDetail(postId);
-
-        postAuthorUid = post.uid;
-
-        document.getElementById("postArea")?.classList.remove("hidden");
-        document.getElementById("viewTitle").innerText = post.title || "제목 없음";
-        document.getElementById("viewAuthor").innerText = `작성자: ${post.author || '익명'}`;
-        document.getElementById("viewDate").innerText = `날짜: ${formatPostDate(post.date || post.createdAt || post.timestamp)}`;
-        document.getElementById("viewContent").innerText = post.content || "";
-
-        const linkArea = document.getElementById("linkArea");
-        const viewFileLink = document.getElementById("viewFileLink");
-        if (isSafeExternalUrl(post.link)) {
-            viewFileLink.href = post.link;
-            viewFileLink.innerText = post.linkName || "링크 열기";
-            linkArea.classList.remove("hidden");
-        } else {
-            linkArea.classList.add("hidden");
-        }
-
-        const fileContainer = document.getElementById("vFileContainer");
-        const fileName = document.getElementById("vFileName");
-        const previewBtn = document.getElementById("vFilePreviewBtn");
-        const downloadBtn = document.getElementById("vFileDownloadBtn");
-        const attachment = getAttachmentInfo(post);
-        if (attachment && fileContainer && fileName && previewBtn && downloadBtn) {
-            fileName.innerText = `첨부 파일: ${attachment.name}`;
-            previewBtn.href = attachment.previewUrl;
-            downloadBtn.href = attachment.downloadUrl;
-            downloadBtn.setAttribute("download", attachment.name);
-            fileContainer.classList.remove("hidden");
-        } else if (fileContainer) {
-            fileContainer.classList.add("hidden");
-        }
-
-        const editBtn = document.getElementById("editBtn");
-        const deleteBtn = document.getElementById("deleteBtn");
-        if (currentUser && (currentUser.uid === post.uid || currentUserRole === 'admin')) {
-            editBtn?.classList.remove("hidden");
-            deleteBtn?.classList.remove("hidden");
-            if (editBtn) editBtn.onclick = () => location.href = `write.html?id=${encodeURIComponent(postId)}`;
-        } else {
-            editBtn?.classList.add("hidden");
-            deleteBtn?.classList.add("hidden");
-        }
-
-        document.getElementById("commentFormArea")?.classList.toggle("hidden", !currentUser);
-        document.getElementById("commentLoginNotice")?.classList.toggle("hidden", Boolean(currentUser));
-        renderComments(post.comments || {});
-    } catch (err) {
-        console.error("게시글 상세 조회 실패:", err);
-        alert(err.message || "데이터 수신 오류가 발생했습니다.");
+    async function getHeaders(contentType = false) {
+        const headers = currentUser ? await authHeaders(currentUser) : { 'ngrok-skip-browser-warning': '69420' };
+        if (contentType) headers['Content-Type'] = 'application/json';
+        return headers;
     }
-}
 
-async function fetchPostDetail(id) {
-    const headers = { "ngrok-skip-browser-warning": "69420" };
-    if (currentUser) headers.Authorization = `Bearer ${await currentUser.getIdToken()}`;
+    function safeUrl(value) {
+        try {
+            const raw = String(value || '').trim();
+            const base = raw.startsWith('/api/') ? API_BASE_URL : location.href;
+            const url = new URL(raw, base);
+            if (url.pathname.startsWith('/api/jhimap/uploads/')) {
+                const api = new URL(API_BASE_URL);
+                return `${api.origin}${url.pathname}${url.search}`;
+            }
+            return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+        } catch {
+            return '';
+        }
+    }
 
-    try {
-        const detailRes = await fetch(`${API_BASE_URL}/api/freeboard/${encodeURIComponent(String(id))}`, {
-            method: "GET",
-            headers
+    function isFileAttachment(link, href) {
+        return link?.type === 'file' || href.includes('/api/jhimap/uploads/');
+    }
+
+    async function loadPost() {
+        const res = await apiFetch(`/api/jhimap/board/${COLLECTION}/${encodedPostId}`, { headers: await getHeaders() });
+        if (!res.ok) { alert('자료를 찾을 수 없습니다.'); location.replace('resource.html'); return; }
+        postData = await res.json();
+        document.getElementById('viewTitle').innerText = postData.title || '제목 없음';
+        document.getElementById('viewAuthor').innerText = `BY. ${postData.author_name || postData.author || '익명'}`;
+        document.getElementById('viewCategory').innerText = postData.category || 'RESOURCE';
+        document.getElementById('viewDate').innerText = formatDate(postData.created_at || postData.createdAt);
+        document.getElementById('viewContent').innerText = postData.content || postData.description || '';
+        const linksDiv = document.getElementById('linksContainer');
+        linksDiv.innerHTML = '';
+        (postData.links || []).forEach((link, index) => {
+            const href = safeUrl(link.url);
+            if (!href) return;
+            const isFile = isFileAttachment(link, href);
+            if (isFile) {
+                const name = link.name || `첨부파일 ${index + 1}`;
+                const item = document.createElement('div');
+                item.className = 'attachment-item';
+                const nameEl = document.createElement('span');
+                nameEl.className = 'attachment-name';
+                nameEl.textContent = name;
+                const actions = document.createElement('div');
+                actions.className = 'attachment-actions';
+                const previewBtn = document.createElement('button');
+                previewBtn.type = 'button';
+                previewBtn.className = 'btn-small';
+                previewBtn.textContent = '미리보기';
+                previewBtn.onclick = () => openAttachment(href, name, 'preview');
+                const downloadBtn = document.createElement('button');
+                downloadBtn.type = 'button';
+                downloadBtn.className = 'btn-small';
+                downloadBtn.textContent = '다운로드';
+                downloadBtn.onclick = () => openAttachment(href, name, 'download');
+                actions.append(previewBtn, downloadBtn);
+                item.append(nameEl, actions);
+                linksDiv.appendChild(item);
+                return;
+            }
+            const a = document.createElement('a');
+            a.href = href;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            a.className = 'link-item';
+            a.innerHTML = `<span>${escapeHtml(link.name || '첨부 링크')}</span><span style="font-size:12px; opacity:.6;">새 창에서 열기</span>`;
+            linksDiv.appendChild(a);
         });
-        if (detailRes.ok) {
-            const detail = await detailRes.json();
-            return normalizePost(detail, id);
-        }
-    } catch (err) {
-        console.warn("상세 API 조회 실패, 목록 API로 재시도:", err);
+        const isOwner = currentUser && postData.uid === currentUser.uid;
+        const canManage = isOwner || ['admin', 'teacher', 'leader'].includes(currentRole);
+        document.getElementById('btnEditPost').classList.toggle('hidden', !isOwner && !['admin', 'teacher', 'leader'].includes(currentRole));
+        document.getElementById('btnDeletePost').classList.toggle('hidden', !canManage);
+        await setupPostTools({
+            user: currentUser,
+            collection: COLLECTION,
+            postId,
+            bookmarkButton: document.getElementById('btnBookmarkPost'),
+            reportButton: document.getElementById('btnReportPost')
+        });
     }
 
-    const listRes = await fetch(`${API_BASE_URL}/api/freeboard`, {
-        method: "GET",
-        headers
-    });
-    if (!listRes.ok) throw new Error("게시글 목록을 불러오지 못했습니다.");
+    async function loadComments() {
+        const res = await apiFetch(`/api/jhimap/board/${COLLECTION}/${encodedPostId}/comments`, { headers: await getHeaders() });
+        if (!res.ok) return;
+        const comments = await res.json();
+        const list = document.getElementById('commentList');
+        list.innerHTML = '';
+        if (!comments.length) { list.innerHTML = '<div style="text-align:center; color:#555; padding:20px;">등록된 댓글이 없습니다.</div>'; return; }
+        comments.forEach(c => {
+            const isCommentOwner = currentUser && c.uid === currentUser.uid;
+            const isPostOwner = currentUser && postData && postData.uid === currentUser.uid;
+            const canDelete = isCommentOwner || isPostOwner || ['admin', 'teacher', 'leader'].includes(currentRole);
+            const item = document.createElement('div');
+            item.className = 'comment-item';
+            if (isCommentOwner) item.style.border = '1px solid var(--accent)';
+            const meta = document.createElement('div');
+            meta.className = 'comment-meta';
+            const author = document.createElement('span');
+            author.className = 'comment-author';
+            author.textContent = c.author_name || c.author || '익명';
+            const date = document.createElement('span');
+            date.textContent = formatDate(c.created_at || c.createdAt);
+            meta.append(author, date);
 
-    const data = await listRes.json();
-    const post = Array.isArray(data)
-        ? data.find(item => String(item.id || item.key || item._id) === String(id))
-        : data[id];
-    if (!post) throw new Error("게시글을 찾을 수 없습니다.");
-    return normalizePost(post, id);
-}
-
-// 댓글 컴포넌트 렌더링
-function renderComments(comments) {
-    const box = document.getElementById("commentList");
-    if (!box) return;
-    box.innerHTML = "";
-    if (!comments || Object.keys(comments).length === 0) {
-        box.innerHTML = `<p style="color:#888; font-size:14px; text-align:center; padding:15px 0;">첫 댓글을 남겨보세요!</p>`;
-        return;
+            const content = document.createElement('div');
+            content.textContent = c.content || '';
+            const actions = document.createElement('div');
+            actions.style.cssText = 'display:flex; justify-content:flex-end; gap:8px; margin-top:10px;';
+            if (canDelete) {
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className = 'btn-small';
+                deleteButton.style.cssText = 'color:#ff4d4d; border-color:#ff4d4d;';
+                deleteButton.textContent = '삭제';
+                deleteButton.addEventListener('click', () => deleteComment(c.id));
+                actions.appendChild(deleteButton);
+            }
+            appendCommentReportButton(actions, {
+                user: currentUser,
+                collection: COLLECTION,
+                commentId: c.id
+            });
+            item.append(meta, content, actions);
+            list.appendChild(item);
+        });
     }
 
-    Object.keys(comments).forEach(cKey => {
-        const c = comments[cKey];
-        const item = document.createElement("div");
-        item.className = "comment-item";
-        item.style.borderBottom = "1px solid #1b2f80";
-        item.style.padding = "10px 0";
-
-        // 파이어베이스 보안 가이드라인 일치화 (댓글작성자, 원글작성자, 어드민 삭제 승인)
-        const isCommentAuthor = currentUser && currentUser.uid === c.uid;
-        const isPostAuthor = currentUser && currentUser.uid === postAuthorUid;
-        const isAdmin = currentUserRole === 'admin';
-        const canDelete = isCommentAuthor || isPostAuthor || isAdmin;
-
-        const meta = document.createElement("div");
-        meta.style.cssText = "font-size:12px; color:#7fc7ff;";
-        meta.textContent = `${c.author || '익명'} (${formatPostDate(c.date)})`;
-        const content = document.createElement("div");
-        content.style.cssText = "margin:5px 0; font-size:14px;";
-        content.textContent = c.text || "";
-        item.append(meta, content);
-        if (canDelete) {
-            const deleteButton = document.createElement("button");
-            deleteButton.type = "button";
-            deleteButton.style.cssText = "background:none; border:none; color:#ff4d4d; font-size:11px; cursor:pointer; padding:0;";
-            deleteButton.textContent = "[삭제]";
-            deleteButton.addEventListener("click", () => deleteComment(cKey));
-            item.appendChild(deleteButton);
-        }
-        box.appendChild(item);
+    document.getElementById('btnPostComment').addEventListener('click', async () => {
+        const input = document.getElementById('commentInput');
+        const content = input.value.trim();
+        if (!content || !currentUser) return;
+        const btn = document.getElementById('btnPostComment');
+        btn.disabled = true;
+        btn.innerText = 'SENDING...';
+        try {
+            const res = await apiFetch(`/api/jhimap/board/${COLLECTION}/${encodedPostId}/comments`, { method:'POST', headers: await getHeaders(true), body: JSON.stringify({ content, authorName: currentUserName }) });
+            if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || '댓글 작성 실패'); }
+            input.value = '';
+            await loadComments();
+        } catch (err) { alert(err.message); }
+        finally { btn.disabled = false; btn.innerText = 'POST'; }
     });
-}
 
-// 자체 서버 댓글 등록 연동
-async function addComment() {
-    if (!currentUser) return alert("로그인 후 작성 가능합니다.");
-    const input = document.getElementById("commentInput");
-    const text = input.value.trim();
-    if (!text) return alert("내용을 채워주세요.");
+    function withDownloadParam(url) {
+        const downloadUrl = new URL(url);
+        downloadUrl.searchParams.set('download', '1');
+        return downloadUrl.href;
+    }
 
-    try {
-        const commentData = {
-            text: text,
-            author: currentUserName,
-            uid: currentUser.uid,
-            date: new Date().toISOString()
+    function getPreviewMimeType(filename, contentType) {
+        const type = String(contentType || '').split(';')[0].trim().toLowerCase();
+        const ext = String(filename || '').split('.').pop().toLowerCase();
+        const byExt = {
+            pdf: 'application/pdf',
+            png: 'image/png',
+            jpg: 'image/jpeg',
+            jpeg: 'image/jpeg',
+            gif: 'image/gif',
+            webp: 'image/webp',
+            txt: 'text/plain',
+            csv: 'text/csv',
+            md: 'text/plain',
+            json: 'application/json',
+            mp3: 'audio/mpeg',
+            wav: 'audio/wav',
+            mp4: 'video/mp4',
+            webm: 'video/webm'
         };
-        const token = await currentUser.getIdToken();
-
-        const res = await fetch(`${API_BASE_URL}/api/freeboard/${encodeURIComponent(postId)}/comment`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`,
-                "ngrok-skip-browser-warning": "69420"
-            },
-            body: JSON.stringify(commentData)
-        });
-
-        if (!res.ok) throw new Error();
-        input.value = "";
-        loadPostDetail();
-    } catch (err) {
-        alert("댓글 작성 실패");
+        const allowedTypes = new Set(Object.values(byExt));
+        if (allowedTypes.has(type)) return type;
+        return byExt[ext] || '';
     }
-}
 
-function getAttachmentInfo(post) {
-    const rawUrl = post.fileUrl || post.file_url || post.downloadUrl || post.download_url || post.url;
-    const rawPath = post.file_path || post.filePath || post.path;
-    const filename = post.file_name || post.fileName || post.originalName || post.originalname || post.name || "첨부 파일";
-    const source = rawUrl || rawPath;
+    async function openAttachment(url, filename, mode = 'preview') {
+        let previewWindow = null;
+        try {
+            if (!currentUser) throw new Error('로그인이 필요합니다.');
+            if (mode === 'preview') {
+                previewWindow = window.open('about:blank', '_blank');
+                if (!previewWindow) throw new Error('팝업이 차단되어 미리보기를 열 수 없습니다.');
+                previewWindow.opener = null;
+                previewWindow.document.title = '파일 미리보기';
+                previewWindow.document.body.textContent = '파일을 불러오는 중입니다...';
+            }
+            const requestUrl = mode === 'download' ? withDownloadParam(url) : url;
+            const res = await fetch(requestUrl, { headers: await getHeaders() });
+            if (!res.ok) throw new Error('파일을 열 수 없습니다.');
+            const blob = await res.blob();
+            if (mode === 'download') {
+                const objectUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = objectUrl;
+                a.download = filename;
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+                return;
+            }
+            const previewType = getPreviewMimeType(filename, blob.type);
+            if (!previewType) throw new Error('이 파일 형식은 미리보기를 지원하지 않습니다. 다운로드 버튼을 사용해 주세요.');
+            const previewBlob = blob.type === previewType ? blob : new Blob([blob], { type: previewType });
+            const objectUrl = URL.createObjectURL(previewBlob);
+            previewWindow.location.href = objectUrl;
+            setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+        } catch (err) {
+            if (previewWindow && !previewWindow.closed) previewWindow.close();
+            alert(err.message || '파일을 열 수 없습니다.');
+        }
+    }
 
-    if (!source) return null;
-    return {
-        name: filename,
-        previewUrl: normalizeFileUrl(source, "preview"),
-        downloadUrl: normalizeFileUrl(source, "download")
+    async function deleteComment(commentId) {
+        if (!confirm('댓글을 삭제하시겠습니까?')) return;
+        const res = await apiFetch(`/api/jhimap/board/${COLLECTION}/${encodedPostId}/comments/${encodeURIComponent(String(commentId))}`, { method:'DELETE', headers: await getHeaders() });
+        if (res.ok) await loadComments(); else alert('댓글 삭제에 실패했습니다.');
+    }
+
+    document.getElementById('btnEditPost').onclick = () => { location.href = `write.html?id=${encodedPostId}`; };
+    document.getElementById('btnDeletePost').onclick = async () => {
+        if (!confirm('자료를 삭제하시겠습니까? 관련 댓글도 함께 삭제됩니다.')) return;
+        const res = await apiFetch(`/api/jhimap/board/${COLLECTION}/${encodedPostId}`, { method:'DELETE', headers: await getHeaders() });
+        if (res.ok) location.href = 'resource.html'; else alert('삭제 권한이 없거나 오류가 발생했습니다.');
     };
-}
 
-function normalizeFileUrl(value, mode = "preview") {
-    const rawValue = String(value || "").trim();
-    if (!rawValue) return "";
-    if (/^https?:\/\//i.test(rawValue)) {
-        if (!rawValue.includes("/api/download")) return rawValue;
-        return withQueryParam(rawValue, "mode", mode);
-    }
-    if (rawValue.startsWith("/api/download")) {
-        return withQueryParam(`${API_BASE_URL}${rawValue}`, "mode", mode);
-    }
-    if (rawValue.startsWith("/uploads/")) {
-        if (mode === "preview") return `${API_BASE_URL}${rawValue}`;
-        return `${API_BASE_URL}/api/download?path=${encodeURIComponent(rawValue)}&mode=download`;
-    }
-    if (rawValue.startsWith("/")) return `${API_BASE_URL}${rawValue}`;
-
-    const downloadPath = rawValue.includes("/uploads/") ? rawValue : `/uploads/${rawValue.replace(/^uploads\//, "")}`;
-    return `${API_BASE_URL}/api/download?path=${encodeURIComponent(downloadPath)}&mode=${encodeURIComponent(mode)}`;
-}
-
-function withQueryParam(url, key, value) {
-    const parsed = new URL(url, location.href);
-    parsed.searchParams.set(key, value);
-    return parsed.toString();
-}
-
-// 자체 서버 본문 제거 연동
-async function deletePost() {
-    if (!confirm("정말로 이 글을 삭제하시겠습니까?")) return;
-    try {
-        const token = await currentUser.getIdToken();
-        const res = await fetch(`${API_BASE_URL}/api/freeboard/${encodeURIComponent(postId)}`, {
-            method: "DELETE",
-            headers: {
-                "Authorization": `Bearer ${token}`,
-                "ngrok-skip-browser-warning": "69420"
-            }
-        });
-        if (!res.ok) throw new Error();
-        alert("삭제 완료되었습니다.");
-        location.href = "board.html";
-    } catch (err) {
-        alert("삭제 권한이 없거나 처리에 실패했습니다.");
-    }
-}
-
-// 자체 서버 댓글 삭제 연동
-async function deleteComment(cKey) {
-    if (!confirm("댓글을 제거하시겠습니까?")) return;
-    try {
-        const token = await currentUser.getIdToken();
-        const res = await fetch(`${API_BASE_URL}/api/freeboard/${encodeURIComponent(postId)}/comment/${encodeURIComponent(String(cKey))}`, {
-            method: "DELETE",
-            headers: {
-                "Authorization": `Bearer ${token}`,
-                "ngrok-skip-browser-warning": "69420"
-            }
-        });
-        if (!res.ok) throw new Error();
-        loadPostDetail();
-    } catch (err) {
-        alert("삭제 처리에 실패했습니다.");
-    }
-}
-
-function formatPostDate(value) {
-    if (!value) return "";
-    if (typeof value === "number") return new Date(value).toLocaleString("ko-KR");
-    const parsed = Date.parse(value);
-    if (!Number.isNaN(parsed)) return new Date(parsed).toLocaleString("ko-KR");
-    return value;
-}
-
-function isSafeExternalUrl(value) {
-    try {
-        const url = new URL(String(value || ""));
-        return url.protocol === "http:" || url.protocol === "https:";
-    } catch {
-        return false;
-    }
-}
-
-function logout() { if(confirm("로그아웃 하시겠습니까?")) auth.signOut().then(() => location.reload()); }
+    function formatDate(value) { if (!value) return '-'; if (value.seconds) return new Date(value.seconds * 1000).toLocaleString(); return new Date(value).toLocaleString(); }
+    function escapeHtml(value) { return String(value || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;'); }

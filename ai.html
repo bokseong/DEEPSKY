@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="apple-touch-icon" href="logo.png">
+<title>DEEP SKY | AI</title>
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/ai.css">
+</head>
+<body class="ai-page">
+<div class="auth-bar">
+  <a href="index.html" class="logo-link">
+    <img src="logo.png" alt="DEEP SKY logo" class="nav-logo">
+    <span>DEEP SKY</span>
+  </a>
+  <div class="auth-user-zone">
+    <a href="login.html" id="login-link" class="auth-btn">LOGIN</a>
+    <span id="user-name" style="display:none"></span>
+    <button id="logout-btn" class="auth-btn" style="display:none">LOGOUT</button>
+  </div>
+</div>
+
+<header class="ai-header">
+  <div>
+    <p class="ai-kicker">ASTRONOMY &amp; PHYSICS ASSISTANT</p>
+    <h1>DEEP SKY AI</h1>
+  </div>
+  <span id="ai-usage" class="ai-usage">사용량 확인 중</span>
+</header>
+
+<nav class="sub-nav-container" aria-label="주요 메뉴">
+  <div class="nav-menu">
+    <a href="index.html">HOME</a>
+    <a href="introduction.html">INTRODUCTION</a>
+    <a href="talk.html">TALK</a>
+    <a href="resource.html">RESOURCE</a>
+    <a href="ai.html" class="active" aria-current="page">AI</a>
+    <a href="suggest.html">SUGGESTION</a>
+    <a href="mypage.html">MY PAGE</a>
+    <a href="adjust.html">REQUEST AUTHORITY</a>
+    <a href="admin.html">ADMIN</a>
+  </div>
+</nav>
+
+<main class="ai-workspace">
+  <aside class="ai-history" aria-label="저장된 AI 대화">
+    <div class="ai-history-heading">
+      <h2>대화</h2>
+      <button type="button" id="new-chat-btn" class="ai-icon-btn" title="새 대화" aria-label="새 대화">+</button>
+    </div>
+    <div id="conversation-list" class="conversation-list">
+      <p class="ai-muted">저장된 대화가 없습니다.</p>
+    </div>
+  </aside>
+
+  <section class="ai-chat" aria-label="AI 대화">
+    <div class="ai-privacy-note" role="note">
+      외부 AI API를 사용하지 않고 Deep Sky 서버의 자체 모델에서 처리합니다. 서버 관리는 관리자에게 상태 조회만 제공합니다.
+    </div>
+
+    <div id="chat-messages" class="chat-messages" aria-live="polite">
+      <article class="chat-message assistant">
+        <span class="message-label">DEEP SKY AI</span>
+        <p>천문·물리 개념, 관측 계획, 과학 글쓰기와 홈페이지 이용을 도와드릴게요.</p>
+      </article>
+      <div id="prompt-suggestions" class="prompt-suggestions" aria-label="추천 질문">
+        <button type="button" data-mode="concept">전파망원경의 원리를 설명해 줘</button>
+        <button type="button" data-mode="search">달 관측 자료를 찾아 줘</button>
+        <button type="button" data-mode="analyze">이 관측 자료를 분석하는 방법을 알려 줘</button>
+      </div>
+    </div>
+
+    <form id="ai-form" class="ai-composer">
+      <div class="ai-mode-row">
+        <label for="ai-mode">기능</label>
+        <select id="ai-mode">
+          <option value="concept">개념 설명</option>
+          <option value="search">자료 검색</option>
+          <option value="analyze">자료 분석</option>
+          <option value="server">서버 관리</option>
+        </select>
+      </div>
+      <label for="ai-input" class="sr-only">AI에게 질문</label>
+      <textarea id="ai-input" maxlength="2000" rows="2" placeholder="질문을 입력하세요" required></textarea>
+      <div class="ai-composer-actions">
+        <label class="ai-save-toggle">
+          <input type="checkbox" id="save-conversation">
+          <span>이 대화 저장</span>
+        </label>
+        <span id="ai-char-count">0 / 2000</span>
+        <button type="submit" id="ai-send-btn" class="btn btn-primary">보내기</button>
+      </div>
+    </form>
+  </section>
+</main>
+
+<footer>
+  <p>&copy; 2026 DEEP SKY. All Rights Reserved.</p>
+  <p>복성고등학교 천문·항공우주 동아리</p>
+  <p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p>
+</footer>
+
+<script type="module" src="js/ai.js"></script>
+<script type="module" src="frontend-access-control.js"></script>
+</body>
+</html>

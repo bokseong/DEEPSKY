@@ -1,75 +1,178 @@
-/* [수정] 바닥 고정을 위한 레이아웃 설정 */
-        html, body { height: 100%; margin: 0; }
-        body {
-            display: flex;
-            flex-direction: column;
-            font-family: "Pretendard", sans-serif;}
+:root { --bg-dark:#050505; --accent:#00E5FF; --card-bg:rgba(255,255,255,.05); --border:rgba(255,255,255,.1); --nav-bg:rgba(0,0,0,.9); }
+        body { margin:0; font-family:'Noto Sans KR',sans-serif; background:var(--bg-dark); color:white; line-height:1.6; padding-top:70px; }
+        .auth-bar { position:fixed; top:0; width:100%; height:60px; background:var(--nav-bg); backdrop-filter:blur(10px); display:flex; justify-content:space-between; align-items:center; padding:0 40px; box-sizing:border-box; z-index:1000; border-bottom:1px solid var(--border); }
+        .logo-link { display:flex; align-items:center; gap:12px; text-decoration:none; color:white; font-weight:700; letter-spacing:2px; }
+        .nav-logo { width:38px; height:38px; border-radius:50%; background:white; padding:2px; }
+        .auth-user-zone { display:flex; align-items:center; gap:15px; }
+        .auth-btn { text-decoration:none; color:white; border:1px solid var(--border); padding:8px 18px; border-radius:8px; font-size:13px; font-weight:700; transition:.3s; cursor:pointer; background:transparent; }
+        .auth-btn:hover { background:var(--accent); color:black; border-color:var(--accent); }
+        .container { max-width:850px; margin:60px auto; padding:0 20px; }
+        .view-card { background:var(--card-bg); border-radius:20px; border:1px solid var(--border); padding:45px; position:relative; }
+        .post-header { border-bottom:1px solid var(--border); margin-bottom:35px; padding-bottom:25px; }
+        .post-category { color:var(--accent); font-size:.9rem; font-weight:700; margin-bottom:12px; }
+        .post-title { font-size:2.2rem; margin:0 0 15px; }
+        .post-info { font-size:14px; color:#777; display:flex; justify-content:space-between; gap:16px; }
+        .post-content { font-size:1.1rem; color:#ccc; white-space:pre-wrap; min-height:200px; margin-bottom:50px; }
+        .links-container { display:flex; flex-direction:column; gap:10px; margin-bottom:40px; }
+        .link-item { background:rgba(0,229,255,.1); border:1px solid var(--accent); padding:12px 20px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; text-decoration:none; color:white; transition:.3s; }
+        .link-item:hover { background:var(--accent); color:black; }
+        .attachment-item { background:rgba(0,229,255,.08); border:1px solid rgba(0,229,255,.45); padding:12px 16px; border-radius:8px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+        .attachment-name { color:white; word-break:break-all; }
+        .attachment-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+        .attachment-actions .btn-small { color:#ddd; background:rgba(255,255,255,.04); }
+        .attachment-actions .btn-small:hover { color:#000; background:var(--accent); border-color:var(--accent); }
+        .admin-zone { position:absolute; top:45px; right:45px; display:flex; gap:10px; }
+        .btn-small { padding:5px 12px; font-size:12px; border-radius:4px; cursor:pointer; border:1px solid #555; background:transparent; color:#ccc; }
+        .btn-small:hover { background:white; color:black; }
+        .comment-section { margin-top:50px; border-top:1px solid var(--border); padding-top:40px; }
+        .comment-title { font-size:1.3rem; color:var(--accent); margin-bottom:25px; }
+        .comment-item { background:rgba(255,255,255,.02); padding:15px; border-radius:12px; margin-bottom:15px; border:1px solid var(--border); }
+        .comment-meta { display:flex; justify-content:space-between; font-size:13px; color:#666; margin-bottom:8px; gap:12px; }
+        .comment-author { color:var(--accent); font-weight:bold; }
+        .comment-form { display:flex; gap:12px; margin-top:30px; }
+        .comment-input { flex:1; background:rgba(255,255,255,.08); border:1px solid var(--border); border-radius:10px; color:white; padding:15px; outline:none; }
+        .btn-comment { background:var(--accent); border:none; padding:0 25px; border-radius:10px; font-weight:bold; cursor:pointer; color:black; }
+        .hidden { display:none; }
+        footer { text-align:center; padding:60px; color:#444; font-size:.8rem; border-top:1px solid var(--border); }
+        @media (max-width:600px) { .auth-bar { padding:0 18px; } .view-card { padding:28px; } .admin-zone { position:static; justify-content:flex-end; margin-bottom:18px; } .post-info, .comment-meta, .comment-form { flex-direction:column; } }
 
-        /* 상단 바 */
-        .top-bar { justify-content: space-between;
-            padding: 0 30px;
-            height: 65px; flex-shrink: 0;}
-        .logo-area { font-weight: bold;}
-        .logo-area img { width: 40px; margin-right: 12px;}
-        .auth-bar button {
-            padding: 7px 16px;
-            background: #5a7aff;
-            transition: 0.2s;}
-        .btn-logout { background: #5a7aff !important; }
-
-        /* [수정] 컨테이너가 남는 공간을 다 차지하도록 설정 */
-        .container {
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 0 20px 60px; /* 아래쪽 패딩 조정 */
-            flex: 1; /* 이 부분이 푸터를 바닥으로 밀어냅니다 */
-            width: 100%;
+        /* Unified responsive navigation */
+        .auth-bar {
+            height: 60px !important;
+            padding: 0 clamp(16px, 4vw, 40px) !important;
+            gap: 16px !important;
+        }
+        .logo-link {
+            min-width: 0 !important;
+            flex: 0 1 auto !important;
+            letter-spacing: 1.2px !important;
+            white-space: nowrap !important;
+        }
+        .nav-logo {
+            width: 40px !important;
+            height: 40px !important;
+            flex: 0 0 40px !important;
+        }
+        .auth-user-zone {
+            min-width: 0 !important;
+            flex: 0 1 auto !important;
+            justify-content: flex-end !important;
+            gap: 10px !important;
+        }
+        .auth-btn {
+            min-height: 32px !important;
+            padding: 6px 14px !important;
+            box-sizing: border-box !important;
+            white-space: nowrap !important;
+            line-height: 1.2 !important;
+        }
+        .sub-nav-container {
+            height: 52px !important;
+            top: 60px !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            -webkit-overflow-scrolling: touch !important;
+            scrollbar-width: thin !important;
+        }
+        .nav-menu {
+            min-height: 52px !important;
+            width: max-content !important;
+            min-width: 100% !important;
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 0 !important;
+            padding: 0 16px !important;
+            box-sizing: border-box !important;
+        }
+        .nav-menu a {
+            height: 52px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 0 14px !important;
+            box-sizing: border-box !important;
+            font-size: 0.9rem !important;
+            line-height: 1.1 !important;
+            letter-spacing: 0.8px !important;
+            white-space: nowrap !important;
+            flex: 0 0 auto !important;
+        }
+        .nav-menu a.active::after {
+            bottom: 8px !important;
+        }
+        @media (max-width: 700px) {
+            .auth-bar {
+                height: 56px !important;
+                padding: 0 14px !important;
+            }
+            .logo-link span {
+                font-size: 0.95rem !important;
+            }
+            .nav-logo {
+                width: 34px !important;
+                height: 34px !important;
+                flex-basis: 34px !important;
+            }
+            .auth-user-zone {
+                gap: 8px !important;
+            }
+            .auth-user-zone span[id*="user"], #user-name, #userNameDisplay {
+                max-width: 34vw !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                white-space: nowrap !important;
+            }
+            .auth-btn {
+                min-height: 30px !important;
+                padding: 5px 10px !important;
+                font-size: 0.78rem !important;
+            }
+            .sub-nav-container {
+                top: 56px !important;
+                height: 48px !important;
+            }
+            .nav-menu {
+                min-height: 48px !important;
+                justify-content: flex-start !important;
+                padding: 0 10px !important;
+            }
+            .nav-menu a {
+                height: 48px !important;
+                padding: 0 11px !important;
+                font-size: 0.78rem !important;
+                letter-spacing: 0.4px !important;
+            }
+            header.intro-hero,
+            header.board-hero {
+                min-height: 260px !important;
+                height: 38vh !important;
+                padding-top: 56px !important;
+            }
+            .intro-hero h1,
+            .board-hero h1,
+            header h1 {
+                font-size: clamp(2rem, 10vw, 2.6rem) !important;
+                line-height: 1.12 !important;
+                padding: 0 16px !important;
+                box-sizing: border-box !important;
+            }
+            .intro-hero p,
+            .board-hero p {
+                font-size: 0.95rem !important;
+                padding: 0 18px !important;
+                box-sizing: border-box !important;
+            }
+            .content-section,
+            .container {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding-left: 16px !important;
+                padding-right: 16px !important;
+                box-sizing: border-box !important;
+            }
         }
 
-        .view-card { background: #161b4a; padding: 40px; border-radius: 15px; border: 1px solid #2d367a; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .post-header { border-bottom: 1px solid #2d367a; margin-bottom: 25px; padding-bottom: 20px; }
-        .post-title { font-size: 28px; color: #7fc7ff; margin: 0 0 15px 0; }
-        .post-info { font-size: 14px; color: #aaa; display: flex; justify-content: space-between; }
-        .post-content { line-height: 1.8; min-height: 200px; white-space: pre-wrap; font-size: 17px; color: #eee; margin-bottom: 30px; }
-
-        .link-section { background: rgba(58, 90, 255, 0.1); padding: 15px; border-radius: 10px; border: 1px dashed #3a5aff; margin-bottom: 30px; }
-        .btn-link { display: inline-block; background: #3a5aff; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; transition: 0.2s; }
-        .btn-link:hover { background: #5a7aff; transform: translateY(-2px); }
-        .file-actions { margin-top:15px; padding:12px; background:rgba(255,255,255,0.05); border-radius:8px; border-left:3px solid #3a5aff; }
-        .file-action-title { display:block; font-size:14px; color:#7fc7ff; font-weight:bold; margin-bottom:10px; }
-        .file-action-buttons { display:flex; gap:10px; flex-wrap:wrap; }
-        .file-action-btn { display:inline-block; border:none; border-radius:6px; color:#fff; font-weight:bold; text-decoration:none; padding:9px 14px; cursor:pointer; font-size:14px; }
-        .file-preview-btn { background:#28a745; }
-        .file-download-btn { background:#3a5aff; }
-
-        .comment-section { margin-top: 40px; border-top: 1px solid #2d367a; padding-top: 30px; }
-        .comment-title { font-size: 18px; color: #7fc7ff; margin-bottom: 20px; font-weight: bold; }
-        .comment-item { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 10px; margin-bottom: 12px; border: 1px solid rgba(45, 54, 122, 0.5);word-wrap: break-word; overflow-wrap: break-word; }
-        .comment-meta { display: flex; justify-content: space-between; font-size: 13px; color: #aaa; margin-bottom: 8px; }
-        .comment-author { color: #7fc7ff; font-weight: bold; }
-        .comment-text { font-size: 15px; line-height: 1.5;  color: #ddd;  white-space: pre-wrap; word-break: break-all; }
-        .btn-comment-del { color: #ff4d4d; cursor: pointer; background: none; border: none; font-size: 12px; padding: 0; }
-
-        .comment-form { margin-top: 25px; display: flex; gap: 10px; }
-        .comment-input { flex: 1; background: #070a1d; border: 1px solid #2d367a; border-radius: 6px; color: white; padding: 12px; font-size: 14px; outline: none; }
-        .btn-comment-submit { background: #3a5aff; color: white; border: none; padding: 0 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-
-        .btn-group { margin-top: 40px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #2d367a; padding-top: 30px; }
-        .btn { padding: 12px 25px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
-        .btn-list { background: #2d367a; color: white; }
-        .btn-list:hover { background: #3d4a8a; }
-        .btn-delete { background: #ff4d4d; color: white; }
-        .btn-delete:hover { background: #e60000; }
-
-        /* [수정] 푸터 스타일 */
-        footer { padding: 35px 20px; font-size: 13px;
-            flex-shrink: 0;}
-
-        @media (max-width: 600px) {
-            .logo-area span { font-size: 16px;}
-            nav a { padding: 10px 12px; font-size: 13px;}
-            header h1 { font-size: 22px; }
-            .header-logo { width: 100px; height: 100px; }
-            .file-action-buttons { flex-direction: column; }
-            .file-action-btn { width: 100%; text-align: center; }
-        }
+        .sub-nav-container { scrollbar-width:none !important; -ms-overflow-style:none !important; }
+        .sub-nav-container::-webkit-scrollbar { display:none; width:0; height:0; }

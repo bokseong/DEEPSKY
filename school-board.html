@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="logo.png" type="image/png">
+    <link rel="apple-touch-icon" href="logo.png">
+    <title>DEEP SKY | School Board</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/school-board.css">
+</head>
+<body>
+<div class="auth-bar">
+    <a href="index.html" class="logo-link"><img src="logo.png" alt="Logo" class="nav-logo"><span>DEEP SKY</span></a>
+    <div class="auth-user-zone">
+        <a href="login.html" id="login-link" class="auth-btn">LOGIN</a>
+        <span id="user-name" style="display:none;"></span>
+        <button id="logout-btn" class="auth-btn" style="display:none;">LOGOUT</button>
+    </div>
+</div>
+
+<header class="board-hero">
+    <h1 id="hero-title">학교 게시판</h1>
+    <p id="hero-subtitle">소속 학교 전용 자료와 소통 공간</p>
+</header>
+
+<nav class="sub-nav-container" aria-label="주요 메뉴">
+    <div class="nav-menu">
+        <a href="index.html">HOME</a><a href="introduction.html">INTRODUCTION</a><a href="talk.html" class="active">TALK</a><a href="resource.html">RESOURCE</a><a href="suggest.html">SUGGESTION</a><a href="mypage.html">MY PAGE</a><a href="adjust.html">REQUEST AUTHORITY</a><a href="admin.html">ADMIN</a>
+    </div>
+</nav>
+
+<main class="content-section">
+    <section id="school-announcement-section" class="announcement-feed-section" aria-labelledby="school-announcement-title">
+        <div class="announcement-heading-row">
+            <h2 id="school-announcement-title" class="section-title">학교 공지</h2>
+            <button type="button" class="btn announcement-compose-toggle" hidden>공지 작성</button>
+        </div>
+        <form class="compact-form announcement-inline-form" hidden>
+            <h3 class="announcement-inline-title">새 공지</h3>
+            <input type="hidden" name="announcement-id">
+            <div class="announcement-form-grid">
+                <label>제목<input name="announcement-title" maxlength="120" required></label>
+                <label>중요도<select name="announcement-importance"><option value="normal">일반</option><option value="important">중요</option></select></label>
+            </div>
+            <div class="announcement-form-grid announcement-date-grid">
+                <label>게시 시작<input type="datetime-local" name="announcement-start"></label>
+                <label>게시 종료<input type="datetime-local" name="announcement-expiry"></label>
+            </div>
+            <label class="announcement-pinned-label"><input type="checkbox" name="announcement-pinned"> 상단 고정</label>
+            <label>내용<textarea name="announcement-content" maxlength="5000" rows="4"></textarea></label>
+            <p class="form-status announcement-inline-status" role="status"></p>
+            <div class="actions"><button type="button" class="btn announcement-inline-cancel">취소</button><button type="submit" class="btn btn-primary">저장</button></div>
+        </form>
+        <div id="school-announcement-list" class="announcement-feed"><div class="loading-state">공지사항을 불러오는 중입니다.</div></div>
+    </section>
+    <div class="board-header">
+        <h2 id="board-title">학교 아카이브</h2>
+        <button class="btn-write" id="write-btn" style="display:none;">자료 등록</button>
+    </div>
+    <div class="search-filter-section">
+        <select id="filter-category" class="filter-select" aria-label="자료 분류">
+            <option value="all">전체 카테고리</option>
+            <option value="천체 관측 데이터">천체 관측 데이터</option>
+            <option value="실험 보고서">실험 보고서</option>
+            <option value="훈련 자료">훈련 자료</option>
+            <option value="소스 코드">소스 코드</option>
+            <option value="기타">기타</option>
+        </select>
+        <input type="search" id="search-keyword" class="search-input" aria-label="자료 검색" placeholder="제목 또는 작성자 검색...">
+    </div>
+    <div id="resource-list" class="resource-container"><div class="empty-msg">데이터를 불러오는 중...</div></div>
+</main>
+
+<footer>
+  <p>&copy; 2026 DEEP SKY. All Rights Reserved.</p>
+  <p>복성고등학교 천문·항공우주 동아리</p>
+  <p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p>
+</footer>
+
+<script type="module" src="js/school-board.js"></script>
+<script type="module" src="frontend-access-control.js"></script>
+</body>
+</html>

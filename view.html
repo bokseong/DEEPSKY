@@ -4,80 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="logo.png" type="image/png">
-    <title>DEEP SKY</title>
-    <link rel="stylesheet" href="css/common.css">
-<link rel="stylesheet" href="css/view.css">
+    <link rel="apple-touch-icon" href="logo.png">
+    <title>DEEP SKY | View</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/view.css">
 </head>
 <body>
-
-<div class="top-bar">
-    <a href="index.html" class="logo-area">
-        <img src="logo.png" alt="" aria-hidden="true">
-        <span>DEEP SKY</span>
-    </a>
-    <div class="auth-bar">
-        <span id="userStatus">접속 중...</span>
-        <button id="loginBtn" onclick="location.href='login.html'">로그인</button>
-        <button id="logoutBtn" class="btn-logout hidden" onclick="logout()">로그아웃</button>
+<div class="auth-bar">
+    <a href="index.html" class="logo-link"><img src="logo.png" alt="Logo" class="nav-logo"><span>DEEP SKY</span></a>
+    <div class="auth-user-zone"><span id="userNameDisplay" class="hidden" style="font-size:.9rem; color:#ccc;"></span><a href="login.html" id="loginBtn" class="auth-btn">LOGIN</a><button id="logoutBtn" class="auth-btn hidden">LOGOUT</button></div>
+</div>
+<div class="container">
+    <div class="view-card">
+        <div class="admin-zone"><button class="btn-small hidden" id="btnBookmarkPost">저장</button><button class="btn-small hidden" id="btnReportPost">신고</button><button class="btn-small hidden" id="btnEditPost">수정</button><button class="btn-small hidden" id="btnDeletePost" style="color:#ff4d4d; border-color:#ff4d4d;">삭제</button></div>
+        <div class="post-header"><div id="viewCategory" class="post-category">RESOURCE</div><h1 id="viewTitle" class="post-title">불러오는 중...</h1><div class="post-info"><span id="viewAuthor">-</span><span id="viewDate">-</span></div></div>
+        <div id="viewContent" class="post-content"></div>
+        <div class="links-container" id="linksContainer"></div>
+        <div class="comment-section">
+            <div class="comment-title">COMMENTS</div>
+            <div id="commentList"></div>
+            <div id="commentFormArea" class="hidden"><div class="comment-form"><input type="text" id="commentInput" class="comment-input" aria-label="댓글" placeholder="의견을 남겨주세요"><button class="btn-comment" id="btnPostComment">POST</button></div></div>
+            <div id="loginNotice" class="hidden" style="text-align:center; color:#888; margin-top:20px;">댓글 작성을 위해 <a href="login.html" style="color:var(--accent)">로그인</a>이 필요합니다.</div>
+        </div>
+        <a href="resource.html" style="display:block; margin-top:40px; color:#555; text-decoration:none;">← BACK TO LIST</a>
     </div>
 </div>
-
-<div class="container">
-    <div id="postArea" class="view-card hidden">
-        <div class="post-header">
-            <h2 id="viewTitle" class="post-title"></h2>
-            <div class="post-info">
-                <span id="viewAuthor"></span>
-                <span id="viewDate"></span>
-            </div>
-        </div>
-        
-        <div id="viewContent" class="post-content"></div>
-
-        <div id="linkArea" class="link-section hidden">
-            <div style="font-size: 13px; color: #7fc7ff; margin-bottom: 8px; font-weight: bold;">첨부된 링크</div>
-            <a id="viewFileLink" href="#" target="_blank" rel="noopener" class="btn-link">파일/링크 열기</a>
-        </div>
-            <div id="vFileContainer" class="file-actions hidden">
-            <span id="vFileName" class="file-action-title"></span>
-            <div class="file-action-buttons">
-                <a id="vFilePreviewBtn" class="file-action-btn file-preview-btn" href="#" target="_blank" rel="noopener">미리보기</a>
-                <a id="vFileDownloadBtn" class="file-action-btn file-download-btn" href="#">다운로드</a>
-            </div>
-        </div>
-
-        <div class="comment-section">
-            <div class="comment-title">댓글</div>
-            <div id="commentList"></div>
-            
-            <div id="commentFormArea" class="comment-form hidden">
-                <input type="text" id="commentInput" class="comment-input" aria-label="댓글" placeholder="댓글을 남겨보세요...">
-                <button class="btn-comment-submit" onclick="addComment()">등록</button>
-            </div>
-            <div id="commentLoginNotice" style="text-align: center; padding: 20px; color: #aaa; font-size: 14px;">
-                댓글을 작성하려면 로그인이 필요합니다.
-            </div>
-        </div>
-        
-        <div class="btn-group" style="display: flex; justify-content: space-between; align-items: center;">
-            <button class="btn btn-list" onclick="location.href='board.html'">목록으로 돌아가기</button>
-            <div style="display: flex; gap: 10px;">
-                <button id="editBtn" class="btn hidden" style="background: #3a5aff; color: white;">수정하기</button>
-                <button id="deleteBtn" class="btn btn-delete hidden" onclick="deletePost()">이 글 삭제하기</button>
-            </div>
-        </div>
-    </div> </div>
-
 <footer>
-    © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
-    <br>
-    Email : leader.deepsky@gmail.com &nbsp; | &nbsp;Designed by jw-astro09
+  <p>&copy; 2026 DEEP SKY. All Rights Reserved.</p>
+  <p>복성고등학교 천문·항공우주 동아리</p>
+  <p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p>
 </footer>
-
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
-<script src="js/common.js"></script>
-<script src="js/view.js"></script>
+<script type="module" src="js/view.js"></script>
+<script type="module" src="frontend-access-control.js"></script>
 </body>
 </html>

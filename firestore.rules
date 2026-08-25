@@ -1,0 +1,10 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // User profiles are written only by the DEEP SKY backend Admin SDK.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

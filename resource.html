@@ -4,85 +4,71 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="logo.png" type="image/png">
-    <title>DEEP SKY</title>
-    <link rel="stylesheet" href="css/common.css">
-<link rel="stylesheet" href="css/resource.css">
+    <link rel="apple-touch-icon" href="logo.png">
+    <title>DEEP SKY | Resources</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/resource.css">
 </head>
 <body>
 
-<div class="top-bar">
-    <a href="index.html" class="logo-area">
-        <img src="logo.png" alt="" aria-hidden="true">
+<div class="auth-bar">
+    <a href="index.html" class="logo-link">
+        <img src="logo.png" alt="Logo" class="nav-logo">
         <span>DEEP SKY</span>
     </a>
-    <div class="auth-bar">
-        <span id="userStatus">확인 중...</span>
-        <button id="loginBtn" onclick="location.href='login.html'">로그인</button>
-        <button id="logoutBtn" class="hidden" onclick="logout()">로그아웃</button>
+    <div class="auth-user-zone">
+        <a href="login.html" id="login-link" class="auth-btn">LOGIN</a>
+        <span id="user-name" style="display:none; color:var(--accent); font-weight:bold; font-size:0.9rem;"></span>
+        <button id="logout-btn" class="auth-btn" style="display:none;">LOGOUT</button>
     </div>
 </div>
 
-<header>
-    <h1>자료실</h1>
+<header class="board-hero">
+    <h1>Resources</h1>
+    <p>Archive of research materials and observation data</p>
 </header>
 
-<nav aria-label="주요 메뉴">
-    <div class="nav-inner">
-        <a href="index.html">홈</a>
-        <a href="introduce.html">동아리 소개</a>
-        <a href="question.html">질문 게시판</a>
-        <a href="board.html">자유 게시판</a>
-        <a href="photo.html">활동 사진</a>
-        <a href="resource.html">자료실</a>
-        <a href="weather.html">기상 정보</a>
-        <a href="mypage.html">정보 수정</a>
-        <a href="suggest.html">건의함</a>
+<nav class="sub-nav-container" aria-label="주요 메뉴">
+    <div class="nav-menu">
+        <a href="index.html">HOME</a>
+        <a href="introduction.html">INTRODUCTION</a>
+        <a href="talk.html">TALK</a>
+        <a href="resource.html">RESOURCE</a>
+        <a href="suggest.html">SUGGESTION</a>
+        <a href="mypage.html">MY PAGE</a>
+        <a href="adjust.html">REQUEST AUTHORITY</a>
         <a href="admin.html">ADMIN</a>
-        <a href="block.html">등급 조정 요청</a>
-        <a href="https://hq-syrtn.github.io/SYRTN/index.html">SYRTN</a>
     </div>
 </nav>
 
-<div class="container">
-    <div id="lockMessage" class="access-gate hidden"></div>
-
-    <div id="mainContent" class="hidden">
-        <div id="adminUpload" class="admin-box hidden">
-            <h3>새로운 자료 등록 (관리자)</h3>
-            <input type="text" id="fileTitle" aria-label="자료 제목" placeholder="자료 제목">
-            <input type="text" id="fileDesc" aria-label="자료 설명" placeholder="자료 설명">
-            <input type="url" id="fileLink" aria-label="자료 외부 링크" placeholder="다운로드/보기 (외부 링크)">
-            <input type="file" id="fileData" multiple aria-label="업로드할 자료 파일" style="width: 100%; padding: 12px; margin-bottom: 10px; background: #0b0f2b; color: white; border: 1px solid #1b2f80; border-radius: 8px;">
-            <div class="upload-progress" aria-live="polite">
-                <progress id="resourceUploadProgress" max="100" value="0" hidden></progress>
-                <span id="resourceUploadLabel"></span>
-            </div>
-            <button class="btn-main" onclick="uploadResource()">자료 게시하기</button>
-        </div>
-
-        <div class="intro-card">
-            <h2>보관된 자료 목록</h2>
-            
-            <div class="search-box">
-                <input type="search" id="searchInput" aria-label="자료 검색" placeholder="찾으시는 자료의 제목이나 설명을 입력하세요..." onkeyup="filterResources()">
-            </div>
-
-            <div class="resource-grid" id="resourceList">
-                </div>
-        </div>
+<main class="content-section">
+    <div class="board-header">
+        <h2 style="margin:0; font-size:1.5rem; border-left:4px solid var(--accent); padding-left:15px;">Archive List</h2>
+        <button class="btn-write" id="write-btn" style="display:none;" onclick="location.href='write.html'">ADD RESOURCE</button>
     </div>
-</div>
+    <div class="search-filter-section">
+        <select id="filter-category" class="filter-select" aria-label="자료 분류">
+            <option value="all">전체 카테고리</option>
+            <option value="천체 관측 데이터">천체 관측 데이터</option>
+            <option value="기술 문서 / 매뉴얼">기술 문서 / 매뉴얼</option>
+            <option value="발표 및 보고서">발표 및 보고서</option>
+            <option value="소프트웨어 및 코드">소프트웨어 및 코드</option>
+        </select>
+        <input type="search" id="search-keyword" class="search-input" aria-label="자료 검색" placeholder="제목 또는 작성자 검색...">
+    </div>
+    <div id="resource-list" class="resource-container">
+        <div style="padding:100px; text-align:center; color:#555;">등록된 자료가 없거나 검색 결과가 없습니다.</div>
+    </div>
+</main>
 
 <footer>
-    © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
-    <br>
-    Email : leader.deepsky@gmail.com &nbsp;	| &nbsp; Designed by jw-astro09
+  <p>&copy; 2026 DEEP SKY. All Rights Reserved.</p>
+  <p>복성고등학교 천문·항공우주 동아리</p>
+  <p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p>
 </footer>
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
-<script src="js/common.js"></script>
-<script src="js/resource.js?v=20260819-2"></script>
+<script type="module" src="js/resource.js"></script>
+<script type="module" src="frontend-access-control.js"></script>
 </body>
 </html>

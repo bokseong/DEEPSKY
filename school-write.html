@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="logo.png" type="image/png">
+    <link rel="apple-touch-icon" href="logo.png">
+    <title>DEEP SKY | Write</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/school-write.css">
+</head>
+<body>
+<div class="auth-bar">
+    <a href="index.html" class="logo-link"><img src="logo.png" alt="Logo" class="nav-logo"><span>DEEP SKY</span></a>
+    <div class="auth-user-zone"><a href="login.html" id="login-link" class="auth-btn">LOGIN</a><span id="user-name" style="display:none;"></span><button id="logout-btn" class="auth-btn" style="display:none;">LOGOUT</button></div>
+</div>
+<nav class="sub-nav-container" aria-label="주요 메뉴"><div class="nav-menu"><a href="index.html">HOME</a><a href="introduction.html">INTRODUCTION</a><a href="talk.html" class="active">TALK</a><a href="resource.html">RESOURCE</a><a href="suggest.html">SUGGESTION</a><a href="mypage.html">MY PAGE</a><a href="adjust.html">REQUEST AUTHORITY</a><a href="admin.html">ADMIN</a></div></nav>
+
+<main class="container">
+    <section class="editor">
+        <h1 id="form-title">자료 등록</h1>
+        <label for="category">카테고리</label>
+        <select id="category"><option value="천체 관측 데이터">천체 관측 데이터</option><option value="실험 보고서">실험 보고서</option><option value="훈련 자료">훈련 자료</option><option value="소스 코드">소스 코드</option><option value="기타">기타</option></select>
+        <label for="post-title">제목</label>
+        <input id="post-title" type="text" placeholder="제목을 입력하세요.">
+        <label for="post-content">내용</label>
+        <textarea id="post-content" placeholder="자료에 대한 설명을 입력하세요."></textarea>
+        <p class="field-label">첨부 링크</p>
+        <div id="link-container"></div>
+        <button class="btn" id="add-link" type="button">링크 추가</button>
+        <label for="file-input">첨부파일</label>
+        <input type="file" id="file-input" multiple>
+        <p style="margin:8px 0 0; color:#888; font-size:13px;">파일 크기 제한 없이 업로드할 수 있습니다. 위험한 실행 파일 형식은 차단됩니다.</p>
+        <div id="upload-progress-wrap" class="progress-wrap" hidden><progress id="upload-progress" max="100" value="0"></progress><div class="section-heading-row"><span id="upload-status" class="form-status"></span><button id="cancel-upload" class="btn" type="button">업로드 취소</button></div></div>
+        <div class="section-heading-row"><span id="draft-status" class="draft-status" role="status"></span><button id="clear-draft" class="btn" type="button" hidden>임시저장 삭제</button></div>
+        <div class="actions"><button class="btn" id="cancel-btn">취소</button><button class="btn btn-primary" id="submit-btn">등록</button></div>
+    </section>
+</main>
+
+<footer>
+  <p>&copy; 2026 DEEP SKY. All Rights Reserved.</p>
+  <p>복성고등학교 천문·항공우주 동아리</p>
+  <p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p>
+</footer>
+
+<script type="module" src="js/school-write.js"></script>
+<script type="module" src="frontend-access-control.js"></script>
+</body>
+</html>
