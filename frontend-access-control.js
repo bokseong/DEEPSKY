@@ -11,7 +11,7 @@ const ROLES = {
 
 const PAGE_RULES = [
     { match: /^admin\.html$/, roles: ["admin"] },
-    { match: /^talk\.html$/, roles: ROLES.loggedIn },
+    { match: /^talk\.html$/, roles: ROLES.clubBoard },
     { match: /^write\.html$/, roles: ROLES.resourceWrite },
     { match: /^suggest\.html$/, roles: ROLES.loggedIn },
     { match: /^resource\.html$/, roles: ROLES.loggedIn },

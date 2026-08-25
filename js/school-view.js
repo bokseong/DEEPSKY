@@ -2,7 +2,7 @@ import { API_BASE_URL, apiFetch, auth, authHeaders as getAuthHeaders, getCurrent
 import { appendCommentReportButton, setupPostTools } from "./post-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
-        b: { collection:"club-board", student:"student", boardUrl:"school-board.html?school=b", writeUrl:"school-write.html?school=b" }
+        b: { collection:"club-board", student:"student", boardUrl:"talk.html", writeUrl:"school-write.html?school=b" }
     };
     const params = new URLSearchParams(location.search);
     const school = SCHOOLS[params.get("school")];

@@ -2,11 +2,12 @@ import { apiFetch, auth, authHeaders as getAuthHeaders, getCurrentProfile } from
 import { initializeAnnouncementSection } from "./announcement-manager.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
-        b: { collection:"club-board", title:"DEEP SKY 동아리 게시판", boardTitle:"DEEP SKY 아카이브", subtitle:"관측 기록과 동아리 활동 자료", student:"student", writeUrl:"school-write.html?school=b", viewUrl:"school-view.html?school=b", hero:"url('assets/images/stellar-nursery.webp')" }
+        b: { collection:"club-board", title:"DEEP SKY 동아리 게시판", boardTitle:"동아리 게시글", subtitle:"동아리 부원 전용 소통과 활동 기록 공간", student:"student", writeUrl:"school-write.html?school=b", viewUrl:"school-view.html?school=b", hero:"url('assets/images/stellar-nursery.webp')" }
     };
 
     const params = new URLSearchParams(location.search);
-    const schoolKey = params.get("school");
+    const currentPage = location.pathname.split("/").pop() || "index.html";
+    const schoolKey = params.get("school") || (currentPage === "talk.html" ? "b" : "");
     const school = SCHOOLS[schoolKey];
     if (!school) {
         location.replace("talk.html");
@@ -54,8 +55,8 @@ let currentUser = null;
                     container: document.getElementById("school-announcement-list"),
                     user,
                     profile: userData,
-                    scope: schoolKey,
-                    emptyMessage: "등록된 학교 공지가 없습니다."
+                    scope: "all",
+                    emptyMessage: "등록된 동아리 공지가 없습니다."
                 })
             ]);
         } catch (err) {

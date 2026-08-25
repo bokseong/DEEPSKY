@@ -2,7 +2,7 @@ import { apiFetch, auth, authHeaders as getAuthHeaders, getCurrentProfile } from
 import { createDraftController, uploadFilesWithProgress } from "./write-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
-        b: { collection:"club-board", name:"DEEP SKY", student:"student", boardUrl:"school-board.html?school=b", viewUrl:"school-view.html?school=b" }
+        b: { collection:"club-board", name:"DEEP SKY", student:"student", boardUrl:"talk.html", viewUrl:"school-view.html?school=b" }
     };
     const params = new URLSearchParams(location.search);
     const school = SCHOOLS[params.get("school")];

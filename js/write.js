@@ -18,7 +18,7 @@ const editPostId = new URLSearchParams(window.location.search).get('id');
         try {
             const userData = await getCurrentProfile(user);
             currentRole = userData.role || 'member';
-            if (!WRITABLE_ROLES.includes(currentRole)) { alert('작성 권한이 없습니다. 각 학교별 리더 이상만 가능합니다.'); location.replace('resource.html'); return; }
+            if (!WRITABLE_ROLES.includes(currentRole)) { alert('작성 권한이 없습니다. 교사 또는 관리자만 작성할 수 있습니다.'); location.replace('resource.html'); return; }
             currentUser = user;
             currentUserName = userData.name || user.displayName || '사용자';
             document.getElementById('user-name').style.display = 'inline';
