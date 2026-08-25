@@ -154,58 +154,106 @@ function renderRolePermissions(payload) {
     const container = document.getElementById("role-permission-matrix");
     const definitions = Array.isArray(payload.definitions) ? payload.definitions : [];
     const lockedRoles = new Set(payload.lockedRoles || []);
+    const roles = Object.entries(payload.roles || {});
     container.replaceChildren();
-    Object.entries(payload.roles || {}).forEach(([role, permissions]) => {
-        const locked = lockedRoles.has(role);
-        const card = document.createElement("article");
-        card.className = "role-permission-card";
+    if (!definitions.length || !roles.length) {
+        container.innerHTML = '<p class="permission-status">표시할 권한 설정이 없습니다.</p>';
+        return;
+    }
 
-        const heading = document.createElement("div");
-        heading.className = "role-permission-heading";
-        const title = document.createElement("h3");
-        title.textContent = payload.roleLabels?.[role] || roleMap[role] || role;
-        const badge = document.createElement("span");
-        badge.className = locked ? "permission-badge locked" : "permission-badge";
-        badge.textContent = locked ? "고정" : role;
-        heading.append(title, badge);
-        card.appendChild(heading);
+    const table = document.createElement("table");
+    table.className = "permission-table";
+    const thead = document.createElement("thead");
+    const headingRow = document.createElement("tr");
+    const featureHeading = document.createElement("th");
+    featureHeading.scope = "col";
+    featureHeading.textContent = "기능 권한";
+    headingRow.appendChild(featureHeading);
+    roles.forEach(([role]) => {
+        const heading = document.createElement("th");
+        heading.scope = "col";
+        const label = document.createElement("span");
+        label.className = "permission-role-label";
+        label.textContent = payload.roleLabels?.[role] || roleMap[role] || role;
+        heading.appendChild(label);
+        if (lockedRoles.has(role)) {
+            const status = document.createElement("small");
+            status.className = "permission-role-status";
+            status.textContent = "고정";
+            heading.appendChild(status);
+        }
+        headingRow.appendChild(heading);
+    });
+    thead.appendChild(headingRow);
+    table.appendChild(thead);
 
-        const list = document.createElement("div");
-        list.className = "permission-check-list";
-        definitions.forEach(definition => {
+    const tbody = document.createElement("tbody");
+    definitions.forEach(definition => {
+        const row = document.createElement("tr");
+        const feature = document.createElement("th");
+        feature.scope = "row";
+        feature.className = "permission-feature";
+        const title = document.createElement("strong");
+        title.textContent = definition.label;
+        const description = document.createElement("small");
+        description.textContent = definition.description;
+        feature.append(title, description);
+        row.appendChild(feature);
+
+        roles.forEach(([role, permissions]) => {
+            const cell = document.createElement("td");
+            cell.className = "permission-cell";
             const label = document.createElement("label");
-            label.className = "permission-check";
+            label.className = "permission-toggle";
             const checkbox = document.createElement("input");
             checkbox.type = "checkbox";
+            checkbox.dataset.role = role;
             checkbox.dataset.permission = definition.key;
             checkbox.checked = Boolean(permissions?.[definition.key]);
-            checkbox.disabled = locked;
-            const text = document.createElement("span");
-            const strong = document.createElement("strong");
-            strong.textContent = definition.label;
-            const small = document.createElement("small");
-            small.textContent = definition.description;
-            text.append(strong, small);
-            label.append(checkbox, text);
-            list.appendChild(label);
+            checkbox.disabled = lockedRoles.has(role);
+            checkbox.setAttribute("aria-label", `${payload.roleLabels?.[role] || roleMap[role] || role}: ${definition.label}`);
+            const visibleLabel = document.createElement("span");
+            visibleLabel.textContent = checkbox.checked ? "허용" : "차단";
+            checkbox.addEventListener("change", () => {
+                visibleLabel.textContent = checkbox.checked ? "허용" : "차단";
+            });
+            label.append(checkbox, visibleLabel);
+            cell.appendChild(label);
+            row.appendChild(cell);
         });
-        card.appendChild(list);
+        tbody.appendChild(row);
+    });
+    table.appendChild(tbody);
 
+    const tfoot = document.createElement("tfoot");
+    const actionRow = document.createElement("tr");
+    const actionHeading = document.createElement("th");
+    actionHeading.scope = "row";
+    actionHeading.textContent = "변경 저장";
+    actionRow.appendChild(actionHeading);
+    roles.forEach(([role]) => {
+        const locked = lockedRoles.has(role);
+        const cell = document.createElement("td");
+        cell.className = "permission-cell";
         const saveButton = document.createElement("button");
         saveButton.type = "button";
         saveButton.className = "btn-update permission-save";
-        saveButton.textContent = locked ? "보안상 변경 불가" : "이 등급 권한 저장";
+        saveButton.textContent = locked ? "고정" : "저장";
+        saveButton.dataset.defaultLabel = saveButton.textContent;
         saveButton.disabled = locked;
-        saveButton.addEventListener("click", () => saveRolePermissions(role, definitions, card, saveButton));
-        card.appendChild(saveButton);
-        container.appendChild(card);
+        saveButton.addEventListener("click", () => saveRolePermissions(role, definitions, container, saveButton));
+        cell.appendChild(saveButton);
+        actionRow.appendChild(cell);
     });
+    tfoot.appendChild(actionRow);
+    table.appendChild(tfoot);
+    container.appendChild(table);
 }
 
-async function saveRolePermissions(role, definitions, card, button) {
+async function saveRolePermissions(role, definitions, container, button) {
     const permissions = Object.fromEntries(definitions.map(definition => [
         definition.key,
-        Boolean(card.querySelector(`[data-permission="${CSS.escape(definition.key)}"]`)?.checked)
+        Boolean(container.querySelector(`[data-role="${CSS.escape(role)}"][data-permission="${CSS.escape(definition.key)}"]`)?.checked)
     ]));
     if (!confirm(`${roleMap[role] || role} 등급의 기능 권한을 저장하시겠습니까?`)) return;
     button.disabled = true;
@@ -220,7 +268,7 @@ async function saveRolePermissions(role, definitions, card, button) {
         alert("등급별 기능 권한이 저장되었습니다.");
     } catch (error) {
         button.disabled = false;
-        button.textContent = "이 등급 권한 저장";
+        button.textContent = button.dataset.defaultLabel || "저장";
         alert(error.message);
     }
 }

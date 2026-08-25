@@ -29,21 +29,28 @@
         .permission-panel { background:var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:22px; }
         .permission-panel-toolbar { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:18px; }
         .permission-panel-toolbar p { margin:0; color:#8f9b9f; }
-        .role-permission-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; }
-        .role-permission-card { min-width:0; border:1px solid rgba(0,229,255,.2); border-radius:10px; background:#090b0c; padding:17px; }
-        .role-permission-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:13px; }
-        .role-permission-heading h3 { margin:0; font-size:1rem; }
-        .permission-badge { padding:3px 8px; border:1px solid rgba(0,229,255,.35); border-radius:999px; color:var(--accent); font-size:.7rem; }
-        .permission-badge.locked { border-color:#795563; color:#ffb6cf; }
-        .permission-check-list { display:grid; gap:8px; }
-        .permission-check { display:flex; align-items:flex-start; gap:9px; padding:9px; border:1px solid rgba(255,255,255,.08); border-radius:7px; cursor:pointer; }
-        .permission-check input { margin-top:4px; accent-color:var(--accent); }
-        .permission-check span { display:grid; gap:1px; }
-        .permission-check strong { font-size:.84rem; }
-        .permission-check small { color:#818b8f; line-height:1.35; }
-        .permission-save { width:100%; margin-top:13px; }
+        .role-permission-table-host { overflow-x:auto; border:1px solid rgba(255,255,255,.08); border-radius:10px; background:#090b0c; }
+        .permission-table { width:100%; min-width:700px; border-collapse:collapse; font-size:.84rem; }
+        .permission-table th, .permission-table td { padding:11px 12px; border-right:1px solid rgba(255,255,255,.07); border-bottom:1px solid rgba(255,255,255,.07); }
+        .permission-table tr > :last-child { border-right:0; }
+        .permission-table tbody tr:last-child th, .permission-table tbody tr:last-child td { border-bottom:1px solid rgba(255,255,255,.12); }
+        .permission-table thead th { color:var(--accent); text-align:center; background:#0d1112; white-space:nowrap; }
+        .permission-table thead th:first-child { text-align:left; }
+        .permission-feature { min-width:260px; text-align:left; font-weight:400; }
+        .permission-feature strong { display:block; color:#f2f5f6; font-size:.85rem; }
+        .permission-feature small { display:block; margin-top:2px; color:#818b8f; font-weight:400; line-height:1.35; }
+        .permission-role-label { display:block; }
+        .permission-role-status { display:block; margin-top:1px; color:#ffb6cf; font-weight:400; }
+        .permission-cell { min-width:90px; text-align:center; }
+        .permission-toggle { display:inline-flex; align-items:center; justify-content:center; gap:6px; cursor:pointer; white-space:nowrap; }
+        .permission-toggle input { width:16px; height:16px; margin:0; accent-color:var(--accent); }
+        .permission-toggle input:disabled { opacity:.65; cursor:not-allowed; }
+        .permission-toggle span { color:#aeb6ba; font-size:.75rem; }
+        .permission-table tfoot th, .permission-table tfoot td { border-bottom:0; background:#0d1112; }
+        .permission-table tfoot th { text-align:left; color:#c6ced1; }
+        .permission-save { min-width:62px; margin:0; }
         .permission-save:disabled { background:#3e4649; color:#aeb4b6; cursor:not-allowed; }
-        .permission-status { grid-column:1/-1; text-align:center; color:#8f9b9f; padding:18px; }
+        .permission-status { text-align:center; color:#8f9b9f; padding:18px; }
         .permission-error { color:#ff9aa3; }
         .activity-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1px; margin-bottom:16px; border:1px solid var(--border); background:var(--border); }
         .activity-stat { min-width:0; padding:16px 18px; background:#090b0c; }

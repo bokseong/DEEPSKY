@@ -8,7 +8,7 @@
     <title>DEEP SKY | Admin</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/common.css">
-    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/admin.css?v=20260825-permission-table">
 </head>
 <body>
 <div class="auth-bar">
@@ -98,7 +98,7 @@
             <p>변경 내용은 서버 API 권한 검사에 즉시 적용됩니다.</p>
             <button id="permission-refresh" type="button" class="btn-update">새로고침</button>
         </div>
-        <div id="role-permission-matrix" class="role-permission-grid" aria-live="polite">
+        <div id="role-permission-matrix" class="role-permission-table-host" aria-live="polite">
             <p class="permission-status">권한 설정을 불러오는 중입니다.</p>
         </div>
     </div>
@@ -165,7 +165,7 @@
   <p>복성고등학교 천문·항공우주 동아리</p>
   <p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p>
 </footer>
-<script type="module" src="js/admin.js?v=20260820-1"></script>
+<script type="module" src="js/admin.js?v=20260825-permission-table"></script>
 <script type="module" src="frontend-access-control.js"></script>
 </body>
 </html>
