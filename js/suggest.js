@@ -4,9 +4,6 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/fi
 const SUGGESTION_ROLES = new Set([
     "admin", "teacher", "student"
 ]);
-const SCHOOL_CODES = {
-    "Suncheon Bokseong High School": "b"
-};
 
 const loginLink = document.getElementById("login-link");
 const logoutBtn = document.getElementById("logout-btn");
@@ -17,7 +14,6 @@ const anonCheck = document.getElementById("anon-check");
 const anonymousOption = document.getElementById("anonymous-option");
 const categorySelect = document.getElementById("category");
 const authorityFields = document.getElementById("authority-fields");
-const schoolSelect = document.getElementById("request-school");
 const roleSelect = document.getElementById("request-role");
 const subjectGroup = document.getElementById("subject-input-group");
 const subjectInput = document.getElementById("subject");
@@ -30,7 +26,6 @@ let currentProfile = null;
 
 logoutBtn.addEventListener("click", () => logoutTo());
 categorySelect.addEventListener("change", applyCategoryMode);
-schoolSelect.addEventListener("change", filterRoleOptions);
 anonCheck.addEventListener("change", syncAnonymousState);
 
 onAuthStateChanged(auth, async user => {
@@ -46,7 +41,6 @@ onAuthStateChanged(auth, async user => {
         userNameDisplay.textContent = `${currentProfile.name || "사용자"}님`;
         logoutBtn.style.display = "inline";
         nameInput.value = currentProfile.name || "";
-        selectProfileSchool(currentProfile.school);
 
         if (!SUGGESTION_ROLES.has(currentProfile.role)) {
             [...categorySelect.options].forEach(option => {
@@ -96,7 +90,6 @@ async function submitAuthorityRequest() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             name: nameInput.value.trim(),
-            school: schoolSelect.value,
             requestedRole: roleSelect.value,
             reason: contentInput.value.trim()
         })
@@ -127,7 +120,6 @@ function applyCategoryMode() {
     anonymousOption.hidden = authorityMode;
     subjectGroup.hidden = authorityMode;
     subjectInput.required = !authorityMode;
-    schoolSelect.required = authorityMode;
     roleSelect.required = authorityMode;
     anonCheck.checked = authorityMode ? false : anonCheck.checked;
     contentLabel.textContent = authorityMode ? "요청 사유" : "내용";
@@ -136,7 +128,6 @@ function applyCategoryMode() {
         : "건의 내용을 상세히 작성해주세요.";
     submitButton.textContent = authorityMode ? "등급 조정 요청" : "제출하기";
     syncAnonymousState();
-    filterRoleOptions();
 }
 
 function syncAnonymousState() {
@@ -146,25 +137,4 @@ function syncAnonymousState() {
     nameInput.placeholder = anonymous ? "익명으로 안전하게 제출합니다" : "성함을 입력하세요";
     if (anonymous) nameInput.value = "";
     else if (!nameInput.value && currentProfile) nameInput.value = currentProfile.name || "";
-}
-
-function filterRoleOptions() {
-    const schoolCode = SCHOOL_CODES[schoolSelect.value];
-    let firstVisible = null;
-    [...roleSelect.options].forEach(option => {
-        const visible = option.dataset.school === "all" || option.dataset.school === schoolCode;
-        option.hidden = !visible;
-        option.disabled = !visible;
-        if (visible && !firstVisible) firstVisible = option;
-    });
-    if (roleSelect.selectedOptions[0]?.disabled && firstVisible) {
-        roleSelect.value = firstVisible.value;
-    }
-}
-
-function selectProfileSchool(school) {
-    const normalized = String(school || "").toLowerCase();
-    if (normalized.includes("bokseong") || normalized.includes("복성")) {
-        schoolSelect.value = "Suncheon Bokseong High School";
-    }
 }
