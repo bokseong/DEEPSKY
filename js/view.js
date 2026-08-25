@@ -193,10 +193,31 @@ let currentUser = null;
         finally { btn.disabled = false; btn.innerText = 'POST'; }
     });
 
-    function withDownloadParam(url) {
-        const downloadUrl = new URL(url);
-        downloadUrl.searchParams.set('download', '1');
-        return downloadUrl.href;
+    async function resolveAttachmentUrl(url, filename, mode) {
+        const attachmentUrl = new URL(url);
+
+        // 기존 자료는 /api/download?path=...&mode=download 형식으로 저장되어
+        // 있으므로, 현재 로그인 권한으로 용도별 단기 서명 URL을 다시 발급한다.
+        if (attachmentUrl.pathname === '/api/download') {
+            const path = attachmentUrl.searchParams.get('path');
+            if (!path) throw new Error('첨부파일 경로가 올바르지 않습니다.');
+
+            const response = await apiFetch('/api/download-link', {
+                method: 'POST',
+                headers: await getHeaders(true),
+                body: JSON.stringify({ path, filename, mode })
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.url) {
+                throw new Error(data.error || '파일 열기 주소를 만들 수 없습니다.');
+            }
+            return new URL(data.url, API_BASE_URL).href;
+        }
+
+        // 새 자료 저장소의 파일 주소는 download 쿼리만으로 표시 방식을 구분한다.
+        if (mode === 'download') attachmentUrl.searchParams.set('download', '1');
+        else attachmentUrl.searchParams.delete('download');
+        return attachmentUrl.href;
     }
 
     function getPreviewMimeType(filename, contentType) {
@@ -234,9 +255,12 @@ let currentUser = null;
                 previewWindow.document.title = '파일 미리보기';
                 previewWindow.document.body.textContent = '파일을 불러오는 중입니다...';
             }
-            const requestUrl = mode === 'download' ? withDownloadParam(url) : url;
+            const requestUrl = await resolveAttachmentUrl(url, filename, mode);
             const res = await fetch(requestUrl, { headers: await getHeaders() });
-            if (!res.ok) throw new Error('파일을 열 수 없습니다.');
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || '파일을 열 수 없습니다.');
+            }
             const blob = await res.blob();
             if (mode === 'download') {
                 const objectUrl = URL.createObjectURL(blob);
