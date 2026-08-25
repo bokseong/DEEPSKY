@@ -131,6 +131,5 @@ function toLocalInput(value) {
 }
 
 function canManageScope(role, scope) {
-    if (role === "admin" || role === "teacher") return true;
-    return role?.endsWith("-leader") && role.split("-")[0] === scope;
+    return scope === "all" && ["admin", "teacher", "leader"].includes(role);
 }

@@ -240,6 +240,8 @@ function startApiStatusMonitor() {
 
 function addFeatureNavigationLinks() {
     const items = [
+        { href: "announcements.html", label: "NOTICE" },
+        { href: "updates.html", label: "UPDATES" },
         { href: "schedule.html", label: "SCHEDULE" },
         { href: "ai.html", label: "AI" }
     ];
