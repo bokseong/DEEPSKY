@@ -201,7 +201,7 @@ onAuthStateChanged(auth, async user => {
     }
     try {
         const profile = await getCurrentProfile(user);
-        canManage = ["admin", "teacher", "leader"].includes(profile.role);
+        canManage = ["admin", "teacher"].includes(profile.role);
         elements.login.hidden = true;
         elements.logout.hidden = false;
         elements.userName.hidden = false;

@@ -153,7 +153,7 @@ async function deleteEvent(item) {
 
 function configureManagerForm() {
     const role = currentProfile.role;
-    const manager = ["admin", "teacher", "leader"].includes(role);
+    const manager = ["admin", "teacher"].includes(role);
     form.hidden = !manager;
 }
 

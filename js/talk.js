@@ -42,7 +42,7 @@ onAuthStateChanged(auth,async user=>{
     });
 });
 
-window.gateCheck=(targetUrl,studentRole,leaderRole)=>{
+window.gateCheck=(targetUrl,studentRole)=>{
     if(!auth.currentUser){
         location.href="block.html";
         return;
@@ -52,7 +52,7 @@ window.gateCheck=(targetUrl,studentRole,leaderRole)=>{
         return;
     }
     const role=userDataCache.role||"member";
-    if(role==="admin"||role==="teacher"||role===studentRole||role===leaderRole){
+    if(role==="admin"||role==="teacher"||role===studentRole){
         location.href=targetUrl;
         return;
     }

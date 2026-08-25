@@ -2,7 +2,7 @@ import { apiFetch, auth, authHeaders as getAuthHeaders, getCurrentProfile } from
 import { initializeAnnouncementSection } from "./announcement-manager.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
-        b: { collection:"club-board", title:"DEEP SKY 동아리 게시판", boardTitle:"DEEP SKY 아카이브", subtitle:"관측 기록과 동아리 활동 자료", student:"student", leader:"leader", writeUrl:"school-write.html?school=b", viewUrl:"school-view.html?school=b", hero:"url('assets/images/stellar-nursery.webp')" }
+        b: { collection:"club-board", title:"DEEP SKY 동아리 게시판", boardTitle:"DEEP SKY 아카이브", subtitle:"관측 기록과 동아리 활동 자료", student:"student", writeUrl:"school-write.html?school=b", viewUrl:"school-view.html?school=b", hero:"url('assets/images/stellar-nursery.webp')" }
     };
 
     const params = new URLSearchParams(location.search);
@@ -23,8 +23,8 @@ let currentUser = null;
     let currentRole = "guest";
     let allPosts = [];
 
-    const roleAllowed = (role) => ["admin", "teacher", school.student, school.leader].includes(role);
-    const canManage = (post) => currentUser && (post.uid === currentUser.uid || ["admin", "teacher", school.leader].includes(currentRole));
+    const roleAllowed = (role) => ["admin", "teacher", school.student].includes(role);
+    const canManage = (post) => currentUser && (post.uid === currentUser.uid || ["admin", "teacher"].includes(currentRole));
     const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
 
     document.getElementById("logout-btn").addEventListener("click", async () => {

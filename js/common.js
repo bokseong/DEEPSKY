@@ -109,14 +109,13 @@ export const firebaseConfig = {
 export const roleLabelMap = {
     admin: "관리자",
     teacher: "교사",
-    leader: "동아리 리더",
     student: "동아리 부원",
     member: "일반 회원",
     guest: "비회원"
 };
 
 const AI_ALLOWED_ROLES = new Set([
-    "admin", "teacher", "leader", "student"
+    "admin", "teacher", "student"
 ]);
 
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);

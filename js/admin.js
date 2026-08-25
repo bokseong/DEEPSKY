@@ -2,7 +2,7 @@ import { apiRequest, auth, getCurrentProfile } from "./common.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const roleMap = {
-    admin: "관리자", teacher: "교사", leader: "동아리 리더",
+    admin: "관리자", teacher: "교사",
     student: "동아리 부원", member: "일반 회원"
 };
 const userNameDisplay = document.getElementById("user-name");

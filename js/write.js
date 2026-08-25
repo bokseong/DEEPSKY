@@ -2,7 +2,7 @@ import { apiFetch, auth, authHeaders, getCurrentProfile } from "./common.js";
 import { createDraftController, uploadFilesWithProgress } from "./write-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const COLLECTION = "resources";
-const WRITABLE_ROLES = ['leader', 'teacher', 'admin'];
+const WRITABLE_ROLES = ['teacher', 'admin'];
 const editPostId = new URLSearchParams(window.location.search).get('id');
     let currentUser = null;
     let currentRole = 'guest';

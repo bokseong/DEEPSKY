@@ -2,7 +2,7 @@ import { API_BASE_URL, apiFetch, auth, authHeaders as getAuthHeaders, getCurrent
 import { appendCommentReportButton, setupPostTools } from "./post-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
-        b: { collection:"club-board", student:"student", leader:"leader", boardUrl:"school-board.html?school=b", writeUrl:"school-write.html?school=b" }
+        b: { collection:"club-board", student:"student", boardUrl:"school-board.html?school=b", writeUrl:"school-write.html?school=b" }
     };
     const params = new URLSearchParams(location.search);
     const school = SCHOOLS[params.get("school")];
@@ -17,8 +17,8 @@ let currentUser = null;
     let currentUserName = "익명";
     let post = null;
 
-    const roleAllowed = (role) => ["admin", "teacher", school.student, school.leader].includes(role);
-    const canManagePost = () => post && currentUser && (post.uid === currentUser.uid || ["admin", "teacher", school.leader].includes(currentRole));
+    const roleAllowed = (role) => ["admin", "teacher", school.student].includes(role);
+    const canManagePost = () => post && currentUser && (post.uid === currentUser.uid || ["admin", "teacher"].includes(currentRole));
     const headers = async () => getAuthHeaders(currentUser);
     const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
     const safeUrl = (value) => {

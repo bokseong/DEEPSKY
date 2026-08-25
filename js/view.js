@@ -119,8 +119,8 @@ let currentUser = null;
             linksDiv.appendChild(a);
         });
         const isOwner = currentUser && postData.uid === currentUser.uid;
-        const canManage = isOwner || ['admin', 'teacher', 'leader'].includes(currentRole);
-        document.getElementById('btnEditPost').classList.toggle('hidden', !isOwner && !['admin', 'teacher', 'leader'].includes(currentRole));
+        const canManage = isOwner || ['admin', 'teacher'].includes(currentRole);
+        document.getElementById('btnEditPost').classList.toggle('hidden', !isOwner && !['admin', 'teacher'].includes(currentRole));
         document.getElementById('btnDeletePost').classList.toggle('hidden', !canManage);
         await setupPostTools({
             user: currentUser,
@@ -141,7 +141,7 @@ let currentUser = null;
         comments.forEach(c => {
             const isCommentOwner = currentUser && c.uid === currentUser.uid;
             const isPostOwner = currentUser && postData && postData.uid === currentUser.uid;
-            const canDelete = isCommentOwner || isPostOwner || ['admin', 'teacher', 'leader'].includes(currentRole);
+            const canDelete = isCommentOwner || isPostOwner || ['admin', 'teacher'].includes(currentRole);
             const item = document.createElement('div');
             item.className = 'comment-item';
             if (isCommentOwner) item.style.border = '1px solid var(--accent)';

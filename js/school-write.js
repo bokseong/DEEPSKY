@@ -2,7 +2,7 @@ import { apiFetch, auth, authHeaders as getAuthHeaders, getCurrentProfile } from
 import { createDraftController, uploadFilesWithProgress } from "./write-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
-        b: { collection:"club-board", name:"DEEP SKY", student:"student", leader:"leader", boardUrl:"school-board.html?school=b", viewUrl:"school-view.html?school=b" }
+        b: { collection:"club-board", name:"DEEP SKY", student:"student", boardUrl:"school-board.html?school=b", viewUrl:"school-view.html?school=b" }
     };
     const params = new URLSearchParams(location.search);
     const school = SCHOOLS[params.get("school")];
@@ -24,8 +24,8 @@ let currentUser = null;
     document.getElementById("submit-btn").onclick = submitPost;
     addLinkField();
 
-    const roleAllowed = (role) => ["admin", "teacher", school.student, school.leader].includes(role);
-    const canEditPost = () => editPost && currentUser && (editPost.uid === currentUser.uid || ["admin", "teacher", school.leader].includes(currentRole));
+    const roleAllowed = (role) => ["admin", "teacher", school.student].includes(role);
+    const canEditPost = () => editPost && currentUser && (editPost.uid === currentUser.uid || ["admin", "teacher"].includes(currentRole));
     const authHeaders = async () => getAuthHeaders(currentUser);
     const isHttpUrl = (value) => {
         try {
