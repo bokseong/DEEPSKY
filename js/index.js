@@ -1,4 +1,7 @@
 import { apiRequest, auth, getCurrentProfile } from "./common.js";
+import { initializeAnnouncements } from "./announcements.js?v=20260826-home-records";
+import { initializeSchedule } from "./schedule.js?v=20260826-home-records";
+import { initializeUpdates } from "./updates.js?v=20260826-home-records";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const loginLink=document.getElementById("login-link");
 const logoutBtn=document.getElementById("logout-btn");
@@ -10,18 +13,27 @@ logoutBtn?.addEventListener("click",async()=>{
 });
 
 onAuthStateChanged(auth,async user=>{
-  if(!user) return;
+  let profile = null;
+  loginLink.style.display = user ? "none" : "inline-flex";
+  logoutBtn.style.display = user ? "inline-flex" : "none";
+  userName.style.display = user ? "inline" : "none";
+  document.getElementById("member-dashboard").hidden = !user;
+  document.getElementById("dashboard-posts-section").hidden = !user;
   try {
-    const data=await getCurrentProfile(user);
-    loginLink.style.display="none";
-    logoutBtn.style.display="inline-flex";
-    userName.style.display="inline";
-    userName.textContent=data.name||user.displayName||"User";
-    const response = await apiRequest("/api/jhimap/dashboard", {}, user);
-    renderDashboard(await response.json());
+    if (user) {
+      profile=await getCurrentProfile(user);
+      userName.textContent=profile.name||user.displayName||"User";
+      const response = await apiRequest("/api/jhimap/dashboard", {}, user);
+      renderDashboard(await response.json());
+    }
   } catch (error) {
     console.error(error);
   }
+  await Promise.allSettled([
+    initializeSchedule(user, profile),
+    initializeAnnouncements(user, profile),
+    initializeUpdates(user, profile)
+  ]);
 });
 
 function renderDashboard(data) {
@@ -30,33 +42,7 @@ function renderDashboard(data) {
   document.getElementById("dashboard-bookmarks").textContent = data.bookmark_count || 0;
   document.getElementById("dashboard-authority").textContent =
     requestStatusLabel(data.authority_request?.status);
-  renderEvents(data.events || []);
   renderPosts(data.recent_posts || []);
-}
-
-function renderEvents(items) {
-  const section = document.getElementById("dashboard-events-section");
-  const list = document.getElementById("dashboard-event-list");
-  section.hidden = false;
-  list.innerHTML = "";
-  if (!items.length) {
-    list.innerHTML = '<div class="empty-state">예정된 관측 일정이 없습니다.</div>';
-    return;
-  }
-  items.forEach(item => {
-    const article = document.createElement("article");
-    article.className = "feature-item";
-    const link = document.createElement("a");
-    link.href = `schedule.html#event-${item.id}`;
-    const title = document.createElement("h3");
-    title.textContent = item.title;
-    const meta = document.createElement("div");
-    meta.className = "item-meta";
-    meta.textContent = `${formatDateTime(item.start_at)} · ${item.location || "장소 미정"} · 참여 ${item.participant_count || 0}명`;
-    link.append(title, meta);
-    article.appendChild(link);
-    list.appendChild(article);
-  });
 }
 
 function renderPosts(items) {
@@ -90,8 +76,4 @@ function requestStatusLabel(status) {
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleDateString("ko-KR") : "-";
-}
-
-function formatDateTime(value) {
-  return value ? new Date(value).toLocaleString("ko-KR") : "-";
 }

@@ -1,5 +1,4 @@
-import { apiRequest, auth, getCurrentProfile, logoutTo } from "./common.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { apiRequest } from "./common.js";
 
 const list = document.getElementById("event-list");
 const form = document.getElementById("event-form");
@@ -10,7 +9,6 @@ let currentProfile = null;
 let currentPeriod = "upcoming";
 let eventCache = [];
 
-document.getElementById("logout-btn").addEventListener("click", () => logoutTo());
 document.getElementById("event-reset-btn").addEventListener("click", resetForm);
 periodButtons.forEach(button => {
     button.addEventListener("click", () => {
@@ -20,21 +18,19 @@ periodButtons.forEach(button => {
     });
 });
 
-onAuthStateChanged(auth, async user => {
+export async function initializeSchedule(user = null, profile = null) {
     if (!user) {
-        location.replace("block.html");
+        currentUser = null;
+        currentProfile = null;
+        form.hidden = true;
+        list.innerHTML = '<div class="empty-state">관측 일정은 로그인 후 확인할 수 있습니다. <a href="login.html">로그인</a></div>';
         return;
     }
-    try {
-        currentUser = user;
-        currentProfile = await getCurrentProfile(user);
-        document.getElementById("user-name").textContent = `${currentProfile.name || "사용자"}님`;
-        configureManagerForm();
-        await loadEvents();
-    } catch {
-        location.replace("block.html");
-    }
-});
+    currentUser = user;
+    currentProfile = profile;
+    configureManagerForm();
+    await loadEvents();
+}
 
 form.addEventListener("submit", async event => {
     event.preventDefault();
@@ -152,7 +148,7 @@ async function deleteEvent(item) {
 }
 
 function configureManagerForm() {
-    const role = currentProfile.role;
+    const role = currentProfile?.role;
     const manager = ["admin", "teacher"].includes(role);
     form.hidden = !manager;
 }

@@ -8,6 +8,7 @@
 <title>DEEP SKY | Home</title>
   <link rel="stylesheet" href="css/common.css">
 <link rel="stylesheet" href="css/index.css">
+<link rel="stylesheet" href="css/records.css">
 </head>
 <body>
 <div class="auth-bar">
@@ -34,8 +35,6 @@
     <a href="introduction.html">INTRODUCTION</a>
     <a href="talk.html">TALK</a>
     <a href="resource.html">RESOURCE</a>
-    <a href="announcements.html">NOTICE</a>
-    <a href="updates.html">UPDATES</a>
     <a href="suggest.html">SUGGESTION</a>
     <a href="mypage.html">MY PAGE</a>
     <a href="adjust.html">REQUEST AUTHORITY</a>
@@ -56,9 +55,68 @@
         <a class="dashboard-metric" href="suggest.html?category=authority"><strong id="dashboard-authority">-</strong><span>권한 요청</span></a>
       </div>
     </section>
-    <section id="dashboard-events-section" class="feature-section" hidden>
-      <div class="section-heading-row"><h2 class="section-title">다가오는 관측</h2><a class="text-link" href="schedule.html">전체 일정</a></div>
-      <div id="dashboard-event-list" class="feature-list"></div>
+    <section id="schedule-board" class="feature-section home-record-section" aria-labelledby="schedule-title">
+      <div class="section-heading-row"><h2 id="schedule-title" class="section-title">관측 일정</h2><div class="item-actions"><button class="btn btn-primary" type="button" data-period="upcoming">예정</button><button class="btn" type="button" data-period="past">지난 일정</button></div></div>
+      <div class="split-layout">
+        <div id="event-list" class="feature-list"><div class="loading-state">일정을 불러오는 중입니다.</div></div>
+        <form id="event-form" class="compact-form" hidden>
+          <h3 id="event-form-title">새 일정</h3>
+          <input id="event-id" type="hidden">
+          <label for="event-title">일정명</label><input id="event-title" maxlength="120" required>
+          <label for="event-scope">공개 범위</label><select id="event-scope"><option value="all">전체</option></select>
+          <label for="event-start">시작</label><input id="event-start" type="datetime-local" required>
+          <label for="event-end">종료</label><input id="event-end" type="datetime-local">
+          <label for="event-location">장소</label><input id="event-location" maxlength="160">
+          <label for="event-target">관측 대상</label><input id="event-target" maxlength="120">
+          <label for="event-description">설명</label><textarea id="event-description" maxlength="3000"></textarea>
+          <label for="event-checklist">준비 항목</label><textarea id="event-checklist" maxlength="2000" placeholder="항목마다 줄을 바꿔 입력"></textarea>
+          <div id="event-form-status" class="form-status" role="status"></div>
+          <div class="actions"><button id="event-reset-btn" class="btn" type="button">초기화</button><button class="btn btn-primary" type="submit">저장</button></div>
+        </form>
+      </div>
+    </section>
+    <section id="announcement-board" class="announcement-feed-section records-panel home-record-section" aria-labelledby="announcement-title">
+      <div class="announcement-heading-row">
+        <div><p class="records-eyebrow">NOTICE BOARD</p><h2 id="announcement-title" class="section-title">공지사항</h2></div>
+        <button type="button" class="btn announcement-compose-toggle" hidden>공지 작성</button>
+      </div>
+      <form class="compact-form announcement-inline-form" hidden>
+        <h3 class="announcement-inline-title">새 공지</h3>
+        <input type="hidden" name="announcement-id">
+        <div class="announcement-form-grid">
+          <label>제목<input name="announcement-title" maxlength="120" required></label>
+          <label>중요도<select name="announcement-importance"><option value="normal">일반</option><option value="important">중요</option></select></label>
+        </div>
+        <div class="announcement-form-grid announcement-date-grid">
+          <label>게시 시작<input type="datetime-local" name="announcement-start"></label>
+          <label>게시 종료<input type="datetime-local" name="announcement-expiry"></label>
+        </div>
+        <label class="announcement-pinned-label"><input type="checkbox" name="announcement-pinned"> 상단 고정</label>
+        <label>내용<textarea name="announcement-content" maxlength="5000" rows="7"></textarea></label>
+        <p class="form-status announcement-inline-status" role="status"></p>
+        <div class="actions"><button type="button" class="btn announcement-inline-cancel">취소</button><button type="submit" class="btn btn-primary">저장</button></div>
+      </form>
+      <div id="announcement-list" class="announcement-feed"><div class="loading-state">공지사항을 불러오는 중입니다.</div></div>
+    </section>
+    <section id="updates-board" class="records-panel home-record-section" aria-labelledby="updates-title">
+      <div class="records-heading">
+        <div><p class="records-eyebrow">CHANGELOG</p><h2 id="updates-title" class="section-title">업데이트 기록</h2></div>
+        <button type="button" id="update-compose-toggle" class="btn" hidden>기록 작성</button>
+      </div>
+      <form id="update-form" class="compact-form update-form" hidden>
+        <h3 id="update-form-title">새 업데이트 기록</h3>
+        <input type="hidden" id="update-id">
+        <div class="update-form-grid">
+          <label>버전<input id="update-version" maxlength="40" placeholder="예: v2.1.0"></label>
+          <label>게시일<input id="update-published-at" type="datetime-local"></label>
+        </div>
+        <label>제목<input id="update-title" maxlength="120" required></label>
+        <label>내용<textarea id="update-content" maxlength="8000" rows="9" required></textarea></label>
+        <label class="update-pinned"><input id="update-pinned" type="checkbox"> 상단 고정</label>
+        <p id="update-form-status" class="form-status" role="status"></p>
+        <div class="actions"><button type="button" id="update-cancel" class="btn">취소</button><button type="submit" class="btn btn-primary">저장</button></div>
+      </form>
+      <div id="update-list" class="update-list"><div class="loading-state">업데이트 기록을 불러오는 중입니다.</div></div>
     </section>
     <section id="dashboard-posts-section" class="feature-section" hidden>
       <div class="section-heading-row"><h2 class="section-title">최근 자료</h2><a class="text-link" href="search.html">통합 검색</a></div>
@@ -71,7 +129,7 @@
   <p>복성고등학교 천문·항공우주 동아리</p>
   <p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p>
 </footer>
-<script type="module" src="js/index.js"></script>
+<script type="module" src="js/index.js?v=20260826-home-records"></script>
 <script type="module" src="frontend-access-control.js"></script>
 </body>
 </html>

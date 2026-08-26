@@ -1,10 +1,6 @@
-import { apiFetch, apiRequest, auth, getCurrentProfile } from "./common.js";
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { apiFetch, apiRequest } from "./common.js";
 
 const elements = {
-    login: document.getElementById("login-link"),
-    logout: document.getElementById("logout-btn"),
-    userName: document.getElementById("user-name"),
     compose: document.getElementById("update-compose-toggle"),
     form: document.getElementById("update-form"),
     formTitle: document.getElementById("update-form-title"),
@@ -21,11 +17,6 @@ const elements = {
 
 let currentUser = null;
 let canManage = false;
-
-elements.logout.addEventListener("click", async () => {
-    await signOut(auth);
-    location.reload();
-});
 
 elements.compose.addEventListener("click", () => {
     if (elements.form.hidden) openForm();
@@ -187,28 +178,10 @@ function toLocalInput(value) {
     return local.toISOString().slice(0, 16);
 }
 
-onAuthStateChanged(auth, async user => {
+export async function initializeUpdates(user = null, profile = null) {
     currentUser = user;
-    canManage = false;
-    if (!user) {
-        elements.login.hidden = false;
-        elements.logout.hidden = true;
-        elements.userName.hidden = true;
-        elements.compose.hidden = true;
-        closeForm();
-        await loadUpdates();
-        return;
-    }
-    try {
-        const profile = await getCurrentProfile(user);
-        canManage = ["admin", "teacher"].includes(profile.role);
-        elements.login.hidden = true;
-        elements.logout.hidden = false;
-        elements.userName.hidden = false;
-        elements.userName.textContent = `${profile.name || user.displayName || "사용자"}님`;
-        elements.compose.hidden = !canManage;
-    } catch {
-        elements.compose.hidden = true;
-    }
+    canManage = Boolean(user && ["admin", "teacher"].includes(profile?.role));
+    elements.compose.hidden = !canManage;
+    if (!canManage) closeForm();
     await loadUpdates();
-});
+}

@@ -91,6 +91,22 @@ body {
   padding-top: 0;
 }
 
+.home-record-section {
+  scroll-margin-top: 96px;
+}
+
+.home-record-section + .home-record-section {
+  margin-top: 28px;
+}
+
+#schedule-board .split-layout {
+  align-items: start;
+}
+
+#schedule-board .feature-list {
+  min-width: 0;
+}
+
 .dashboard-metric {
   color: var(--home-muted);
   text-decoration: none;

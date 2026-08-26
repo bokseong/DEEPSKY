@@ -18,7 +18,6 @@ const PAGE_RULES = [
     { match: /^view\.html$/, roles: ROLES.loggedIn },
     { match: /^ai\.html$/, roles: ROLES.ai },
     { match: /^search\.html$/, roles: ROLES.loggedIn },
-    { match: /^schedule\.html$/, roles: ROLES.loggedIn },
     { match: /^notifications\.html$/, roles: ROLES.loggedIn },
     { match: /^mypage\.html$/, roles: ROLES.loggedIn },
     { match: /^adjust\.html$/, roles: ROLES.loggedIn },
