@@ -38,25 +38,24 @@
     <h1 class="section-title">Sign up</h1>
     <form id="signup-form">
       <label for="name">이름</label>
-      <input id="name" autocomplete="name" required>
-      <label for="school">학교</label>
-      <select id="school" required>
-        <option value="Suncheon Bokseong High School">복성고등학교</option>
-      </select>
+      <input id="name" autocomplete="name" maxlength="120" required>
       <label for="email">이메일</label>
       <input id="email" type="email" autocomplete="email" required>
-      <label for="password">비밀번호</label>
+      <label id="password-label" for="password">비밀번호</label>
       <input id="password" type="password" minlength="8" autocomplete="new-password" required>
+      <label id="password-confirm-label" for="password-confirm">비밀번호 확인</label>
+      <input id="password-confirm" type="password" minlength="8" autocomplete="new-password" required>
       <div class="terms-box" aria-label="이용 약관 및 개인정보 수집 안내">
         <h2>이용 약관 및 개인정보 수집 안내</h2>
         <p>DEEP SKY는 동아리 홈페이지 운영과 회원 권한 관리를 위해 필요한 최소한의 정보를 사용합니다.</p>
         <ul>
-          <li>수집 항목: 이름, 학교, 이메일, 회원 역할 등</li>
-          <li>이용 목적: 계정 식별, 학교별 권한 부여, 게시판 및 자료실 이용, 운영 공지, 회원 관리</li>
+          <li>수집 항목: 이름, 이메일, 회원 역할</li>
+          <li>이용 목적: 계정 식별, 역할별 권한 부여, 게시판 및 자료실 이용, 운영 공지, 회원 관리</li>
           <li>보관 기간: 회원 탈퇴 또는 서비스 운영 종료 시까지</li>
           <li>이용자는 허위 정보 입력, 타인 계정 사용, 무단 접근, 불법 또는 유해 게시물 등록 등의 행위 적발 시 강제로 회원 탈퇴시킬 예정입니다.</li>
           <li>게시글, 댓글, 첨부파일은 서비스 운영을 위해 저장될 수 있습니다.</li>
-          <li>메일 주소와 이름 등의 계정 정보는 Google Firebase 인증 서비스를 통해 처리됩니다.</li>
+          <li>로그인 자격 증명과 이메일 인증은 Google Firebase에서 처리되며, 이름·이메일·회원 역할은 자체 서버의 사용자 JSON에 저장됩니다.</li>
+          <li>비밀번호 원문은 자체 서버에 저장되지 않습니다.</li>
           <li>이 약관을 거부 시 회원가입이 불가하며 이에 따른 문제에 대해서는 책임지지 않습니다.</li>
         </ul>
       </div>
@@ -75,7 +74,7 @@
   <p>복성고등학교 천문·항공우주 동아리</p>
   <p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p>
 </footer>
-<script type="module" src="js/signup.js?v=20260826-session-auth"></script>
+<script type="module" src="js/signup.js?v=20260826-minimal-profile"></script>
 <script type="module" src="frontend-access-control.js"></script>
 </body>
 </html>
