@@ -28,7 +28,6 @@ onAuthStateChanged(auth, async user => {
         document.getElementById("user-name").style.display = "inline";
         document.getElementById("user-name").textContent = currentProfile.name || "User";
         document.getElementById("display-email").value = currentProfile.email || user.email || "";
-        document.getElementById("display-school").value = currentProfile.school || "학교 정보 없음";
         document.getElementById("edit-name").value = currentProfile.name || "";
         document.getElementById("display-role").value = roleMap[currentProfile.role] || currentProfile.role;
         await Promise.all([loadBookmarks(), loadRecentViews()]);
