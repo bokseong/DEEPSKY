@@ -1,3 +1,57 @@
-import { auth, getCurrentProfile } from "./common.js";
+import { apiRequest, auth } from "./common.js";
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-document.getElementById("login-form").addEventListener("submit",async e=>{e.preventDefault();const btn=document.getElementById("login-btn");btn.disabled=true;btn.textContent="Signing in...";try{const cred=await signInWithEmailAndPassword(auth,document.getElementById("email").value.trim(),document.getElementById("password").value);if(!cred.user.emailVerified){alert("Email verification is required.");await signOut(auth);return;}await getCurrentProfile(cred.user,true);location.href="index.html";}catch(err){alert("Login failed. Check your email and password.");}finally{btn.disabled=false;btn.textContent="Login";}});document.getElementById("google-btn").onclick=async()=>{try{const cred=await signInWithPopup(auth,new GoogleAuthProvider());const profile=await getCurrentProfile(cred.user,true);location.href=profile.school?"index.html":"signup.html";}catch(err){alert("Google login failed.");}};document.getElementById("reset-btn").onclick=async()=>{const email=prompt("Enter your email address.");if(!email)return;try{await sendPasswordResetEmail(auth,email);alert("Password reset email sent.");}catch(err){alert("Failed to send reset email.");}};
+
+async function continueAfterAuthentication(user) {
+    const response = await apiRequest("/api/jhimap/account-status", {}, user);
+    const account = await response.json();
+    location.href = account.exists ? "index.html" : "signup.html";
+}
+
+document.getElementById("login-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    const button = document.getElementById("login-btn");
+    button.disabled = true;
+    button.textContent = "Signing in...";
+    try {
+        const credential = await signInWithEmailAndPassword(
+            auth,
+            document.getElementById("email").value.trim(),
+            document.getElementById("password").value
+        );
+        if (!credential.user.emailVerified) {
+            alert("Email verification is required.");
+            await signOut(auth);
+            return;
+        }
+        await continueAfterAuthentication(credential.user);
+    } catch (error) {
+        if (error?.code === "auth/user-not-found") {
+            location.href = "signup.html";
+            return;
+        }
+        alert("Login failed. Check your email and password.");
+    } finally {
+        button.disabled = false;
+        button.textContent = "Login";
+    }
+});
+
+document.getElementById("google-btn").addEventListener("click", async () => {
+    try {
+        const credential = await signInWithPopup(auth, new GoogleAuthProvider());
+        await continueAfterAuthentication(credential.user);
+    } catch (error) {
+        alert("Google login failed.");
+    }
+});
+
+document.getElementById("reset-btn").addEventListener("click", async () => {
+    const email = prompt("Enter your email address.");
+    if (!email) return;
+    try {
+        await sendPasswordResetEmail(auth, email);
+        alert("Password reset email sent.");
+    } catch (error) {
+        alert("Failed to send reset email.");
+    }
+});
