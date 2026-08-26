@@ -1,5 +1,5 @@
 import { apiFetch, apiRequest, auth, authHeaders, getCurrentProfile, updateCurrentProfile } from "./common.js";
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { EmailAuthProvider, onAuthStateChanged, reauthenticateWithCredential, sendPasswordResetEmail, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 let currentUser = null;
 let currentProfile = null;
@@ -30,6 +30,7 @@ onAuthStateChanged(auth, async user => {
         document.getElementById("display-email").value = currentProfile.email || user.email || "";
         document.getElementById("edit-name").value = currentProfile.name || "";
         document.getElementById("display-role").value = roleMap[currentProfile.role] || currentProfile.role;
+        configurePasswordManagement(user);
         await Promise.all([loadBookmarks(), loadRecentViews()]);
     } catch (error) {
         console.error(error);
@@ -48,6 +49,77 @@ document.getElementById("update-profile-btn").onclick = async () => {
         alert(error.message);
     }
 };
+
+function configurePasswordManagement(user) {
+    const form = document.getElementById("password-change-form");
+    const note = document.getElementById("password-account-note");
+    const hasPasswordProvider = user.providerData.some(provider => provider.providerId === "password");
+    form.hidden = !hasPasswordProvider;
+    note.textContent = hasPasswordProvider
+        ? "현재 비밀번호로 본인 확인 후 새 비밀번호를 설정할 수 있습니다. 비밀번호는 Firebase Authentication에서 처리됩니다."
+        : "Google 로그인 계정의 비밀번호는 Google 계정 보안 설정에서 관리하세요.";
+}
+
+document.getElementById("password-change-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!currentUser?.email) return setPasswordStatus("로그인 계정의 이메일을 확인할 수 없습니다.", true);
+
+    const currentPassword = document.getElementById("current-password").value;
+    const newPassword = document.getElementById("new-password").value;
+    const confirmPassword = document.getElementById("confirm-password").value;
+    if (newPassword.length < 8) return setPasswordStatus("새 비밀번호는 8자 이상이어야 합니다.", true);
+    if (newPassword !== confirmPassword) return setPasswordStatus("새 비밀번호가 서로 일치하지 않습니다.", true);
+    if (currentPassword === newPassword) return setPasswordStatus("현재 비밀번호와 다른 비밀번호를 입력해 주세요.", true);
+
+    const button = document.getElementById("change-password-btn");
+    button.disabled = true;
+    button.textContent = "변경 중...";
+    setPasswordStatus("현재 비밀번호를 확인하는 중입니다.");
+    try {
+        const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+        await reauthenticateWithCredential(currentUser, credential);
+        await updatePassword(currentUser, newPassword);
+        event.currentTarget.reset();
+        setPasswordStatus("비밀번호가 변경되었습니다.");
+    } catch (error) {
+        setPasswordStatus(passwordErrorMessage(error), true);
+    } finally {
+        button.disabled = false;
+        button.textContent = "비밀번호 변경";
+    }
+});
+
+document.getElementById("send-reset-email-btn").addEventListener("click", async () => {
+    if (!currentUser?.email) return setPasswordStatus("로그인 계정의 이메일을 확인할 수 없습니다.", true);
+    const button = document.getElementById("send-reset-email-btn");
+    button.disabled = true;
+    button.textContent = "전송 중...";
+    try {
+        await sendPasswordResetEmail(auth, currentUser.email);
+        setPasswordStatus("비밀번호 재설정 메일을 보냈습니다. 받은편지함과 스팸함을 확인하세요.");
+    } catch (error) {
+        setPasswordStatus(passwordErrorMessage(error), true);
+    } finally {
+        button.disabled = false;
+        button.textContent = "재설정 메일 보내기";
+    }
+});
+
+function setPasswordStatus(message, isError = false) {
+    const status = document.getElementById("password-status");
+    status.textContent = message;
+    status.dataset.state = isError ? "error" : "success";
+}
+
+function passwordErrorMessage(error) {
+    const code = error?.code || "";
+    if (["auth/wrong-password", "auth/invalid-credential"].includes(code)) return "현재 비밀번호가 올바르지 않습니다.";
+    if (code === "auth/weak-password") return "새 비밀번호가 보안 기준을 충족하지 않습니다.";
+    if (code === "auth/requires-recent-login") return "보안을 위해 로그아웃한 뒤 다시 로그인하고 시도해 주세요.";
+    if (code === "auth/too-many-requests") return "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.";
+    if (code === "auth/network-request-failed") return "네트워크 연결을 확인한 뒤 다시 시도해 주세요.";
+    return "비밀번호 처리 중 오류가 발생했습니다.";
+}
 
 async function loadBookmarks() {
     const list = document.getElementById("bookmark-list");

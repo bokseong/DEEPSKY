@@ -12,6 +12,47 @@
     margin-top: 22px;
 }
 
+.password-panel {
+    margin-top: 22px;
+}
+
+.password-help,
+.password-rule {
+    color: #b8c0c7;
+}
+
+.password-help {
+    margin: 0 0 18px;
+    line-height: 1.7;
+}
+
+.password-form {
+    display: grid;
+    gap: 10px;
+}
+
+.password-form[hidden] {
+    display: none;
+}
+
+.password-rule {
+    margin: -4px 0 4px;
+    font-size: .85rem;
+}
+
+#password-status {
+    min-height: 1.5em;
+    margin: 4px 0 0;
+}
+
+#password-status[data-state="success"] {
+    color: #7ee787;
+}
+
+#password-status[data-state="error"] {
+    color: #ff7a7a;
+}
+
 .danger-zone {
     border-color: rgba(255, 93, 93, .45);
     background: rgba(255, 93, 93, .045);
