@@ -1,4 +1,4 @@
-import { apiRequest, auth } from "./common.js";
+import { apiRequest, auth, authPersistenceReady } from "./common.js?v=20260826-session-auth";
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 async function continueAfterAuthentication(user) {
@@ -13,6 +13,7 @@ document.getElementById("login-form").addEventListener("submit", async event => 
     button.disabled = true;
     button.textContent = "Signing in...";
     try {
+        if (!await authPersistenceReady) throw new Error("세션 로그인 설정에 실패했습니다.");
         const credential = await signInWithEmailAndPassword(
             auth,
             document.getElementById("email").value.trim(),
@@ -38,6 +39,7 @@ document.getElementById("login-form").addEventListener("submit", async event => 
 
 document.getElementById("google-btn").addEventListener("click", async () => {
     try {
+        if (!await authPersistenceReady) throw new Error("세션 로그인 설정에 실패했습니다.");
         const credential = await signInWithPopup(auth, new GoogleAuthProvider());
         await continueAfterAuthentication(credential.user);
     } catch (error) {

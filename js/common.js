@@ -1,6 +1,6 @@
 import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app-check.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { browserSessionPersistence, getAuth, onAuthStateChanged, setPersistence, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const NGROK_API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
 const TAILSCALE_API_BASE_URL = "https://bs-server.tail886d19.ts.net";
@@ -137,6 +137,12 @@ export function ensureAppCheck() {
 ensureAppCheck();
 
 export const auth = getAuth(app);
+export const authPersistenceReady = setPersistence(auth, browserSessionPersistence)
+    .then(() => true)
+    .catch(error => {
+        console.error("세션 로그인 설정에 실패했습니다.", error);
+        return false;
+    });
 
 let profileUid = null;
 let profilePromise = null;

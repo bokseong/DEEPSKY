@@ -1,4 +1,4 @@
-import { auth, updateCurrentProfile } from "./common.js";
+import { auth, authPersistenceReady, updateCurrentProfile } from "./common.js?v=20260826-session-auth";
 import { createUserWithEmailAndPassword, onAuthStateChanged, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 onAuthStateChanged(auth,user=>{
@@ -16,6 +16,7 @@ document.getElementById("signup-form").addEventListener("submit",async e=>{
   const btn=document.getElementById("submit-btn");
   btn.disabled=true;
   try{
+    if(!await authPersistenceReady)throw new Error("세션 로그인 설정에 실패했습니다.");
     const name=document.getElementById("name").value.trim();
     const school=document.getElementById("school").value;
     const email=document.getElementById("email").value.trim();
