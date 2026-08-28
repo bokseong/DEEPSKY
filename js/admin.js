@@ -32,8 +32,11 @@ onAuthStateChanged(auth, async user => {
         return;
     }
     try {
-        const profile = await getCurrentProfile(user);
-        if (profile.role !== "admin") {
+        const [profile, permissions] = await Promise.all([
+            getCurrentProfile(user),
+            apiRequest("/api/jhimap/me/permissions", {}, user).then(response => response.json())
+        ]);
+        if (!permissions["admin.access"]) {
             location.replace("block.html");
             return;
         }
@@ -278,6 +281,7 @@ async function loadSuggestions() {
     try {
         const response = await apiRequest("/api/jhimap/suggestions", {}, currentAdminUser);
         const suggestions = await response.json();
+        clearSuggestionAttachmentUrls();
         list.innerHTML = "";
         if (!suggestions.length) {
             list.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;">접수된 건의 사항이 없습니다.</td></tr>';
@@ -286,6 +290,10 @@ async function loadSuggestions() {
         suggestions.forEach(suggestion => {
             const row = document.createElement("tr");
             row.innerHTML = `<td>${formatDate(suggestion.created_at)}</td><td><span style="color:var(--accent)">[${escapeHtml(suggestion.category || "-")}]</span></td><td><strong>${escapeHtml(suggestion.subject || "제목 없음")}</strong><br><small style="color:#ccc">${escapeHtml(suggestion.content || "")}</small></td><td>${escapeHtml(suggestion.author_name || "익명")}</td><td><button class="btn-update btn-danger">해결 완료</button></td>`;
+            const attachments = document.createElement("div");
+            attachments.className = "suggestion-attachments";
+            row.children[2].appendChild(attachments);
+            void renderSuggestionAttachments(attachments, suggestion.attachments || []);
             row.querySelector("button").onclick = () => deleteSuggestion(suggestion.id);
             list.appendChild(row);
         });
@@ -294,6 +302,44 @@ async function loadSuggestions() {
         list.innerHTML = '<tr><td colspan="5" style="text-align:center;">건의사항을 불러올 수 없습니다.</td></tr>';
     }
 }
+
+const suggestionAttachmentUrls = new Set();
+
+function clearSuggestionAttachmentUrls() {
+    suggestionAttachmentUrls.forEach(url => URL.revokeObjectURL(url));
+    suggestionAttachmentUrls.clear();
+}
+
+async function renderSuggestionAttachments(container, attachments) {
+    if (!attachments.length) return;
+    for (const [index, attachment] of attachments.entries()) {
+        const link = document.createElement("a");
+        link.className = "suggestion-attachment";
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.textContent = `첨부 이미지 ${index + 1} 불러오는 중`;
+        container.appendChild(link);
+        try {
+            const response = await apiRequest(attachment.url, {}, currentAdminUser);
+            const blob = await response.blob();
+            if (!blob.type.startsWith("image/")) throw new Error("이미지 형식이 아닙니다.");
+            const objectUrl = URL.createObjectURL(blob);
+            suggestionAttachmentUrls.add(objectUrl);
+            link.href = objectUrl;
+            link.replaceChildren();
+            const image = document.createElement("img");
+            image.src = objectUrl;
+            image.alt = attachment.name || `첨부 이미지 ${index + 1}`;
+            link.appendChild(image);
+        } catch (error) {
+            link.removeAttribute("href");
+            link.textContent = `첨부 이미지 ${index + 1} 로드 실패`;
+            link.title = error.message;
+        }
+    }
+}
+
+window.addEventListener("beforeunload", clearSuggestionAttachmentUrls);
 
 async function loadRequests() {
     const list = document.getElementById("request-list");

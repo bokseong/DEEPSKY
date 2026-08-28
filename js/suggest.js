@@ -19,6 +19,9 @@ const subjectGroup = document.getElementById("subject-input-group");
 const subjectInput = document.getElementById("subject");
 const contentInput = document.getElementById("content");
 const contentLabel = document.getElementById("content-label");
+const imageGroup = document.getElementById("suggestion-image-group");
+const imageInput = document.getElementById("suggestion-images");
+const imagePreview = document.getElementById("suggestion-image-preview");
 const submitButton = document.querySelector(".submit-btn");
 
 let currentUser = null;
@@ -27,6 +30,7 @@ let currentProfile = null;
 logoutBtn.addEventListener("click", () => logoutTo());
 categorySelect.addEventListener("change", applyCategoryMode);
 anonCheck.addEventListener("change", syncAnonymousState);
+imageInput.addEventListener("change", renderSelectedImages);
 
 onAuthStateChanged(auth, async user => {
     if (!user) {
@@ -75,6 +79,7 @@ form.addEventListener("submit", async event => {
         alert("소중한 의견이 제출되었습니다. 관리자가 확인 후 반영하겠습니다.");
         form.reset();
         nameInput.value = currentProfile?.name || "";
+        renderSelectedImages();
         applyCategoryMode();
     } catch (error) {
         alert(`제출 중 오류가 발생했습니다: ${error.message}`);
@@ -99,17 +104,18 @@ async function submitAuthorityRequest() {
 
 async function submitSuggestion() {
     const isAnonymous = anonCheck.checked;
+    const images = Array.from(imageInput.files || []);
+    if (images.length > 3) throw new Error("이미지는 최대 3장까지 첨부할 수 있습니다.");
+    const formData = new FormData();
+    formData.append("authorName", isAnonymous ? "익명" : nameInput.value.trim());
+    formData.append("isAnonymous", String(isAnonymous));
+    formData.append("category", categorySelect.value);
+    formData.append("subject", subjectInput.value.trim());
+    formData.append("content", contentInput.value.trim());
+    images.forEach(image => formData.append("images", image, image.name));
     const response = await apiRequest("/api/jhimap/suggestions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            authorName: isAnonymous ? "익명" : nameInput.value.trim(),
-            isAnonymous,
-            category: categorySelect.value,
-            subject: subjectInput.value.trim(),
-            content: contentInput.value.trim(),
-            userEmail: currentUser.email
-        })
+        body: formData
     }, currentUser);
     return response.json();
 }
@@ -117,6 +123,7 @@ async function submitSuggestion() {
 function applyCategoryMode() {
     const authorityMode = categorySelect.value === "등급 조정";
     authorityFields.hidden = !authorityMode;
+    imageGroup.hidden = authorityMode;
     anonymousOption.hidden = authorityMode;
     subjectGroup.hidden = authorityMode;
     subjectInput.required = !authorityMode;
@@ -128,6 +135,29 @@ function applyCategoryMode() {
         : "건의 내용을 상세히 작성해주세요.";
     submitButton.textContent = authorityMode ? "등급 조정 요청" : "제출하기";
     syncAnonymousState();
+}
+
+function renderSelectedImages() {
+    const files = Array.from(imageInput.files || []);
+    imagePreview.replaceChildren();
+    if (files.length > 3) {
+        imageInput.value = "";
+        alert("이미지는 최대 3장까지 첨부할 수 있습니다.");
+        return;
+    }
+    files.forEach(file => {
+        const item = document.createElement("figure");
+        const image = document.createElement("img");
+        const caption = document.createElement("figcaption");
+        const objectUrl = URL.createObjectURL(file);
+        image.src = objectUrl;
+        image.alt = `${file.name} 미리보기`;
+        image.addEventListener("load", () => URL.revokeObjectURL(objectUrl), { once: true });
+        image.addEventListener("error", () => URL.revokeObjectURL(objectUrl), { once: true });
+        caption.textContent = file.name;
+        item.append(image, caption);
+        imagePreview.appendChild(item);
+    });
 }
 
 function syncAnonymousState() {

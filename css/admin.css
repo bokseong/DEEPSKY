@@ -228,3 +228,6 @@
 
         .sub-nav-container { scrollbar-width:none !important; -ms-overflow-style:none !important; }
         .sub-nav-container::-webkit-scrollbar { display:none; width:0; height:0; }
+.suggestion-attachments { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.suggestion-attachment { display:grid; place-items:center; width:84px; min-height:58px; overflow:hidden; border:1px solid rgba(255,255,255,.14); border-radius:8px; color:#9bdfff; font-size:.72rem; text-align:center; text-decoration:none; }
+.suggestion-attachment img { width:84px; height:64px; object-fit:cover; display:block; }

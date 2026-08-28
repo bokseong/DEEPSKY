@@ -1,4 +1,4 @@
-import { auth, getCurrentProfile } from "./js/common.js";
+import { apiRequest, auth, getCurrentProfile } from "./js/common.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const ROLES = {
     loggedIn: ["admin", "teacher", "student", "member"],
@@ -10,8 +10,9 @@ const ROLES = {
 };
 
 const PAGE_RULES = [
-    { match: /^admin\.html$/, roles: ["admin"] },
+    { match: /^admin\.html$/, permission: "admin.access" },
     { match: /^talk\.html$/, roles: ROLES.clubBoard },
+    { match: /^photo\.html$/, roles: ROLES.loggedIn },
     { match: /^write\.html$/, roles: ROLES.resourceWrite },
     { match: /^suggest\.html$/, roles: ROLES.loggedIn },
     { match: /^resource\.html$/, roles: ROLES.loggedIn },
@@ -40,8 +41,9 @@ function findRule(page = currentPage()) {
     return PAGE_RULES.find(rule => rule.match.test(page));
 }
 
-function canAccess(role, rule, searchParams = new URLSearchParams(location.search)) {
+function canAccess(role, rule, searchParams = new URLSearchParams(location.search), permissions = {}) {
     if (!rule) return true;
+    if (rule.permission) return Boolean(permissions[rule.permission]);
     const roles = typeof rule.roles === "function" ? rule.roles(searchParams) : rule.roles;
     return roles.includes(role);
 }
@@ -52,8 +54,9 @@ function setLinkVisibility(selector, visible) {
     });
 }
 
-function hardenNavigation(role) {
+function hardenNavigation(role, permissions = {}) {
     setLinkVisibility(".nav-menu a", true);
+    setLinkVisibility('a[href="admin.html"]', Boolean(permissions["admin.access"]));
 
     document.querySelectorAll('a[href="write.html"]:not(.nav-menu a), button[onclick*="write.html"]').forEach(el => {
         el.style.display = ROLES.resourceWrite.includes(role) ? "" : "none";
@@ -76,8 +79,9 @@ function ruleForLink(link) {
     return { rule, searchParams: url.searchParams };
 }
 
-function installNavGuards(role) {
+function installNavGuards(role, permissions = {}) {
     window.__deepskyNavRole = role;
+    window.__deepskyNavPermissions = permissions;
     if (window.__deepskyNavGuardsInstalled) return;
     window.__deepskyNavGuardsInstalled = true;
 
@@ -88,7 +92,8 @@ function installNavGuards(role) {
         if (!target) return;
 
         const currentRole = window.__deepskyNavRole || "guest";
-        if (!canAccess(currentRole, target.rule, target.searchParams)) {
+        const currentPermissions = window.__deepskyNavPermissions || {};
+        if (!canAccess(currentRole, target.rule, target.searchParams, currentPermissions)) {
             event.preventDefault();
             location.href = "block.html";
         }
@@ -101,21 +106,29 @@ async function resolveRole(user) {
     return profile.role || "member";
 }
 
+async function resolvePermissions(user) {
+    if (!user) return {};
+    const response = await apiRequest("/api/jhimap/me/permissions", {}, user);
+    return response.json();
+}
+
 installNavGuards("guest");
 
 onAuthStateChanged(auth, async user => {
     let role = "guest";
+    let permissions = {};
     try {
-        role = await resolveRole(user);
+        [role, permissions] = await Promise.all([resolveRole(user), resolvePermissions(user)]);
     } catch (err) {
         role = "guest";
+        permissions = {};
     }
 
-    hardenNavigation(role);
-    installNavGuards(role);
+    hardenNavigation(role, permissions);
+    installNavGuards(role, permissions);
 
     const rule = findRule();
-    if (!canAccess(role, rule)) {
+    if (!canAccess(role, rule, new URLSearchParams(location.search), permissions)) {
         const isLoginRequired = role === "guest" && currentPage() !== "block.html";
         location.replace(isLoginRequired ? "login.html" : "block.html");
     }
