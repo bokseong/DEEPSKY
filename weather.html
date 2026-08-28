@@ -1,129 +1,112 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="logo.png" type="image/png">
-    <title>DEEP SKY</title>
-    <link rel="stylesheet" href="css/common.css">
-<link rel="stylesheet" href="css/weather.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <link rel="icon" href="logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="logo.png">
+  <title>DEEP SKY | Weather</title>
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/weather.css?v=20260828-observing-weather">
 </head>
 <body>
-
-<div class="top-bar">
-    <a href="index.html" class="logo-area">
-        <img src="logo.png" alt="" aria-hidden="true">
-        <span>DEEP SKY</span>
-    </a>
-    <div class="auth-bar">
-        <span id="userStatus">불러오는 중...</span>
-        <button id="loginBtn" onclick="location.href='login.html'">로그인</button>
-        <button id="logoutBtn" class="hidden" onclick="logout()">로그아웃</button>
-    </div>
+<div class="auth-bar">
+  <a href="index.html" class="logo-link"><img src="logo.png" alt="DEEP SKY logo" class="nav-logo"><span>DEEP SKY</span></a>
+  <div class="auth-user-zone"><a href="login.html" id="login-link" class="auth-btn">LOGIN</a><span id="user-name" hidden></span><button id="logout-btn" class="auth-btn" hidden>LOGOUT</button></div>
 </div>
-
-<header><h1>기상 정보</h1></header>
-
-<nav aria-label="주요 메뉴">
-    <div class="nav-inner">
-        <a href="index.html">홈</a>
-        <a href="introduce.html">동아리 소개</a>
-        <a href="question.html">질문 게시판</a>
-        <a href="board.html">자유 게시판</a>
-        <a href="photo.html">활동 사진</a>
-        <a href="resource.html">자료실</a>
-        <a href="weather.html">기상 정보</a>
-        <a href="mypage.html">정보 수정</a>
-        <a href="suggest.html">건의함</a>
-        <a href="admin.html">ADMIN</a>
-        <a href="block.html">등급 조정 요청</a>
-        <a href="https://hq-syrtn.github.io/SYRTN/index.html">SYRTN</a>
-    </div>
+<nav class="sub-nav-container" aria-label="주요 메뉴">
+  <div class="nav-menu">
+    <a href="index.html">HOME</a>
+    <a href="introduction.html">INTRODUCTION</a>
+    <a href="talk.html">TALK</a>
+    <a href="photo.html">PHOTO</a>
+    <a href="weather.html" aria-current="page">WEATHER</a>
+    <a href="resource.html">RESOURCE</a>
+    <a href="suggest.html">SUGGESTION</a>
+    <a href="mypage.html">MY PAGE</a>
+    <a href="adjust.html">REQUEST AUTHORITY</a>
+    <a href="admin.html">ADMIN</a>
+  </div>
 </nav>
 
-<div class="container">
-    <div class="card weather-widget">
-        <h3>실시간 관측 지수 (순천)</h3>
-        <div style="width: 100%; border-radius: 12px; overflow: hidden; background: #0b0f2b; border: 1px solid #2d367a;">
-            <iframe 
-                src="https://www.meteoblue.com/ko/weather/widget/seeing/suncheon_republic-of-korea_1835648?geosize=monochrome&layout=dark&clouds=3&planets=1&seeing=1" 
-                frameborder="0" scrolling="true" allowtransparency="true" 
-                style="width: 100%; height: 500px; border: none;">
-            </iframe>
-        </div>
-        <div style="font-size: 12px; color: #888; margin-top: 15px; line-height: 1.6; background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
-            <p style="margin: 0 0 5px 0; color: #7fc7ff;"><b>위젯 가이드</b></p>
-            * <b>Clouds:</b> 구름의 양 (낮을수록 좋음)<br>
-            * <b>arcsec:</b> 대기 불안정성(Seeing). 수치가 작을수록 별이 덜 떨리고 선명하게 보입니다.
-        </div>
+<main class="weather-main">
+  <header class="weather-heading">
+    <div><p class="weather-eyebrow">OBSERVING CONDITIONS</p><h1>순천 관측 날씨</h1><p>복성고등학교 인근의 수치예보를 바탕으로 오늘 밤 관측 조건을 확인합니다.</p></div>
+    <button id="weather-refresh" class="btn" type="button">새로고침</button>
+  </header>
+
+  <p id="weather-status" class="weather-status" role="status">최신 예보를 불러오는 중입니다.</p>
+
+  <section class="weather-overview" aria-labelledby="current-weather-title">
+    <article class="weather-condition-card">
+      <div class="weather-condition-title"><span id="weather-icon" aria-hidden="true">…</span><div><p>현재 상태</p><h2 id="current-weather-title">불러오는 중</h2></div></div>
+      <strong id="current-temperature">-</strong>
+      <p id="current-updated">기준 시각 확인 중</p>
+    </article>
+    <article class="observing-score-card">
+      <p>오늘 밤 관측 적합도</p>
+      <div class="score-row"><strong id="observing-score">-</strong><span id="observing-label">계산 중</span></div>
+      <div class="score-track" aria-hidden="true"><span id="observing-score-bar"></span></div>
+      <p id="observing-guide">구름, 강수 확률, 시정과 바람을 종합하고 있습니다.</p>
+    </article>
+  </section>
+
+  <section class="current-metrics" aria-label="현재 기상 지표">
+    <article><span>구름량</span><strong id="metric-cloud">-</strong></article>
+    <article><span>습도</span><strong id="metric-humidity">-</strong></article>
+    <article><span>강수량</span><strong id="metric-precipitation">-</strong></article>
+    <article><span>바람</span><strong id="metric-wind">-</strong></article>
+    <article><span>돌풍</span><strong id="metric-gust">-</strong></article>
+    <article><span>체감온도</span><strong id="metric-apparent">-</strong></article>
+  </section>
+
+  <section class="weather-panel" aria-labelledby="night-forecast-title">
+    <div class="panel-heading"><div><p class="weather-eyebrow">TONIGHT</p><h2 id="night-forecast-title">오늘 밤 시간대별 예보</h2></div><p id="night-window">18:00–06:00</p></div>
+    <div class="night-table-wrap">
+      <table class="night-table">
+        <thead><tr><th scope="col">시각</th><th scope="col">상태</th><th scope="col">구름</th><th scope="col">강수</th><th scope="col">시정</th><th scope="col">바람</th><th scope="col">관측</th></tr></thead>
+        <tbody id="night-forecast"><tr><td colspan="7">예보를 불러오는 중입니다.</td></tr></tbody>
+      </table>
     </div>
+  </section>
 
-    <div class="card">
-        <h2>실시간 구름 분포 (Windy)</h2>
-        <div class="media-wrapper">
-            <iframe width="100%" height="450" src="https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=m/s&zoom=11&overlay=satellite&product=satellite&level=surface&lat=34.892&lon=127.54&message=true"></iframe>
-        </div>
-        <div class="desc-box">
-            <b>사용 팁:</b> 하단 타임라인의 재생 버튼이나 바를 드래그하면 구름의 이동 예측 경로를 확인할 수 있습니다.
-        </div>
+  <section class="weather-panel" aria-labelledby="daily-forecast-title">
+    <div class="panel-heading"><div><p class="weather-eyebrow">3-DAY OUTLOOK</p><h2 id="daily-forecast-title">3일 예보</h2></div></div>
+    <div id="daily-forecast" class="daily-forecast"><p>예보를 불러오는 중입니다.</p></div>
+  </section>
+
+  <section class="weather-tools" aria-labelledby="weather-tools-title">
+    <div class="panel-heading weather-tools-heading"><div><p class="weather-eyebrow">OBSERVING TOOLS</p><h2 id="weather-tools-title">상세 관측 도구</h2></div><p>기존 기상 페이지의 관측 도구를 유지했습니다.</p></div>
+    <div class="weather-tools-grid">
+      <article class="weather-tool-card weather-tool-wide">
+        <div class="tool-card-heading"><div><span>ATMOSPHERE</span><h3>Meteoblue 천문 관측 지수</h3></div><p>구름층, 시상과 행성 관측 조건</p></div>
+        <div class="embed-frame embed-frame-seeing"><iframe src="https://www.meteoblue.com/ko/weather/widget/seeing/suncheon_republic-of-korea_1835648?geosize=monochrome&amp;layout=dark&amp;clouds=3&amp;planets=1&amp;seeing=1" title="순천 Meteoblue 천문 관측 지수" loading="lazy"></iframe></div>
+      </article>
+      <article class="weather-tool-card weather-tool-wide">
+        <div class="tool-card-heading"><div><span>SATELLITE</span><h3>Windy 구름 분포</h3></div><p>타임라인으로 위성 구름 이동 확인</p></div>
+        <div class="embed-frame"><iframe src="https://embed.windy.com/embed.html?type=map&amp;location=coordinates&amp;metricRain=mm&amp;metricTemp=%C2%B0C&amp;metricWind=m%2Fs&amp;zoom=9&amp;overlay=satellite&amp;product=satellite&amp;level=surface&amp;lat=34.95&amp;lon=127.49&amp;message=true" title="순천 Windy 위성 구름 지도" loading="lazy"></iframe></div>
+      </article>
+      <article class="weather-tool-card">
+        <div class="tool-card-heading"><div><span>SKY MAP</span><h3>Stellarium Web</h3></div><p>현재 밤하늘과 관측 대상 확인 · <a class="tool-link" href="https://stellarium-web.org/" target="_blank" rel="noopener">새 창</a></p></div>
+        <div class="embed-frame"><iframe src="https://stellarium-web.org/" title="Stellarium 웹 천구 지도" loading="lazy"></iframe></div>
+      </article>
+      <article class="weather-tool-card">
+        <div class="tool-card-heading"><div><span>TRANSIT</span><h3>외계행성 식 예보</h3></div><p>DOAO 기준 당일 예보 참고 이미지</p></div>
+        <a class="transit-forecast" href="http://nysc.dothome.co.kr/" target="_blank" rel="noopener"><img id="transit-forecast-image" src="" alt="외계행성 식 예보를 불러오는 중입니다."><span id="transit-forecast-fallback" hidden>원본 예보 서버에서 직접 확인하기 ↗</span></a>
+        <p id="transit-forecast-status" class="tool-status">예보 이미지를 불러오는 중입니다.</p>
+      </article>
     </div>
+  </section>
 
-    <div class="card" style="background: #161b4a; padding: 20px; border-radius: 15px; border: 1px solid #2d367a; margin-top: 20px;">
-    <h3 style="color: #7fc7ff; margin-top: 0;">별자리(stellarium)</h3>
-    <iframe 
-        src="https://stellarium-web.org/" 
-        width="110%" height="600" 
-        style="border:none; border-radius: 10px; background: white;">
-    </iframe>
-    </div>
-    <div class="intro-card" style="background: #161b4a; padding: 35px; border-radius: 20px; border: 1px solid #2d367a; box-shadow: 0 10px 30px rgba(0,0,0,0.3); margin-bottom: 30px;">
-    <h2 style="color: #7fc7ff; border-left: 5px solid #3a5aff; padding-left: 15px; margin-bottom: 25px; font-size: 24px;">외계행성 식(Transit) 예보</h2>
-    
-    <div style="background: rgba(58, 90, 255, 0.1); padding: 20px; border-radius: 12px; margin-bottom: 25px; font-size: 14px; border: 1px solid rgba(127, 199, 255, 0.2);">
-        <p style="margin-top: 0; color: #7fc7ff; font-weight: bold;">Observation Guide</p>
-        <p style="margin-bottom: 0; color: #ccc; line-height: 1.6;">
-            아래 차트는 <b>DOAO</b> 기준 예보입니다. <br>
-            각 행성별 식의 시작, 중간, 종료 시점과 밝기 변화(Depth)를 시각적으로 확인할 수 있습니다.
-        </p>
-    </div>
+  <aside class="weather-notice">
+    <strong>관측 전 확인</strong>
+    <p>관측 적합도는 수치예보를 단순화한 참고값입니다. 출발 전 실제 하늘, 레이더 영상과 기상특보를 함께 확인하세요.</p>
+    <p>Weather data: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, modified for DEEP SKY · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a></p>
+  </aside>
+</main>
 
-<div class="intro-card" style="background: #161b4a; padding: 35px; border-radius: 20px; border: 1px solid #2d367a; box-shadow: 0 10px 30px rgba(0,0,0,0.3); margin-bottom: 30px;">
-    <h2 style="color: #7fc7ff; border-left: 5px solid #3a5aff; padding-left: 15px; margin-bottom: 25px; font-size: 24px;">🪐 외계행성 식(Transit) 실시간 예보</h2>
-    
-    <div style="background: rgba(58, 90, 255, 0.1); padding: 20px; border-radius: 12px; margin-bottom: 25px; font-size: 14px; border: 1px solid rgba(127, 199, 255, 0.2);">
-        <p style="margin-top: 0; color: #7fc7ff; font-weight: bold;">Observation Guide</p>
-        <p style="margin-bottom: 0; color: #ccc; line-height: 1.6;">
-            DOAO(고흥군 동일면) 기준 예보입니다. <br>
-        </p>
-    </div>
-
-    <div style="width: 100%; background: #f0f0f0; border-radius: 15px; border: 2px solid #3a5aff; overflow: hidden;">
-        <a href="http://nysc.dothome.co.kr/" target="_blank" rel="noopener">
-            <img id="transitImg" src="" alt="예보 이미지를 불러오는 중..." style="width: 100%; display: block; cursor: pointer;">
-        </a>
-    </div>
-
-    <div class="source-info" style="font-size: 12px; color: #888; margin-top: 20px; line-height: 1.5; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
-        <b style="color: #bbb;">Technical Reference:</b><br>
-        - Transit predictions by <b>ETD</b> (Exoplanet Transit Database)<br>
-        - Copyright 2018. SpeXtyle | NYSC<br>
-        -<a href="http://nysc.dothome.co.kr/"> 원본 사이트</a>
-    </div>
-</div>
-</div>
-</div>
-</div>
-
-<footer>
-    © DEEP SKY | Bokseong Astronomy and Aerospace Club | All rights reserved.
-    <br>
-    Email : leader.deepsky@gmail.com &nbsp;	| &nbsp; Designed by jw-astro09
-</footer>
-
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
-<script src="js/common.js"></script>
-<script src="js/weather.js"></script>
+<footer><p>&copy; 2026 DEEP SKY. All Rights Reserved.</p><p>복성고등학교 천문·항공우주 동아리</p><p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p></footer>
+<script type="module" src="js/weather.js?v=20260828-observing-weather"></script>
+<script type="module" src="frontend-access-control.js?v=20260828-admin-access"></script>
 </body>
 </html>
