@@ -1,4 +1,4 @@
-import { API_BASE_URL, apiFetch, auth, authHeaders as getAuthHeaders, getCurrentProfile } from "./common.js";
+import { apiFetch, auth, authHeaders as getAuthHeaders, getCurrentProfile, normalizeSafeLinkUrl } from "./common.js";
 import { appendCommentReportButton, setupPostTools } from "./post-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
@@ -21,20 +21,6 @@ let currentUser = null;
     const canManagePost = () => post && currentUser && (post.uid === currentUser.uid || ["admin", "teacher"].includes(currentRole));
     const headers = async () => getAuthHeaders(currentUser);
     const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
-    const safeUrl = (value) => {
-        try {
-            const raw = String(value || "").trim();
-            const base = raw.startsWith("/api/") ? API_BASE_URL : location.href;
-            const url = new URL(raw, base);
-            if (url.pathname.startsWith("/api/jhimap/uploads/")) {
-                const api = new URL(API_BASE_URL);
-                return `${api.origin}${url.pathname}${url.search}`;
-            }
-            return ["http:", "https:"].includes(url.protocol) ? url.href : "";
-        } catch {
-            return "";
-        }
-    };
     const isFileAttachment = (link, href) => link?.type === "file" || href.includes("/api/jhimap/uploads/");
 
     document.getElementById("logout-btn").onclick = async () => { if (confirm("로그아웃 하시겠습니까?")) { await signOut(auth); location.href = "index.html"; } };
@@ -77,7 +63,7 @@ let currentUser = null;
         const linksEl = document.getElementById("post-links");
         linksEl.innerHTML = "";
         (post.links || []).forEach((link, index) => {
-            const href = safeUrl(link.url);
+            const href = normalizeSafeLinkUrl(link.url, { allowUpload: true, resolveUpload: true });
             if (!href) return;
             const isFile = isFileAttachment(link, href);
             if (isFile) {

@@ -1,6 +1,7 @@
 import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app-check.js";
 import { browserSessionPersistence, getAuth, onAuthStateChanged, setPersistence, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { normalizeLinkUrl } from "./link-policy.js";
 
 const NGROK_API_BASE_URL = "https://hypocrite-depletion-until.ngrok-free.dev";
 const TAILSCALE_API_BASE_URL = "https://bs-server.tail886d19.ts.net";
@@ -15,6 +16,10 @@ const API_BASE_CANDIDATES = [...new Set([
 const API_SELECTION_CACHE_MS = 60_000;
 
 export let API_BASE_URL = CONFIGURED_API_BASE_URL;
+
+export function normalizeSafeLinkUrl(value, { allowUpload = false, resolveUpload = false } = {}) {
+    return normalizeLinkUrl(value, { allowUpload, resolveUpload, apiBaseUrl: API_BASE_URL });
+}
 
 let apiSelectionPromise = null;
 let apiSelectionCheckedAt = 0;

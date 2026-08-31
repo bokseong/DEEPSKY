@@ -1,4 +1,4 @@
-import { API_BASE_URL, apiFetch, auth, authHeaders, getCurrentProfile } from "./common.js";
+import { apiFetch, auth, authHeaders, getCurrentProfile, normalizeSafeLinkUrl } from "./common.js";
 import { appendCommentReportButton, setupPostTools } from "./post-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const COLLECTION = "resources";
@@ -52,21 +52,6 @@ let currentUser = null;
         return headers;
     }
 
-    function safeUrl(value) {
-        try {
-            const raw = String(value || '').trim();
-            const base = raw.startsWith('/api/') ? API_BASE_URL : location.href;
-            const url = new URL(raw, base);
-            if (url.pathname.startsWith('/api/jhimap/uploads/')) {
-                const api = new URL(API_BASE_URL);
-                return `${api.origin}${url.pathname}${url.search}`;
-            }
-            return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
-        } catch {
-            return '';
-        }
-    }
-
     function isFileAttachment(link, href) {
         return link?.type === 'file' || href.includes('/api/jhimap/uploads/');
     }
@@ -83,7 +68,7 @@ let currentUser = null;
         const linksDiv = document.getElementById('linksContainer');
         linksDiv.innerHTML = '';
         (postData.links || []).forEach((link, index) => {
-            const href = safeUrl(link.url);
+            const href = normalizeSafeLinkUrl(link.url, { allowUpload: true, resolveUpload: true });
             if (!href) return;
             const isFile = isFileAttachment(link, href);
             if (isFile) {

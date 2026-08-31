@@ -1,4 +1,4 @@
-import { apiFetch, auth, authHeaders as getAuthHeaders, getCurrentProfile } from "./common.js";
+import { apiFetch, auth, authHeaders as getAuthHeaders, getCurrentProfile, normalizeSafeLinkUrl } from "./common.js";
 import { createDraftController, uploadFilesWithProgress } from "./write-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
@@ -27,15 +27,6 @@ let currentUser = null;
     const roleAllowed = (role) => ["admin", "teacher", school.student].includes(role);
     const canEditPost = () => editPost && currentUser && (editPost.uid === currentUser.uid || ["admin", "teacher"].includes(currentRole));
     const authHeaders = async () => getAuthHeaders(currentUser);
-    const isHttpUrl = (value) => {
-        try {
-            const url = new URL(value);
-            return ["http:", "https:"].includes(url.protocol);
-        } catch {
-            return false;
-        }
-    };
-
     document.getElementById("logout-btn").onclick = async () => { if (confirm("로그아웃 하시겠습니까?")) { await signOut(auth); location.href = "index.html"; } };
 
     onAuthStateChanged(auth, async (user) => {
@@ -138,14 +129,17 @@ let currentUser = null;
         const title = document.getElementById("post-title").value.trim();
         const content = document.getElementById("post-content").value.trim();
         if (!title || !content) { alert("제목과 내용을 입력해주세요."); return; }
-        const links = [...document.querySelectorAll(".link-row")].map(row => {
-            const url = row.querySelector(".link-url").value.trim();
-            return { name:row.querySelector(".link-name").value.trim(), url, type:url.includes("/api/jhimap/uploads/") ? "file" : "link" };
-        }).filter(link => link.url);
-        if (links.some(link => !isHttpUrl(link.url))) {
-            alert("첨부 링크는 http 또는 https 주소만 사용할 수 있습니다.");
+        const linkEntries = [...document.querySelectorAll(".link-row")].map(row => {
+            const rawUrl = row.querySelector(".link-url").value.trim();
+            const url = normalizeSafeLinkUrl(rawUrl, { allowUpload: true });
+            return { name:row.querySelector(".link-name").value.trim(), url, invalid:Boolean(rawUrl && !url), type:url.startsWith("/api/jhimap/uploads/") ? "file" : "link" };
+        });
+        if (linkEntries.some(link => link.invalid)) {
+            alert("첨부 링크는 인증 정보가 없는 http 또는 https 주소만 사용할 수 있습니다.");
             return;
         }
+        const links = linkEntries.filter(link => link.url);
+        links.forEach(link => delete link.invalid);
         const submitBtn = document.getElementById("submit-btn");
         submitBtn.disabled = true;
         submitBtn.textContent = "저장 중...";

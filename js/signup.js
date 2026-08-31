@@ -1,5 +1,5 @@
 import { auth, authPersistenceReady, updateCurrentProfile } from "./common.js?v=20260826-session-auth";
-import { createUserWithEmailAndPassword, onAuthStateChanged, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { createUserWithEmailAndPassword, onAuthStateChanged, sendEmailVerification, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 onAuthStateChanged(auth,user=>{
   if(!user)return;
@@ -30,9 +30,18 @@ document.getElementById("signup-form").addEventListener("submit",async e=>{
     if(!name)throw new Error("이름을 입력해 주세요.");
     if(!existingGoogleUser&&password!==passwordConfirm)throw new Error("비밀번호가 서로 일치하지 않습니다.");
     const user=existingGoogleUser?auth.currentUser:(await createUserWithEmailAndPassword(auth,email,password)).user;
+    if(!user.emailVerified){
+      try{
+        await sendEmailVerification(user);
+      }finally{
+        await signOut(auth);
+      }
+      alert("인증 메일을 보냈습니다. 이메일 인증 후 다시 로그인해 주세요.");
+      location.href="login.html";
+      return;
+    }
     await updateCurrentProfile({name},user);
-    if(!user.emailVerified)await sendEmailVerification(user);
-    alert(user.emailVerified?"회원 정보가 등록되었습니다.":"Signup complete. Verify your email before logging in.");
+    alert("회원 정보가 등록되었습니다.");
     location.href="login.html";
   }catch(err){
     alert("Signup failed: "+err.message);

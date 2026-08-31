@@ -1,4 +1,4 @@
-import { apiFetch, auth, authHeaders, getCurrentProfile } from "./common.js";
+import { apiFetch, auth, authHeaders, getCurrentProfile, normalizeSafeLinkUrl } from "./common.js";
 import { createDraftController, uploadFilesWithProgress } from "./write-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const COLLECTION = "resources";
@@ -61,16 +61,19 @@ const editPostId = new URLSearchParams(window.location.search).get('id');
         const content = document.getElementById('postContent').value.trim();
         const category = document.getElementById('category').value;
         if (!title || !content) { alert('제목과 내용을 입력해주세요.'); return; }
+        const links = Array.from(document.querySelectorAll('.postFileUrl')).map((input, index) => {
+            let rawUrl = input.value.trim();
+            if (!rawUrl) return null;
+            if (!/^[a-z][a-z\d+.-]*:/i.test(rawUrl) && !rawUrl.startsWith('/')) rawUrl = 'https://' + rawUrl;
+            const url = normalizeSafeLinkUrl(rawUrl, { allowUpload: true });
+            if (!url) return { invalid: true };
+            const name = document.querySelectorAll('.postFileName')[index].value.trim() || '첨부 링크';
+            return { url, name, type: url.startsWith('/api/jhimap/uploads/') ? 'file' : 'link' };
+        }).filter(Boolean);
+        if (links.some(link => link.invalid)) { alert('첨부 링크는 인증 정보가 없는 http/https 주소만 사용할 수 있습니다.'); return; }
         const submitBtn = document.getElementById('submitBtn');
         submitBtn.disabled = true;
         submitBtn.innerText = '처리 중...';
-        const links = Array.from(document.querySelectorAll('.postFileUrl')).map((input, index) => {
-            let url = input.value.trim();
-            if (!url) return null;
-            if (!url.startsWith('http')) url = 'https://' + url;
-            const name = document.querySelectorAll('.postFileName')[index].value.trim() || '첨부 링크';
-            return { url, name, type: url.includes('/api/jhimap/uploads/') ? 'file' : 'link' };
-        }).filter(Boolean);
         try {
             const uploadedFiles = await uploadSelectedFiles();
             links.push(...uploadedFiles);
