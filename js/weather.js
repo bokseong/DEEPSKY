@@ -35,7 +35,6 @@ onAuthStateChanged(auth, async user => {
 });
 
 loadWeather();
-loadTransitForecast();
 
 async function loadWeather() {
   refreshButton.disabled = true;
@@ -230,19 +229,3 @@ function number(value, digits = 0) { return Number.isFinite(Number(value)) ? Num
 function round(value) { return Number.isFinite(Number(value)) ? Math.round(Number(value)) : "-"; }
 function clamp(value, min, max) { return Math.min(max, Math.max(min, Number(value) || 0)); }
 function setText(id, value) { document.getElementById(id).textContent = value; }
-
-function loadTransitForecast() {
-  const image = document.getElementById("transit-forecast-image");
-  const imageStatus = document.getElementById("transit-forecast-status");
-  const fallback = document.getElementById("transit-forecast-fallback");
-  const source = "nysc.dothome.co.kr/today_2.png";
-  image.addEventListener("load", () => { imageStatus.textContent = "당일 예보 이미지를 불러왔습니다."; });
-  image.addEventListener("error", () => {
-    image.hidden = true;
-    fallback.hidden = false;
-    image.parentElement.classList.add("unavailable");
-    imageStatus.textContent = "원본 예보 서버에서 이미지를 불러오지 못했습니다.";
-    imageStatus.classList.add("error");
-  });
-  image.src = `https://images.weserv.nl/?url=${encodeURIComponent(source)}&t=${Date.now()}`;
-}
