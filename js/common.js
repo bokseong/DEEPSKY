@@ -14,6 +14,8 @@ const API_BASE_CANDIDATES = [...new Set([
     TAILSCALE_API_BASE_URL
 ])];
 const API_SELECTION_CACHE_MS = 60_000;
+const API_FAILURE_COOLDOWN_MS = 120_000;
+const RETRYABLE_RESPONSE_STATUSES = new Set([408, 425, 500, 502, 503, 504]);
 
 export let API_BASE_URL = CONFIGURED_API_BASE_URL;
 
@@ -23,6 +25,7 @@ export function normalizeSafeLinkUrl(value, { allowUpload = false, resolveUpload
 
 let apiSelectionPromise = null;
 let apiSelectionCheckedAt = 0;
+const apiFailedUntil = new Map();
 
 function setApiBaseUrl(baseUrl) {
     API_BASE_URL = baseUrl;
@@ -30,6 +33,24 @@ function setApiBaseUrl(baseUrl) {
         baseUrl === NGROK_API_BASE_URL ? "ngrok" :
         baseUrl === TAILSCALE_API_BASE_URL ? "tailscale" :
         "custom";
+}
+
+function markApiFailure(baseUrl) {
+    apiFailedUntil.set(baseUrl, Date.now() + API_FAILURE_COOLDOWN_MS);
+    apiSelectionCheckedAt = 0;
+}
+
+function clearApiFailure(baseUrl) {
+    apiFailedUntil.delete(baseUrl);
+}
+
+function selectableApiCandidates() {
+    const now = Date.now();
+    const available = API_BASE_CANDIDATES.filter(
+        baseUrl => (apiFailedUntil.get(baseUrl) || 0) <= now
+    );
+    // 모든 경로가 일시 실패로 표시됐더라도 복구 여부를 다시 확인합니다.
+    return available.length ? available : API_BASE_CANDIDATES;
 }
 
 async function probeApiBaseUrl(baseUrl) {
@@ -41,8 +62,14 @@ async function probeApiBaseUrl(baseUrl) {
             cache: "no-store",
             signal: controller.signal
         });
-        return response.ok;
+        if (response.ok) {
+            clearApiFailure(baseUrl);
+            return true;
+        }
+        markApiFailure(baseUrl);
+        return false;
     } catch {
+        markApiFailure(baseUrl);
         return false;
     } finally {
         clearTimeout(timeout);
@@ -57,7 +84,7 @@ export async function selectAvailableApi(force = false) {
     if (apiSelectionPromise) return apiSelectionPromise;
 
     apiSelectionPromise = (async () => {
-        for (const baseUrl of API_BASE_CANDIDATES) {
+        for (const baseUrl of selectableApiCandidates()) {
             if (await probeApiBaseUrl(baseUrl)) {
                 setApiBaseUrl(baseUrl);
                 apiSelectionCheckedAt = Date.now();
@@ -75,27 +102,53 @@ export async function selectAvailableApi(force = false) {
     }
 }
 
+function isIdempotentRequest(options) {
+    const method = String(options.method || "GET").toUpperCase();
+    return method === "GET" || method === "HEAD" || method === "OPTIONS";
+}
+
+function isInfrastructureFailure(response) {
+    if (RETRYABLE_RESPONSE_STATUSES.has(response.status)) return true;
+    if (response.status !== 403 && response.status !== 429) return false;
+
+    // 애플리케이션이 반환한 JSON 권한 오류는 다른 터널로 재시도하지 않습니다.
+    // ngrok 한도·경고 페이지처럼 HTML로 온 터널 오류만 전환 대상으로 봅니다.
+    const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+    return Boolean(response.headers.get("x-ngrok-error-code")) || !contentType.includes("application/json");
+}
+
 export async function apiFetch(path, options = {}) {
     await selectAvailableApi().catch(() => {});
 
-    const requestBaseUrl = API_BASE_URL;
-    let response;
-    try {
-        response = await fetch(`${requestBaseUrl}${path}`, options);
-    } catch (error) {
-        if (requestBaseUrl !== NGROK_API_BASE_URL) throw error;
-        await selectAvailableApi(true);
-        if (API_BASE_URL === requestBaseUrl) throw error;
-        return fetch(`${API_BASE_URL}${path}`, options);
-    }
+    const mayRetry = isIdempotentRequest(options);
+    const maxAttempts = mayRetry ? 2 : 1;
+    let lastError = null;
 
-    if (requestBaseUrl === NGROK_API_BASE_URL && response.status === 403) {
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        const requestBaseUrl = API_BASE_URL;
+        try {
+            const response = await fetch(`${requestBaseUrl}${path}`, options);
+            if (!isInfrastructureFailure(response)) {
+                clearApiFailure(requestBaseUrl);
+                return response;
+            }
+
+            markApiFailure(requestBaseUrl);
+            if (!mayRetry || attempt + 1 >= maxAttempts) return response;
+        } catch (error) {
+            lastError = error;
+            markApiFailure(requestBaseUrl);
+            if (!mayRetry || attempt + 1 >= maxAttempts) throw error;
+        }
+
         await selectAvailableApi(true).catch(() => {});
-        if (API_BASE_URL !== requestBaseUrl) {
-            return fetch(`${API_BASE_URL}${path}`, options);
+        if (API_BASE_URL === requestBaseUrl) {
+            break;
         }
     }
-    return response;
+
+    if (lastError) throw lastError;
+    throw new Error("사용 가능한 API 서버가 없습니다.");
 }
 
 // 다른 화면 모듈이 초기 데이터를 요청하기 전부터 사용 가능한 경로를 선택합니다.
