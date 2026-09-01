@@ -1,10 +1,12 @@
 .emblem-panel {
     position: relative;
     display: grid;
-    grid-template-columns: minmax(240px, .72fr) minmax(0, 1.28fr);
-    gap: clamp(34px, 6vw, 72px);
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(32px, 5vw, 54px);
     align-items: center;
     overflow: hidden;
+    padding-top: clamp(42px, 6vw, 72px);
+    padding-bottom: clamp(42px, 6vw, 72px);
 }
 
 .emblem-panel::before {
@@ -23,7 +25,9 @@
     position: relative;
     display: grid;
     justify-items: center;
-    padding: 28px 18px 16px;
+    width: min(100%, 540px);
+    margin: 0 auto;
+    padding: 34px 6px 20px;
 }
 
 .emblem-orbit {
@@ -49,7 +53,7 @@
 .emblem-image {
     position: relative;
     z-index: 1;
-    width: min(100%, 290px);
+    width: min(100%, 460px);
     height: auto;
     filter: drop-shadow(0 20px 34px rgba(0, 0, 0, .42));
 }
@@ -76,11 +80,67 @@
     margin-top: 0;
 }
 
+.emblem-story {
+    width: min(100%, 920px);
+    margin: 0 auto;
+}
+
+.emblem-motto {
+    margin: 0 0 19px;
+    color: #fff;
+    font-size: clamp(1.28rem, 2.35vw, 1.75rem);
+    font-weight: 700;
+    line-height: 1.55;
+    letter-spacing: -.025em;
+}
+
 .emblem-lead {
-    margin: 0 0 27px;
+    margin: 0 0 25px;
     color: #d4dcdf;
     font-size: 1.02rem;
     line-height: 1.85;
+}
+
+.emblem-values {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    margin: 0 0 30px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    background: var(--border-color);
+    list-style: none;
+}
+
+.emblem-values li {
+    min-width: 0;
+    padding: 16px 14px;
+    background: rgba(4, 10, 12, .96);
+}
+
+.emblem-values span,
+.emblem-values strong,
+.emblem-values small {
+    display: block;
+}
+
+.emblem-values span {
+    margin-bottom: 10px;
+    color: var(--accent);
+    font-size: .68rem;
+}
+
+.emblem-values strong {
+    color: #fff;
+    font-size: .78rem;
+    letter-spacing: .08em;
+}
+
+.emblem-values small {
+    margin-top: 5px;
+    color: #7f8c90;
+    font-size: .72rem;
+    line-height: 1.45;
 }
 
 .emblem-symbols {
@@ -519,7 +579,28 @@
     }
 
     .emblem-image {
-        width: min(78vw, 250px);
+        width: min(86vw, 310px);
+    }
+
+    .emblem-motto br {
+        display: none;
+    }
+
+    .emblem-values {
+        grid-template-columns: 1fr;
+    }
+
+    .emblem-values li {
+        display: grid;
+        grid-template-columns: 28px 82px minmax(0, 1fr);
+        gap: 10px;
+        align-items: center;
+        padding: 13px 15px;
+    }
+
+    .emblem-values span,
+    .emblem-values small {
+        margin: 0;
     }
 
     .emblem-symbols {
