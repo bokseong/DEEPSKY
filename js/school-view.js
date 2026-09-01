@@ -118,6 +118,7 @@ let currentUser = null;
         comments.forEach(comment => {
             const item = document.createElement("div");
             item.className = "comment";
+            item.id = `comment-${comment.id}`;
             const meta = document.createElement("div");
             meta.className = "comment-meta";
             const author = document.createElement("strong");
@@ -146,6 +147,8 @@ let currentUser = null;
             item.append(meta, content);
             list.appendChild(item);
         });
+        const targetComment = location.hash ? document.getElementById(location.hash.slice(1)) : null;
+        if (targetComment) requestAnimationFrame(() => targetComment.scrollIntoView({ block: "center" }));
     }
 
     function withDownloadParam(url) {

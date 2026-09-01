@@ -414,9 +414,23 @@ async function loadReports() {
         }
         reports.forEach(report => {
             const row = document.createElement("tr");
-            const targetLink = postLink(report.collection_name, report.target_post_id || report.target_id);
-            row.innerHTML = `<td>${formatDate(report.created_at)}</td><td><a class="text-link" href="${escapeHtml(targetLink)}">${escapeHtml(report.target_type)} #${report.target_id}</a></td><td>${escapeHtml(report.reason)}<br><small>${escapeHtml(report.details || "")}</small></td><td>${escapeHtml(report.reporter_name || "-")}</td><td>${escapeHtml(report.status)}</td><td></td>`;
+            const targetLink = report.target_url || postLink(report.collection_name, report.target_post_id || report.target_id);
+            const targetLabel = report.target_type === "comment" ? "댓글" : "게시글";
+            const targetTitle = report.target_title ? `<br><small>${escapeHtml(report.target_title)}</small>` : "";
+            row.innerHTML = `<td>${formatDate(report.created_at)}</td><td>${escapeHtml(targetLabel)} #${report.target_id}${targetTitle}</td><td>${escapeHtml(report.reason)}<br><small>${escapeHtml(report.details || "")}</small></td><td>${escapeHtml(report.reporter_name || "-")}</td><td>${escapeHtml(report.status)}</td><td></td>`;
             const actionCell = row.lastElementChild;
+            if (report.target_exists !== false && targetLink) {
+                const openTarget = document.createElement("a");
+                openTarget.className = "btn-update";
+                openTarget.href = targetLink;
+                openTarget.textContent = "바로가기";
+                actionCell.appendChild(openTarget);
+            } else {
+                const missing = document.createElement("span");
+                missing.className = "muted";
+                missing.textContent = "삭제된 대상";
+                actionCell.appendChild(missing);
+            }
             if (report.status === "pending") {
                 const resolve = document.createElement("button");
                 resolve.className = "btn-update";

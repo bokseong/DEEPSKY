@@ -111,8 +111,15 @@ function getReportDialog() {
                     details: dialog.querySelector("#report-details").value.trim()
                 })
             }, dialog.reportUser);
+            const reportedType = dialog.dataset.targetType;
+            const reportedCollection = dialog.dataset.collection;
             dialog.close();
-            alert("신고가 접수되었습니다.");
+            alert(reportedType === "post"
+                ? "신고가 접수되어 관리자 처리 전까지 게시글이 숨겨집니다."
+                : "신고가 접수되었습니다.");
+            if (reportedType === "post") {
+                window.location.replace(reportedCollection === "resources" ? "resource.html" : "talk.html");
+            }
         } catch (error) {
             status.textContent = error.message;
         }

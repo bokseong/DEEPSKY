@@ -865,6 +865,12 @@ textarea {
     margin-top: 0;
 }
 
+.comment-item:target,
+.comment:target {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
 .site-announcement-dialog {
     width: min(620px, calc(100% - 32px));
     max-height: min(720px, calc(100dvh - 32px));

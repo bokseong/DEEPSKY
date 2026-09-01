@@ -129,6 +129,7 @@ let currentUser = null;
             const canDelete = isCommentOwner || isPostOwner || ['admin', 'teacher'].includes(currentRole);
             const item = document.createElement('div');
             item.className = 'comment-item';
+            item.id = `comment-${c.id}`;
             if (isCommentOwner) item.style.border = '1px solid var(--accent)';
             const meta = document.createElement('div');
             meta.className = 'comment-meta';
@@ -160,6 +161,8 @@ let currentUser = null;
             item.append(meta, content, actions);
             list.appendChild(item);
         });
+        const targetComment = location.hash ? document.getElementById(location.hash.slice(1)) : null;
+        if (targetComment) requestAnimationFrame(() => targetComment.scrollIntoView({ block: 'center' }));
     }
 
     document.getElementById('btnPostComment').addEventListener('click', async () => {
