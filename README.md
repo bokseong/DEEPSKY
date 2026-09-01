@@ -7,6 +7,6 @@
 - 순천 현재 기상, 야간 관측 조건 및 상세 관측 도구
 - Firebase Authentication 로그인과 자체 서버 JSON 데이터 저장
 
-배포 주소: [bs-deepsky.github.io/DEEPSKY](https://bs-deepsky.github.io/DEEPSKY/)
+배포 주소: [bokseong.github.io/DEEPSKY](https://bokseong.github.io/DEEPSKY/)
 
 기상 예보 데이터는 [Open-Meteo](https://open-meteo.com/)를 사용하며 CC BY 4.0 조건에 따라 출처를 표시합니다.
