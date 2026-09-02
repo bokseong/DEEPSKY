@@ -1,4 +1,4 @@
-import { apiRequest, auth, getCurrentProfile } from "./common.js";
+import { apiRequest, applySiteBranding, auth, getCurrentProfile } from "./common.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const roleMap = {
@@ -8,8 +8,11 @@ const roleMap = {
 const userNameDisplay = document.getElementById("user-name");
 const logoutBtn = document.getElementById("logout-btn");
 let currentAdminUser = null;
+let currentAdminProfile = null;
 let recentActivity = [];
 let activityFilter = "all";
+let activeLogoId = "classic";
+let selectedLogoId = "classic";
 
 document.querySelectorAll("[data-activity-filter]").forEach(button => {
     button.addEventListener("click", () => {
@@ -41,10 +44,11 @@ onAuthStateChanged(auth, async user => {
             return;
         }
         currentAdminUser = user;
+        currentAdminProfile = profile;
         userNameDisplay.style.display = "inline";
         userNameDisplay.textContent = `${profile.name || "관리자"}님`;
         logoutBtn.style.display = "inline";
-        await Promise.all([
+        const tasks = [
             loadRecentActivity(),
             loadUsers(),
             loadRolePermissions(),
@@ -52,12 +56,109 @@ onAuthStateChanged(auth, async user => {
             loadRequests(),
             loadReports(),
             loadAuditLogs()
-        ]);
+        ];
+        if (profile.role === "admin") {
+            document.getElementById("logo-management").hidden = false;
+            tasks.push(loadClubLogos());
+        }
+        await Promise.all(tasks);
     } catch (error) {
         console.error("권한 확인 실패:", error);
         location.replace("block.html");
     }
 });
+
+document.getElementById("logo-setting-save").addEventListener("click", saveClubLogo);
+
+async function loadClubLogos() {
+    const grid = document.getElementById("logo-option-grid");
+    const message = document.getElementById("logo-setting-message");
+    const saveButton = document.getElementById("logo-setting-save");
+    message.classList.remove("permission-error");
+    grid.innerHTML = '<p class="logo-setting-status">로고 목록을 불러오는 중입니다.</p>';
+    message.textContent = "";
+    saveButton.disabled = true;
+    try {
+        const response = await apiRequest("/api/jhimap/site-settings/logo", {}, currentAdminUser);
+        renderClubLogos(await response.json());
+    } catch (error) {
+        grid.innerHTML = `<p class="logo-setting-status permission-error">${escapeHtml(error.message)}</p>`;
+    }
+}
+
+function renderClubLogos(payload) {
+    const grid = document.getElementById("logo-option-grid");
+    const saveButton = document.getElementById("logo-setting-save");
+    const logos = Array.isArray(payload.logos) ? payload.logos : [];
+    activeLogoId = String(payload.activeLogo || "classic");
+    selectedLogoId = activeLogoId;
+    grid.replaceChildren();
+    logos.forEach(logo => {
+        const card = document.createElement("label");
+        card.className = "logo-option-card";
+        if (logo.id === activeLogoId) card.classList.add("is-active", "is-selected");
+
+        const radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = "club-logo";
+        radio.value = logo.id;
+        radio.checked = logo.id === activeLogoId;
+        radio.addEventListener("change", () => {
+            selectedLogoId = logo.id;
+            grid.querySelectorAll(".logo-option-card").forEach(item => item.classList.remove("is-selected"));
+            card.classList.add("is-selected");
+            saveButton.disabled = selectedLogoId === activeLogoId;
+        });
+
+        const image = document.createElement("img");
+        image.src = logo.asset;
+        image.alt = `${logo.name} 로고 미리보기`;
+        image.loading = "lazy";
+
+        const copy = document.createElement("span");
+        copy.className = "logo-option-copy";
+        const title = document.createElement("strong");
+        title.textContent = logo.name;
+        if (logo.id === activeLogoId) {
+            const badge = document.createElement("small");
+            badge.className = "logo-active-badge";
+            badge.textContent = "현재 사용 중";
+            title.appendChild(badge);
+        }
+        const meaning = document.createElement("small");
+        meaning.textContent = logo.meaning;
+        copy.append(title, meaning);
+        card.append(radio, image, copy);
+        grid.appendChild(card);
+    });
+    saveButton.disabled = true;
+}
+
+async function saveClubLogo() {
+    if (currentAdminProfile?.role !== "admin" || selectedLogoId === activeLogoId) return;
+    const button = document.getElementById("logo-setting-save");
+    const message = document.getElementById("logo-setting-message");
+    if (!confirm("선택한 로고를 홈페이지 전체에 적용하시겠습니까?")) return;
+    button.disabled = true;
+    button.textContent = "적용 중...";
+    message.textContent = "";
+    message.classList.remove("permission-error");
+    try {
+        const response = await apiRequest("/api/jhimap/admin/site-settings/logo", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ logoId: selectedLogoId })
+        }, currentAdminUser);
+        renderClubLogos(await response.json());
+        await applySiteBranding();
+        message.textContent = "새 로고가 홈페이지 전체에 적용되었습니다.";
+    } catch (error) {
+        message.textContent = error.message;
+        message.classList.add("permission-error");
+    } finally {
+        button.textContent = "선택한 로고 적용";
+    }
+}
 
 async function loadRecentActivity() {
     const list = document.getElementById("activity-list");

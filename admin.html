@@ -8,7 +8,7 @@
     <title>DEEP SKY | Admin</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/common.css">
-    <link rel="stylesheet" href="css/admin.css?v=20260825-permission-table">
+    <link rel="stylesheet" href="css/admin.css?v=20260902-logo-selector">
 </head>
 <body>
 <div class="auth-bar">
@@ -71,6 +71,20 @@
             </tbody>
         </table>
     </div>
+
+    <section id="logo-management" hidden>
+        <div class="section-title">동아리 로고 설정</div>
+        <p class="section-note">기본 로고와 예비 로고 중 홈페이지 전체에 표시할 로고를 선택합니다. 이 설정은 관리자 등급만 변경할 수 있습니다.</p>
+        <div class="logo-management-panel">
+            <div id="logo-option-grid" class="logo-option-grid" aria-live="polite">
+                <p class="logo-setting-status">로고 목록을 불러오는 중입니다.</p>
+            </div>
+            <div class="logo-setting-actions">
+                <p id="logo-setting-message" class="logo-setting-status" role="status"></p>
+                <button id="logo-setting-save" type="button" class="btn-update" disabled>선택한 로고 적용</button>
+            </div>
+        </div>
+    </section>
 
     <div class="section-title">부원 권한 관리</div>
     <p class="section-note">각 학교별 역할에 맞게 등급을 조정합니다. 관리자만 이 화면에 접근할 수 있습니다.</p>
@@ -167,7 +181,7 @@
   <p>복성고등학교 천문·항공우주 동아리</p>
   <p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p>
 </footer>
-<script type="module" src="js/admin.js?v=20260828-admin-access"></script>
+<script type="module" src="js/admin.js?v=20260902-logo-selector"></script>
 <script type="module" src="frontend-access-control.js?v=20260828-admin-access"></script>
 </body>
 </html>
