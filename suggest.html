@@ -1,76 +1,102 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="logo.png" type="image/png">
-    <link rel="apple-touch-icon" href="logo.png">
-    <title>DEEP SKY | Suggestion</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/common.css">
-    <link rel="stylesheet" href="css/suggest.css">
-</head>
-<body>
-<div class="auth-bar"><a href="index.html" class="logo-link"><img src="logo.png" alt="DEEP SKY Logo" class="nav-logo"><span>DEEP SKY</span></a><div class="auth-user-zone"><a href="login.html" id="login-link" class="auth-btn">LOGIN</a><span id="user-name" style="display:none; font-size:.9rem; margin-right:10px; color:var(--accent);"></span><button id="logout-btn" class="auth-btn" style="display:none;">LOGOUT</button></div></div>
-<header class="intro-hero"><h1>Suggestion</h1><p>DEEP SKY의 더 나은 미래를 위한 의견을 남겨주세요</p></header>
-<nav class="sub-nav-container" aria-label="주요 메뉴"><div class="nav-menu"><a href="index.html">HOME</a><a href="introduction.html">INTRODUCTION</a><a href="talk.html">TALK</a><a href="photo.html">PHOTO</a><a href="weather.html">WEATHER</a><a href="resource.html">RESOURCE</a><a href="suggest.html" class="active">SUGGESTION</a><a href="mypage.html">MY PAGE</a><a href="adjust.html">REQUEST AUTHORITY</a><a href="admin.html">ADMIN</a></div></nav>
-<main class="content-section">
-  <h1 class="section-title">통합 요청 및 의견 접수</h1>
-  <div class="suggestion-form-card">
-    <form id="suggestion-form">
-      <div class="input-group" id="name-input-group">
-        <label for="user-name-input">성함</label>
-        <input type="text" id="user-name-input" autocomplete="name" placeholder="성함을 입력하세요" required>
-      </div>
-      <label class="anon-container" id="anonymous-option">
-        <input type="checkbox" id="anon-check">
-        <span>익명으로 제출하기</span>
-      </label>
-      <div class="input-group">
-        <label for="category">분류</label>
-        <select id="category" required>
-          <option value="" disabled selected>분류를 선택하세요</option>
-          <option value="기능 제안">기능 제안</option>
-          <option value="버그 제보">버그 제보</option>
-          <option value="디자인 의견">디자인 의견</option>
-          <option value="기타">기타</option>
-          <option value="등급 조정">등급 조정</option>
-        </select>
-      </div>
-      <div id="authority-fields" class="authority-fields" hidden>
-        <div class="input-group">
-          <label for="request-role">요청 등급</label>
-          <select id="request-role">
-            <option value="member">일반 회원</option>
-            <option value="teacher">교사</option>
-            <option value="student">동아리 부원</option>
-          </select>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="icon" href="logo.png" type="image/png">
+        <link rel="apple-touch-icon" href="logo.png">
+        <title>DEEP SKY | Suggestion</title>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="css/common.css">
+        <link rel="stylesheet" href="css/suggest.css">
+    </head>
+    <body>
+        <div class="auth-bar">
+            <a href="index.html" class="logo-link"><img src="logo.png" alt="DEEP SKY Logo" class="nav-logo"><span>DEEP SKY</span></a>
+            <div class="auth-user-zone">
+                <a href="login.html" id="login-link" class="auth-btn">LOGIN</a>
+                <span id="user-name" style="display:none; font-size:.9rem; margin-right:10px; color:var(--accent);"></span>
+                <button id="logout-btn" class="auth-btn" style="display:none;">LOGOUT</button>
+            </div>
         </div>
-      </div>
-      <div class="input-group" id="subject-input-group">
-        <label for="subject">제목</label>
-        <input type="text" id="subject" placeholder="제목을 입력하세요" required>
-      </div>
-      <div class="input-group">
-        <label for="content" id="content-label">내용</label>
-        <textarea id="content" placeholder="건의 내용을 상세히 작성해주세요." required></textarea>
-      </div>
-      <div class="input-group" id="suggestion-image-group">
-        <label for="suggestion-images">첨부 이미지 <span class="field-note">선택 · 최대 3장</span></label>
-        <input type="file" id="suggestion-images" accept="image/png,image/jpeg,image/gif,image/webp" multiple>
-        <p class="upload-help">PNG, JPG, GIF, WEBP 이미지를 첨부할 수 있습니다.</p>
-        <div id="suggestion-image-preview" class="suggestion-image-preview" aria-live="polite"></div>
-      </div>
-      <button type="submit" class="submit-btn">제출하기</button>
-    </form>
-  </div>
-</main>
-<footer>
-  <p>&copy; 2026 DEEP SKY. All Rights Reserved.</p>
-  <p>복성고등학교 천문·항공우주 동아리</p>
-  <p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p>
-</footer>
-<script type="module" src="js/suggest.js?v=20260828-image-attachment"></script>
-<script type="module" src="frontend-access-control.js?v=20260828-admin-access"></script>
-</body>
+        <header class="intro-hero">
+            <h1>Suggestion</h1>
+            <p>DEEP SKY의 더 나은 미래를 위한 의견을 남겨주세요</p>
+        </header>
+        <nav class="sub-nav-container" aria-label="주요 메뉴">
+            <div class="nav-menu">
+                <a href="index.html">HOME</a>
+                <a href="introduction.html" class="active" aria-current="page">INTRODUCTION</a>
+                <a href="notifications.html">NOTIFICATION</a>
+                <a href="talk.html">TALK</a>
+                <a href="photo.html">PHOTO</a>
+                <a href="weather.html">WEATHER</a>
+                <a href="resource.html">RESOURCE</a>
+                <a href="ai.html">AI</a>
+                <a href="weather.html">WEATHER</a>
+                <a href="suggest.html">SUGGESTION</a>
+                <a href="mypage.html">MY PAGE</a>
+                <a href="adjust.html">REQUEST AUTHORITY</a>
+                <a href="admin.html">ADMIN</a>
+            </div>
+        </nav>
+        <main class="content-section">
+            <h1 class="section-title">통합 요청 및 의견 접수</h1>
+            <div class="suggestion-form-card">
+                <form id="suggestion-form">
+                    <div class="input-group" id="name-input-group">
+                        <label for="user-name-input">성함</label>
+                        <input type="text" id="user-name-input" autocomplete="name" placeholder="성함을 입력하세요" required>
+                    </div>
+                    <label class="anon-container" id="anonymous-option">
+                        <input type="checkbox" id="anon-check">
+                        <span>익명으로 제출하기</span>
+                    </label>
+                    <div class="input-group">
+                        <label for="category">분류</label>
+                        <select id="category" required>
+                            <option value="" disabled selected>분류를 선택하세요</option>
+                            <option value="기능 제안">기능 제안</option>
+                            <option value="버그 제보">버그 제보</option>
+                            <option value="디자인 의견">디자인 의견</option>
+                            <option value="기타">기타</option>
+                            <option value="등급 조정">등급 조정</option>
+                        </select>
+                    </div>
+                    <div id="authority-fields" class="authority-fields" hidden>
+                        <div class="input-group">
+                            <label for="request-role">요청 등급</label>
+                            <select id="request-role">
+                                <option value="member">일반 회원</option>
+                                <option value="teacher">교사</option>
+                                <option value="student">동아리 부원</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-group" id="subject-input-group">
+                        <label for="subject">제목</label>
+                        <input type="text" id="subject" placeholder="제목을 입력하세요" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="content" id="content-label">내용</label>
+                        <textarea id="content" placeholder="건의 내용을 상세히 작성해주세요." required></textarea>
+                    </div>
+                    <div class="input-group" id="suggestion-image-group">
+                        <label for="suggestion-images">첨부 이미지 <span class="field-note">선택 · 최대 3장</span></label>
+                        <input type="file" id="suggestion-images" accept="image/png,image/jpeg,image/gif,image/webp" multiple>
+                        <p class="upload-help">PNG, JPG, GIF, WEBP 이미지를 첨부할 수 있습니다.</p>
+                        <div id="suggestion-image-preview" class="suggestion-image-preview" aria-live="polite"></div>
+                    </div>
+                    <button type="submit" class="submit-btn">제출하기</button>
+                </form>
+            </div>
+        </main>
+        <footer>
+            <p>&copy; 2026 DEEP SKY. All Rights Reserved.</p>
+            <p>복성고등학교 천문·항공우주 동아리</p>
+            <p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p>
+        </footer>
+        <script type="module" src="js/suggest.js?v=20260828-image-attachment"></script>
+        <script type="module" src="frontend-access-control.js?v=20260828-admin-access"></script>
+    </body>
 </html>
