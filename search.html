@@ -1,33 +1,75 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <link rel="icon" href="logo.png" type="image/png">
-  <title>DEEP SKY | Search</title>
-  <link rel="stylesheet" href="css/common.css">
-</head>
-<body>
-<div class="auth-bar"><a href="index.html" class="logo-link"><img src="logo.png" alt="DEEP SKY logo" class="nav-logo"><span>DEEP SKY</span></a><div class="auth-user-zone"><span id="user-name"></span><button id="logout-btn" class="auth-btn">LOGOUT</button></div></div>
-<header class="hero"><h1>Search</h1><p>접근 가능한 게시판과 첨부파일 이름을 함께 검색합니다.</p></header>
-<nav class="sub-nav-container" aria-label="주요 메뉴"><div class="nav-menu"><a href="index.html">HOME</a><a href="introduction.html">INTRODUCTION</a><a href="talk.html">TALK</a><a href="photo.html">PHOTO</a><a href="weather.html">WEATHER</a><a href="resource.html">RESOURCE</a><a href="suggest.html">SUGGESTION</a><a href="mypage.html">MY PAGE</a><a href="adjust.html">REQUEST AUTHORITY</a><a href="admin.html">ADMIN</a></div></nav>
-<main class="feature-main">
-  <section class="feature-section">
-    <h1 class="section-title">통합 검색</h1>
-    <form id="search-form" class="toolbar">
-      <input id="search-query" type="search" maxlength="120" aria-label="검색어" placeholder="제목, 내용, 작성자, 첨부파일 이름">
-      <select id="search-collection" aria-label="게시판"><option value="">전체 게시판</option><option value="resources">공용 자료</option><option value="club-board">동아리 게시판</option></select>
-      <select id="search-category" aria-label="카테고리"><option value="">전체 카테고리</option><option>천체 관측 데이터</option><option>기술 문서 / 매뉴얼</option><option>발표 및 세미나</option><option>소프트웨어 및 코드</option><option>공지</option><option>기타</option></select>
-      <input id="search-from" type="date" aria-label="시작일">
-      <input id="search-to" type="date" aria-label="종료일">
-      <button class="btn btn-primary" type="submit">검색</button>
-    </form>
-    <p id="search-summary" class="form-status" role="status"></p>
-    <div id="search-results" class="feature-list"><div class="empty-state">검색 조건을 입력해 주세요.</div></div>
-  </section>
-</main>
-<footer><p>&copy; 2026 DEEP SKY. All Rights Reserved.</p><p>복성고등학교 천문·항공우주 동아리</p><p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p></footer>
-<script type="module" src="js/search.js"></script>
-<script type="module" src="frontend-access-control.js?v=20260828-admin-access"></script>
-</body>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <link rel="icon" href="logo.png" type="image/png">
+    <title>DEEP SKY | Search</title>
+    <link rel="stylesheet" href="css/common.css">
+  </head>
+  <body>
+    <div class="auth-bar">
+      <a href="index.html" class="logo-link"><img src="logo.png" alt="DEEP SKY logo" class="nav-logo"><span>DEEP SKY</span></a>
+      <div class="auth-user-zone">
+        <span id="user-name"></span>
+        <button id="logout-btn" class="auth-btn">LOGOUT</button>
+      </div>
+    </div>
+    <header class="hero">
+      <h1>Search</h1><p>접근 가능한 게시판과 첨부파일 이름을 함께 검색합니다.</p>
+    </header>
+    <nav class="sub-nav-container" aria-label="주요 메뉴">
+      <div class="nav-menu">
+        <a href="index.html">HOME</a>
+        <a href="introduction.html" class="active" aria-current="page">INTRODUCTION</a>
+        <a href="notifications.html">NOTIFICATION</a>
+        <a href="talk.html">TALK</a>
+        <a href="photo.html">PHOTO</a>
+        <a href="weather.html">WEATHER</a>
+        <a href="resource.html">RESOURCE</a>
+        <a href="ai.html">AI</a>
+        <a href="weather.html">WEATHER</a>
+        <a href="suggest.html">SUGGESTION</a>
+        <a href="mypage.html">MY PAGE</a>
+        <a href="adjust.html">REQUEST AUTHORITY</a>
+        <a href="admin.html">ADMIN</a>
+      </div>
+    </nav>
+    <main class="feature-main">
+      <section class="feature-section">
+        <h1 class="section-title">통합 검색</h1>
+        <form id="search-form" class="toolbar">
+          <input id="search-query" type="search" maxlength="120" aria-label="검색어" placeholder="제목, 내용, 작성자, 첨부파일 이름">
+          <select id="search-collection" aria-label="게시판">
+            <option value="">전체 게시판</option>
+            <option value="resources">공용 자료</option>
+            <option value="club-board">동아리 게시판</option>
+          </select>
+          <select id="search-category" aria-label="카테고리">
+            <option value="">전체 카테고리</option>
+            <option>천체 관측 데이터</option>
+            <option>기술 문서 / 매뉴얼</option>
+            <option>발표 및 세미나</option>
+            <option>소프트웨어 및 코드</option>
+            <option>공지</option>
+            <option>기타</option>
+          </select>
+          <input id="search-from" type="date" aria-label="시작일">
+          <input id="search-to" type="date" aria-label="종료일">
+          <button class="btn btn-primary" type="submit">검색</button>
+        </form>
+        <p id="search-summary" class="form-status" role="status"></p>
+        <div id="search-results" class="feature-list">
+          <div class="empty-state">검색 조건을 입력해 주세요.</div>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <p>&copy; 2026 DEEP SKY. All Rights Reserved.</p>
+      <p>복성고등학교 천문·항공우주 동아리</p>
+      <p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p>
+    </footer>
+    <script type="module" src="js/search.js"></script>
+    <script type="module" src="frontend-access-control.js?v=20260828-admin-access"></script>
+  </body>
 </html>
