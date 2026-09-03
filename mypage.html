@@ -1,41 +1,108 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" href="logo.png" type="image/png">
-<link rel="apple-touch-icon" href="logo.png">
-<title>DEEP SKY | My Page</title>
-  <link rel="stylesheet" href="css/common.css">
-<link rel="stylesheet" href="css/mypage.css">
-</head>
-<body>
-<div class="auth-bar"><a href="index.html" class="logo-link"><img src="logo.png" alt="DEEP SKY logo" class="nav-logo"><span>DEEP SKY</span></a><div class="auth-user-zone"><a href="login.html" id="login-link" class="auth-btn">LOGIN</a><span id="user-name" style="display:none;color:var(--accent);font-weight:700"></span><button id="logout-btn" class="auth-btn" style="display:none">LOGOUT</button></div></div>
-<header class="hero"><h1>My Page</h1><p>Profile and authority information</p></header><nav class="sub-nav-container" aria-label="주요 메뉴"><div class="nav-menu"><a href="index.html">HOME</a><a href="introduction.html">INTRODUCTION</a><a href="talk.html">TALK</a><a href="photo.html">PHOTO</a><a href="weather.html">WEATHER</a><a href="resource.html">RESOURCE</a><a href="suggest.html">SUGGESTION</a><a href="mypage.html" class="active">MY PAGE</a><a href="adjust.html">REQUEST AUTHORITY</a><a href="admin.html">ADMIN</a></div></nav>
-<main class="container">
-  <section class="panel"><h1 class="section-title">My Page</h1><label for="display-email">이메일</label><input id="display-email" readonly><label for="edit-name">이름</label><input id="edit-name" autocomplete="name"><label for="display-role">현재 등급</label><input id="display-role" readonly><div class="actions"><button class="btn btn-primary" id="update-profile-btn">적용</button><button class="btn" id="card-logout-btn">Logout</button></div></section>
-  <section id="password-management" class="panel password-panel" aria-labelledby="password-management-title">
-    <h2 id="password-management-title" class="section-title">비밀번호 관리</h2>
-    <p id="password-account-note" class="password-help">로그인 방식을 확인하는 중입니다.</p>
-    <form id="password-change-form" class="password-form" hidden>
-      <label for="current-password">현재 비밀번호</label><input id="current-password" type="password" autocomplete="current-password" required>
-      <label for="new-password">새 비밀번호</label><input id="new-password" type="password" autocomplete="new-password" minlength="8" required aria-describedby="password-rule">
-      <p id="password-rule" class="password-rule">8자 이상 입력하세요.</p>
-      <label for="confirm-password">새 비밀번호 확인</label><input id="confirm-password" type="password" autocomplete="new-password" minlength="8" required>
-      <p id="password-status" class="form-status" role="status" aria-live="polite"></p>
-      <div class="actions"><button id="change-password-btn" class="btn btn-primary" type="submit">비밀번호 변경</button><button id="send-reset-email-btn" class="btn" type="button">재설정 메일 보내기</button></div>
-    </form>
-  </section>
-  <section id="bookmarks" class="feature-section"><div class="section-heading-row"><h2 class="section-title">저장한 글</h2></div><div id="bookmark-list" class="feature-list"><div class="loading-state">불러오는 중입니다.</div></div></section>
-  <section class="feature-section"><div class="section-heading-row"><h2 class="section-title">최근 본 글</h2></div><div id="recent-list" class="feature-list"><div class="loading-state">불러오는 중입니다.</div></div></section>
-  <section class="panel danger-zone"><h2 class="section-title">회원탈퇴</h2><p>탈퇴하면 로그인 계정과 권한 요청 정보가 삭제됩니다. 작성한 게시글과 댓글은 사이트 기록 유지를 위해 남지만 작성자 정보는 <strong>탈퇴한 사용자</strong>로 바뀝니다.</p><label for="delete-confirm-input">확인을 위해 아래에 <strong>회원탈퇴</strong>를 입력하세요.</label><input id="delete-confirm-input" autocomplete="off" placeholder="회원탈퇴"><div class="actions"><button class="btn btn-danger" id="delete-account-btn">회원탈퇴</button></div></section>
-</main>
-<footer>
-  <p>&copy; 2026 DEEP SKY. All Rights Reserved.</p>
-  <p>복성고등학교 천문·항공우주 동아리</p>
-  <p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p>
-</footer>
-<script type="module" src="js/mypage.js?v=20260826-password-management"></script>
-<script type="module" src="frontend-access-control.js?v=20260828-admin-access"></script>
-</body>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="logo.png" type="image/png">
+    <link rel="apple-touch-icon" href="logo.png">
+    <title>DEEP SKY | My Page</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/mypage.css">
+  </head>
+  <body>
+    <div class="auth-bar">
+      <a href="index.html" class="logo-link"><img src="logo.png" alt="DEEP SKY logo" class="nav-logo"><span>DEEP SKY</span></a>
+      <div class="auth-user-zone">
+        <a href="login.html" id="login-link" class="auth-btn">LOGIN</a>
+        <span id="user-name" style="display:none;color:var(--accent);font-weight:700"></span>
+        <button id="logout-btn" class="auth-btn" style="display:none">LOGOUT</button>
+      </div>
+    </div>
+    <header class="hero">
+      <h1>My Page</h1>
+      <p>Profile and authority information</p>
+    </header>
+    <nav class="sub-nav-container" aria-label="주요 메뉴">
+      <div class="nav-menu">
+        <a href="index.html">HOME</a>
+        <a href="introduction.html">INTRODUCTION</a>
+        <a href="notifications.html">NOTIFICATION</a>
+        <a href="talk.html">TALK</a>
+        <a href="photo.html">PHOTO</a>
+        <a href="weather.html">WEATHER</a>
+        <a href="resource.html">RESOURCE</a>
+        <a href="ai.html">AI</a>
+        <a href="weather.html">WEATHER</a>
+        <a href="suggest.html">SUGGESTION</a>
+        <a href="mypage.html" class="active" aria-current="page">MY PAGE</a>
+        <a href="adjust.html">REQUEST AUTHORITY</a>
+        <a href="admin.html">ADMIN</a>
+      </div>
+    </nav>
+    <main class="container">
+      <section class="panel">
+        <h1 class="section-title">My Page</h1>
+        <label for="display-email">이메일</label>
+        <input id="display-email" readonly>
+        <label for="edit-name">이름</label>
+        <input id="edit-name" autocomplete="name">
+        <label for="display-role">현재 등급</label>
+        <input id="display-role" readonly>
+        <div class="actions">
+          <button class="btn btn-primary" id="update-profile-btn">적용</button>
+          <button class="btn" id="card-logout-btn">Logout</button>
+        </div>
+      </section>
+      <section id="password-management" class="panel password-panel" aria-labelledby="password-management-title">
+        <h2 id="password-management-title" class="section-title">비밀번호 관리</h2>
+        <p id="password-account-note" class="password-help">로그인 방식을 확인하는 중입니다.</p>
+        <form id="password-change-form" class="password-form" hidden>
+          <label for="current-password">현재 비밀번호</label>
+          <input id="current-password" type="password" autocomplete="current-password" required>
+          <label for="new-password">새 비밀번호</label>
+          <input id="new-password" type="password" autocomplete="new-password" minlength="8" required aria-describedby="password-rule">
+          <p id="password-rule" class="password-rule">8자 이상 입력하세요.</p>
+          <label for="confirm-password">새 비밀번호 확인</label>
+          <input id="confirm-password" type="password" autocomplete="new-password" minlength="8" required>
+          <p id="password-status" class="form-status" role="status" aria-live="polite"></p>
+          <div class="actions">
+            <button id="change-password-btn" class="btn btn-primary" type="submit">비밀번호 변경</button>
+            <button id="send-reset-email-btn" class="btn" type="button">재설정 메일 보내기</button>
+          </div>
+        </form>
+      </section>
+      <section id="bookmarks" class="feature-section">
+        <div class="section-heading-row">
+          <h2 class="section-title">저장한 글</h2>
+        </div>
+        <div id="bookmark-list" class="feature-list">
+          <div class="loading-state">불러오는 중입니다.</div>
+        </div>
+      </section>
+      <section class="feature-section">
+        <div class="section-heading-row">
+          <h2 class="section-title">최근 본 글</h2>
+        </div>
+        <div id="recent-list" class="feature-list">
+          <div class="loading-state">불러오는 중입니다.</div>
+        </div>
+      </section>
+      <section class="panel danger-zone">
+        <h2 class="section-title">회원탈퇴</h2>
+        <p>탈퇴하면 로그인 계정과 권한 요청 정보가 삭제됩니다. 작성한 게시글과 댓글은 사이트 기록 유지를 위해 남지만 작성자 정보는 <strong>탈퇴한 사용자</strong>로 바뀝니다.</p>
+        <label for="delete-confirm-input">확인을 위해 아래에 <strong>회원탈퇴</strong>를 입력하세요.</label>
+        <input id="delete-confirm-input" autocomplete="off" placeholder="회원탈퇴">
+        <div class="actions">
+          <button class="btn btn-danger" id="delete-account-btn">회원탈퇴</button>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <p>&copy; 2026 DEEP SKY. All Rights Reserved.</p>
+      <p>복성고등학교 천문·항공우주 동아리</p>
+      <p>Designed by DEEP SKY | Contact: leader.deepsky@gmail.com</p>
+    </footer>
+    <script type="module" src="js/mypage.js?v=20260826-password-management"></script>
+    <script type="module" src="frontend-access-control.js?v=20260828-admin-access"></script>
+  </body>
 </html>
