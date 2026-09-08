@@ -200,6 +200,37 @@ textarea:focus-visible,
     margin: 0 0 10px;
 }
 
+.page-hero {
+    min-height: 300px;
+    height: 45vh;
+    max-height: 520px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 78px 20px 28px;
+    background:
+        linear-gradient(rgba(0, 0, 0, .52), rgba(0, 0, 0, .9)),
+        url("../assets/images/stellar-nursery.webp") center / cover no-repeat;
+    text-align: center;
+}
+
+.page-hero h1 {
+    margin: 0 0 12px;
+    color: var(--accent);
+    font-size: clamp(2.5rem, 7vw, 3.7rem);
+    line-height: 1.1;
+}
+
+.page-hero p {
+    max-width: 720px;
+    margin: 0;
+    color: rgba(255, 255, 255, .8);
+    font-size: clamp(.95rem, 2vw, 1.15rem);
+    font-weight: 300;
+    line-height: 1.65;
+}
+
 .container {
     width: 100%;
     max-width: 900px;
@@ -1164,6 +1195,16 @@ footer {
         min-height: 260px;
         height: 38vh;
         padding-top: 72px;
+    }
+
+    .page-hero {
+        min-height: 260px;
+        height: 38vh;
+        padding: 68px 18px 24px;
+    }
+
+    .page-hero h1 {
+        font-size: clamp(2rem, 10vw, 2.7rem);
     }
 
     .ai-launcher {

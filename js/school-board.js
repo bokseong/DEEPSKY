@@ -2,8 +2,8 @@ import { apiFetch, auth, authHeaders as getAuthHeaders, getCurrentProfile } from
 import { initializeAnnouncementSection } from "./announcement-manager.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
-        b: { collection:"club-board", title:"DEEP SKY 동아리 게시판", boardTitle:"동아리 게시글", subtitle:"동아리 부원 전용 소통과 활동 기록 공간", roles:["admin", "teacher", "student"], categories:["천체 관측 데이터", "실험 보고서", "보고서", "훈련 자료", "소스 코드", "기타"], writeUrl:"school-write.html?school=b", viewUrl:"school-view.html?school=b", hero:"url('assets/images/stellar-nursery.webp')" },
-        q: { collection:"questions", title:"DEEP SKY 질문 게시판", boardTitle:"질문 게시판", subtitle:"천문·항공우주 활동과 홈페이지 이용에 관해 묻고 답하는 공간", roles:["admin", "teacher", "student", "member"], categories:["천문 관측", "데이터 처리", "장비", "웹사이트 이용", "기타"], writeUrl:"school-write.html?school=q", viewUrl:"school-view.html?school=q", hero:"url('assets/images/stellar-nursery.webp')" }
+        b: { collection:"club-board", title:"Talk", boardTitle:"동아리 게시글", subtitle:"동아리 부원 전용 소통과 활동 기록 공간입니다.", roles:["admin", "teacher", "student"], categories:["천체 관측 데이터", "실험 보고서", "보고서", "훈련 자료", "소스 코드", "기타"], writeUrl:"school-write.html?school=b", viewUrl:"school-view.html?school=b" },
+        q: { collection:"questions", title:"Questions", boardTitle:"질문 게시판", subtitle:"천문·항공우주 활동과 홈페이지 이용에 관해 묻고 답하는 공간입니다.", roles:["admin", "teacher", "student", "member"], categories:["천문 관측", "데이터 처리", "장비", "웹사이트 이용", "기타"], writeUrl:"school-write.html?school=q", viewUrl:"school-view.html?school=q" }
     };
 
     const params = new URLSearchParams(location.search);
@@ -15,7 +15,6 @@ const SCHOOLS = {
         throw new Error("Invalid school.");
     }
 
-    document.documentElement.style.setProperty("--hero-image", school.hero);
     document.title = `DEEP SKY | ${school.boardTitle}`;
     document.getElementById("hero-title").textContent = school.title;
     document.getElementById("hero-subtitle").textContent = school.subtitle;

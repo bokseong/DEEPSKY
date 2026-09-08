@@ -30,6 +30,11 @@ const canonicalNavigation = [
     "resource.html", "weather.html", "ai.html", "search.html", "notifications.html",
     "suggest.html", "mypage.html", "admin.html"
 ];
+const pageHeroFiles = [
+    "introduction.html", "talk.html", "question.html", "photo.html", "resource.html",
+    "weather.html", "ai.html", "search.html", "notifications.html", "suggest.html",
+    "mypage.html", "admin.html"
+];
 
 for (const file of htmlFiles) {
     const html = fs.readFileSync(file, "utf8");
@@ -76,6 +81,15 @@ for (const file of htmlFiles) {
         if (!/\brel\s*=\s*["'][^"']*\bnoopener\b[^"']*["']/i.test(match[0])) {
             fail(file, "target=_blank 링크에 rel=noopener가 없습니다.");
         }
+    }
+}
+
+for (const fileName of pageHeroFiles) {
+    const file = path.join(root, fileName);
+    const html = fs.readFileSync(file, "utf8");
+    const hero = html.match(/<header\b[^>]*class=["'][^"']*\bpage-hero\b[^"']*["'][^>]*>([\s\S]*?)<\/header>/i)?.[1];
+    if (!hero || !/<h1\b[^>]*>[\s\S]*?<\/h1>/i.test(hero) || !/<p\b[^>]*>[\s\S]*?<\/p>/i.test(hero)) {
+        fail(file, "공통 page-hero에 페이지 이름(h1)과 설명(p)이 필요합니다.");
     }
 }
 
