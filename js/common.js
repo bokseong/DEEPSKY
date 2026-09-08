@@ -338,25 +338,40 @@ function startApiStatusMonitor() {
     setInterval(checkApiAvailability, 5 * 60_000);
 }
 
-function addFeatureNavigationLinks() {
+function normalizeNavigation() {
     const items = [
-        { href: "ai.html", label: "AI" }
+        { href: "index.html", label: "HOME" },
+        { href: "introduction.html", label: "INTRODUCTION" },
+        { href: "talk.html", label: "TALK" },
+        { href: "question.html", label: "QUESTION" },
+        { href: "photo.html", label: "PHOTO" },
+        { href: "resource.html", label: "RESOURCE" },
+        { href: "weather.html", label: "WEATHER" },
+        { href: "ai.html", label: "AI" },
+        { href: "search.html", label: "SEARCH" },
+        { href: "notifications.html", label: "NOTIFICATION" },
+        { href: "suggest.html", label: "SUGGESTION" },
+        { href: "mypage.html", label: "MY PAGE" },
+        { href: "admin.html", label: "ADMIN" }
     ];
+    const page = location.pathname.split("/").pop() || "index.html";
+    const school = new URLSearchParams(location.search).get("school");
+    const activeHref = ["school-write.html", "school-view.html"].includes(page)
+        ? (school === "q" ? "question.html" : "talk.html")
+        : page;
     document.querySelectorAll(".nav-menu").forEach(menu => {
-        const suggestionLink = menu.querySelector('a[href="suggest.html"]');
+        const fragment = document.createDocumentFragment();
         items.forEach(item => {
-            let link = menu.querySelector(`a[href="${item.href}"]`);
-            if (!link) {
-                link = document.createElement("a");
-                link.href = item.href;
-                link.textContent = item.label;
-                menu.insertBefore(link, suggestionLink);
-            }
-            if (location.pathname.endsWith(`/${item.href}`)) {
+            const link = document.createElement("a");
+            link.href = item.href;
+            link.textContent = item.label;
+            if (activeHref === item.href) {
                 link.classList.add("active");
                 link.setAttribute("aria-current", "page");
             }
+            fragment.appendChild(link);
         });
+        menu.replaceChildren(fragment);
     });
 }
 
@@ -928,7 +943,8 @@ function safeSiteLink(value) {
 function searchCollectionLabel(value) {
     return {
         resources: "공용 자료",
-        "club-board": "동아리 게시판"
+        "club-board": "동아리 게시판",
+        questions: "질문 게시판"
     }[value] || value || "자료";
 }
 
@@ -1069,7 +1085,7 @@ function createAiLauncher() {
 function initializeCommonUi() {
     void applySiteBranding();
     startApiStatusMonitor();
-    addFeatureNavigationLinks();
+    normalizeNavigation();
     createSearchPopover();
     createNotificationPopover();
     createAiLauncher();

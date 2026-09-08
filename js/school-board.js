@@ -2,12 +2,13 @@ import { apiFetch, auth, authHeaders as getAuthHeaders, getCurrentProfile } from
 import { initializeAnnouncementSection } from "./announcement-manager.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
-        b: { collection:"club-board", title:"DEEP SKY 동아리 게시판", boardTitle:"동아리 게시글", subtitle:"동아리 부원 전용 소통과 활동 기록 공간", student:"student", writeUrl:"school-write.html?school=b", viewUrl:"school-view.html?school=b", hero:"url('assets/images/stellar-nursery.webp')" }
+        b: { collection:"club-board", title:"DEEP SKY 동아리 게시판", boardTitle:"동아리 게시글", subtitle:"동아리 부원 전용 소통과 활동 기록 공간", roles:["admin", "teacher", "student"], categories:["천체 관측 데이터", "실험 보고서", "보고서", "훈련 자료", "소스 코드", "기타"], writeUrl:"school-write.html?school=b", viewUrl:"school-view.html?school=b", hero:"url('assets/images/stellar-nursery.webp')" },
+        q: { collection:"questions", title:"DEEP SKY 질문 게시판", boardTitle:"질문 게시판", subtitle:"천문·항공우주 활동과 홈페이지 이용에 관해 묻고 답하는 공간", roles:["admin", "teacher", "student", "member"], categories:["천문 관측", "데이터 처리", "장비", "웹사이트 이용", "기타"], writeUrl:"school-write.html?school=q", viewUrl:"school-view.html?school=q", hero:"url('assets/images/stellar-nursery.webp')" }
     };
 
     const params = new URLSearchParams(location.search);
     const currentPage = location.pathname.split("/").pop() || "index.html";
-    const schoolKey = params.get("school") || (currentPage === "talk.html" ? "b" : "");
+    const schoolKey = params.get("school") || (currentPage === "talk.html" ? "b" : currentPage === "question.html" ? "q" : "");
     const school = SCHOOLS[schoolKey];
     if (!school) {
         location.replace("talk.html");
@@ -20,11 +21,14 @@ const SCHOOLS = {
     document.getElementById("hero-subtitle").textContent = school.subtitle;
     document.getElementById("board-title").textContent = school.boardTitle;
     document.getElementById("write-btn").onclick = () => location.href = school.writeUrl;
+    const categorySelect = document.getElementById("filter-category");
+    categorySelect.replaceChildren(new Option("전체 카테고리", "all"));
+    school.categories.forEach(category => categorySelect.add(new Option(category, category)));
 let currentUser = null;
     let currentRole = "guest";
     let allPosts = [];
 
-    const roleAllowed = (role) => ["admin", "teacher", school.student].includes(role);
+    const roleAllowed = (role) => school.roles.includes(role);
     const canManage = (post) => currentUser && (post.uid === currentUser.uid || ["admin", "teacher"].includes(currentRole));
     const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
 

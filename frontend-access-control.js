@@ -6,12 +6,14 @@ const ROLES = {
     resourceWrite: ["admin", "teacher"],
     suggestions: ["admin", "teacher", "student"],
     suggestionRead: ["admin", "teacher"],
-    clubBoard: ["admin", "teacher", "student"]
+    clubBoard: ["admin", "teacher", "student"],
+    questionBoard: ["admin", "teacher", "student", "member"]
 };
 
 const PAGE_RULES = [
     { match: /^admin\.html$/, permission: "admin.access" },
     { match: /^talk\.html$/, roles: ROLES.clubBoard },
+    { match: /^question\.html$/, roles: ROLES.questionBoard },
     { match: /^photo\.html$/, roles: ROLES.loggedIn },
     { match: /^write\.html$/, roles: ROLES.resourceWrite },
     { match: /^suggest\.html$/, roles: ROLES.loggedIn },
@@ -30,6 +32,7 @@ const PAGE_RULES = [
 function schoolRolesFromQuery(searchParams = new URLSearchParams(location.search)) {
     const school = searchParams.get("school");
     if (school === "b") return ROLES.clubBoard;
+    if (school === "q") return ROLES.questionBoard;
     return [];
 }
 
@@ -115,6 +118,11 @@ async function resolvePermissions(user) {
 installNavGuards("guest");
 
 onAuthStateChanged(auth, async user => {
+    if (["login.html", "signup.html"].includes(currentPage())) {
+        hardenNavigation("guest", {});
+        installNavGuards("guest", {});
+        return;
+    }
     let role = "guest";
     let permissions = {};
     try {

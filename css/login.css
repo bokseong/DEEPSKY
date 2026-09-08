@@ -54,6 +54,37 @@
     outline: none;
 }
 
+.github-btn {
+    width: 100%;
+    min-height: 46px;
+    justify-content: center;
+    background: #24292f;
+    border: 1px solid #57606a;
+    color: #fff;
+    font-size: .94rem;
+    font-weight: 700;
+}
+
+.github-btn::before {
+    content: "GH";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 22px;
+    margin-right: 8px;
+    font-size: .78rem;
+    font-weight: 800;
+}
+
+.github-btn:hover,
+.github-btn:focus-visible {
+    background: #30363d;
+    border-color: #8c959f;
+    color: #fff;
+    outline: none;
+}
+
 .signup-link {
     width: 100%;
     border-color: transparent;

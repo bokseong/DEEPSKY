@@ -24,12 +24,12 @@ document.getElementById("signup-form").addEventListener("submit",async e=>{
     if(!await authPersistenceReady)throw new Error("세션 로그인 설정에 실패했습니다.");
     const name=document.getElementById("name").value.trim();
     const email=document.getElementById("email").value.trim();
-    const existingGoogleUser=auth.currentUser&&auth.currentUser.email===email;
+    const existingOAuthUser=auth.currentUser&&auth.currentUser.email===email;
     const password=document.getElementById("password").value;
     const passwordConfirm=document.getElementById("password-confirm").value;
     if(!name)throw new Error("이름을 입력해 주세요.");
-    if(!existingGoogleUser&&password!==passwordConfirm)throw new Error("비밀번호가 서로 일치하지 않습니다.");
-    const user=existingGoogleUser?auth.currentUser:(await createUserWithEmailAndPassword(auth,email,password)).user;
+    if(!existingOAuthUser&&password!==passwordConfirm)throw new Error("비밀번호가 서로 일치하지 않습니다.");
+    const user=existingOAuthUser?auth.currentUser:(await createUserWithEmailAndPassword(auth,email,password)).user;
     if(!user.emailVerified){
       try{
         await sendEmailVerification(user);

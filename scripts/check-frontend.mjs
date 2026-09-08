@@ -25,6 +25,11 @@ function fail(file, message) {
 const files = walk(root);
 const htmlFiles = files.filter(file => file.endsWith(".html"));
 const jsFiles = files.filter(file => file.endsWith(".js") || file.endsWith(".mjs"));
+const canonicalNavigation = [
+    "index.html", "introduction.html", "talk.html", "question.html", "photo.html",
+    "resource.html", "weather.html", "ai.html", "search.html", "notifications.html",
+    "suggest.html", "mypage.html", "admin.html"
+];
 
 for (const file of htmlFiles) {
     const html = fs.readFileSync(file, "utf8");
@@ -36,6 +41,14 @@ for (const file of htmlFiles) {
     for (const match of html.matchAll(/<nav\b[^>]*>/gi)) {
         if (!/\baria-label(?:ledby)?\s*=/i.test(match[0])) {
             fail(file, "nav 요소에 접근 가능한 이름이 없습니다.");
+        }
+    }
+
+    const menu = html.match(/<div class="nav-menu">([\s\S]*?)<\/div>/i)?.[1];
+    if (menu) {
+        const links = [...menu.matchAll(/<a\b[^>]*href=["']([^"']+)["']/gi)].map(match => match[1]);
+        if (JSON.stringify(links) !== JSON.stringify(canonicalNavigation)) {
+            fail(file, "nav-menu 항목 또는 순서가 공통 기준과 다릅니다.");
         }
     }
 
@@ -88,6 +101,21 @@ for (const field of ["title", "category", "author_name"]) {
 const signupSource = fs.readFileSync(path.join(root, "js", "signup.js"), "utf8");
 if (!/sendEmailVerification\(user\)[\s\S]*?signOut\(auth\)/.test(signupSource)) {
     fail(path.join(root, "js", "signup.js"), "이메일 미인증 가입 세션을 종료하지 않습니다.");
+}
+
+const loginSource = fs.readFileSync(path.join(root, "js", "login.js"), "utf8");
+if (!/GithubAuthProvider/.test(loginSource) || !/id="github-btn"/.test(fs.readFileSync(path.join(root, "login.html"), "utf8"))) {
+    fail(path.join(root, "js", "login.js"), "GitHub 로그인 제공자 또는 로그인 버튼이 누락되었습니다.");
+}
+
+for (const [fileName, pattern] of [
+    ["school-board.js", /collection:\s*"questions"/],
+    ["school-write.js", /collection:\s*"questions"/],
+    ["school-view.js", /collection:\s*"questions"/],
+    ["search.js", /questions:\s*"질문 게시판"/]
+]) {
+    const file = path.join(root, "js", fileName);
+    if (!pattern.test(fs.readFileSync(file, "utf8"))) fail(file, "질문 게시판 연동이 누락되었습니다.");
 }
 
 const commonSource = fs.readFileSync(path.join(root, "js", "common.js"), "utf8");

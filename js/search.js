@@ -18,9 +18,23 @@ onAuthStateChanged(auth, async user => {
         const profile = await getCurrentProfile(user);
         document.getElementById("user-name").textContent = `${profile.name || "사용자"}님`;
         limitCollectionOptions(profile.role);
-        const initialQuery = new URLSearchParams(location.search).get("q");
-        if (initialQuery) {
-            document.getElementById("search-query").value = initialQuery;
+        const initialParams = new URLSearchParams(location.search);
+        const fields = {
+            q: "search-query",
+            collection: "search-collection",
+            category: "search-category",
+            date_from: "search-from",
+            date_to: "search-to"
+        };
+        let hasInitialFilter = false;
+        Object.entries(fields).forEach(([key, id]) => {
+            const value = initialParams.get(key) || "";
+            if (value) {
+                document.getElementById(id).value = value;
+                hasInitialFilter = true;
+            }
+        });
+        if (hasInitialFilter) {
             await runSearch();
         }
     } catch {
@@ -82,7 +96,7 @@ function renderResult(item) {
 }
 
 function limitCollectionOptions(role) {
-    const allowed = new Set(["resources"]);
+    const allowed = new Set(["resources", "questions"]);
     if (["admin", "teacher", "student"].includes(role)) allowed.add("club-board");
     document.querySelectorAll("#search-collection option[value]").forEach(option => {
         if (option.value && !allowed.has(option.value)) option.remove();
@@ -92,7 +106,8 @@ function limitCollectionOptions(role) {
 function collectionLabel(value) {
     return {
         resources: "공용 자료",
-        "club-board": "동아리 게시판"
+        "club-board": "동아리 게시판",
+        questions: "질문 게시판"
     }[value] || value;
 }
 

@@ -582,13 +582,15 @@ async function loadAuditLogs() {
 function postLink(collection, id) {
     if (collection === "resources") return `view.html?id=${id}`;
     if (collection === "club-board") return `school-view.html?school=b&id=${id}`;
+    if (collection === "questions") return `school-view.html?school=q&id=${id}`;
     return "search.html";
 }
 
 function collectionLabel(value) {
     return {
         resources: "공용 자료",
-        "club-board": "동아리 게시판"
+        "club-board": "동아리 게시판",
+        questions: "질문 게시판"
     }[value] || value || "-";
 }
 

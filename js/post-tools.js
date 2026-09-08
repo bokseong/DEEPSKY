@@ -118,7 +118,10 @@ function getReportDialog() {
                 ? "신고가 접수되어 관리자 처리 전까지 게시글이 숨겨집니다."
                 : "신고가 접수되었습니다.");
             if (reportedType === "post") {
-                window.location.replace(reportedCollection === "resources" ? "resource.html" : "talk.html");
+                const target = reportedCollection === "resources"
+                    ? "resource.html"
+                    : reportedCollection === "questions" ? "question.html" : "talk.html";
+                window.location.replace(target);
             }
         } catch (error) {
             status.textContent = error.message;
