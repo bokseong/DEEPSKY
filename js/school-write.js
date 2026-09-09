@@ -10,7 +10,7 @@ const SCHOOLS = {
     const editId = params.get("id");
     if (!school) {
         location.replace("talk.html");
-        throw new Error("Invalid school.");
+        throw new Error("올바르지 않은 게시판입니다.");
     }
 let currentUser = null;
     let currentRole = "guest";

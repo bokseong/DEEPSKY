@@ -123,7 +123,7 @@ function renderUpdates(items) {
         const heading = document.createElement("div");
         const version = document.createElement("span");
         version.className = "update-version";
-        version.textContent = item.version || "UPDATE";
+        version.textContent = item.version || "업데이트";
         const title = document.createElement("h3");
         title.textContent = item.title || "제목 없음";
         heading.append(version, title);

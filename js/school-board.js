@@ -12,7 +12,7 @@ const SCHOOLS = {
     const school = SCHOOLS[schoolKey];
     if (!school) {
         location.replace("talk.html");
-        throw new Error("Invalid school.");
+        throw new Error("올바르지 않은 게시판입니다.");
     }
 
     document.title = `DEEP SKY | ${school.boardTitle}`;

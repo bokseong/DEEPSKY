@@ -44,7 +44,7 @@ document.getElementById("signup-form").addEventListener("submit",async e=>{
     alert("회원 정보가 등록되었습니다.");
     location.href="login.html";
   }catch(err){
-    alert("Signup failed: "+err.message);
+    alert("회원가입에 실패했습니다: "+err.message);
   }finally{
     btn.disabled=false;
   }

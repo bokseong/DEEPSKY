@@ -340,19 +340,19 @@ function startApiStatusMonitor() {
 
 function normalizeNavigation() {
     const items = [
-        { href: "index.html", label: "HOME" },
-        { href: "introduction.html", label: "INTRODUCTION" },
-        { href: "talk.html", label: "TALK" },
-        { href: "question.html", label: "QUESTION" },
-        { href: "photo.html", label: "PHOTO" },
-        { href: "resource.html", label: "RESOURCE" },
-        { href: "weather.html", label: "WEATHER" },
+        { href: "index.html", label: "홈" },
+        { href: "introduction.html", label: "소개" },
+        { href: "talk.html", label: "동아리 게시판" },
+        { href: "question.html", label: "질문 게시판" },
+        { href: "photo.html", label: "사진 게시판" },
+        { href: "resource.html", label: "자료실" },
+        { href: "weather.html", label: "날씨" },
         { href: "ai.html", label: "AI" },
-        { href: "search.html", label: "SEARCH" },
-        { href: "notifications.html", label: "NOTIFICATION" },
-        { href: "suggest.html", label: "SUGGESTION" },
-        { href: "mypage.html", label: "MY PAGE" },
-        { href: "admin.html", label: "ADMIN" }
+        { href: "search.html", label: "통합 검색" },
+        { href: "notifications.html", label: "알림" },
+        { href: "suggest.html", label: "건의" },
+        { href: "mypage.html", label: "마이페이지" },
+        { href: "admin.html", label: "관리자" }
     ];
     const page = location.pathname.split("/").pop() || "index.html";
     const school = new URLSearchParams(location.search).get("school");
@@ -840,7 +840,7 @@ function showAnnouncementPopup(announcements) {
     const headingGroup = document.createElement("div");
     const eyebrow = document.createElement("span");
     eyebrow.className = "site-announcement-dialog-eyebrow";
-    eyebrow.textContent = "DEEP SKY NOTICE";
+    eyebrow.textContent = "DEEP SKY 공지";
     const heading = document.createElement("h2");
     heading.id = "site-announcement-dialog-title";
     heading.textContent = announcements.length > 1 ? `중요 공지 ${announcements.length}건` : "중요 공지";

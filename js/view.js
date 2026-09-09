@@ -61,8 +61,8 @@ let currentUser = null;
         if (!res.ok) { alert('자료를 찾을 수 없습니다.'); location.replace('resource.html'); return; }
         postData = await res.json();
         document.getElementById('viewTitle').innerText = postData.title || '제목 없음';
-        document.getElementById('viewAuthor').innerText = `BY. ${postData.author_name || postData.author || '익명'}`;
-        document.getElementById('viewCategory').innerText = postData.category || 'RESOURCE';
+        document.getElementById('viewAuthor').innerText = `작성자: ${postData.author_name || postData.author || '익명'}`;
+        document.getElementById('viewCategory').innerText = postData.category || '자료';
         document.getElementById('viewDate').innerText = formatDate(postData.created_at || postData.createdAt);
         document.getElementById('viewContent').innerText = postData.content || postData.description || '';
         const linksDiv = document.getElementById('linksContainer');
@@ -171,14 +171,14 @@ let currentUser = null;
         if (!content || !currentUser) return;
         const btn = document.getElementById('btnPostComment');
         btn.disabled = true;
-        btn.innerText = 'SENDING...';
+        btn.innerText = '등록 중...';
         try {
             const res = await apiFetch(`/api/deepsky/board/${COLLECTION}/${encodedPostId}/comments`, { method:'POST', headers: await getHeaders(true), body: JSON.stringify({ content, authorName: currentUserName }) });
             if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || '댓글 작성 실패'); }
             input.value = '';
             await loadComments();
         } catch (err) { alert(err.message); }
-        finally { btn.disabled = false; btn.innerText = 'POST'; }
+        finally { btn.disabled = false; btn.innerText = '등록'; }
     });
 
     async function resolveAttachmentUrl(url, filename, mode) {

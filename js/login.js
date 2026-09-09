@@ -16,7 +16,7 @@ document.getElementById("login-form").addEventListener("submit", async event => 
     event.preventDefault();
     const button = document.getElementById("login-btn");
     button.disabled = true;
-    button.textContent = "Signing in...";
+    button.textContent = "로그인 중...";
     try {
         if (!await authPersistenceReady) throw new Error("세션 로그인 설정에 실패했습니다.");
         const credential = await signInWithEmailAndPassword(
@@ -25,7 +25,7 @@ document.getElementById("login-form").addEventListener("submit", async event => 
             document.getElementById("password").value
         );
         if (!credential.user.emailVerified) {
-            alert("Email verification is required.");
+            alert("이메일 인증이 필요합니다.");
             await signOut(auth);
             return;
         }
@@ -35,10 +35,10 @@ document.getElementById("login-form").addEventListener("submit", async event => 
             location.href = "signup.html";
             return;
         }
-        alert("Login failed. Check your email and password.");
+        alert("로그인에 실패했습니다. 이메일과 비밀번호를 확인해 주세요.");
     } finally {
         button.disabled = false;
-        button.textContent = "Login";
+        button.textContent = "로그인";
     }
 });
 
@@ -48,7 +48,7 @@ document.getElementById("google-btn").addEventListener("click", async () => {
         const credential = await signInWithPopup(auth, new GoogleAuthProvider());
         await continueAfterAuthentication(credential.user);
     } catch (error) {
-        alert("Google login failed.");
+        alert("Google 로그인에 실패했습니다.");
     }
 });
 
@@ -74,12 +74,12 @@ document.getElementById("github-btn").addEventListener("click", async () => {
 });
 
 document.getElementById("reset-btn").addEventListener("click", async () => {
-    const email = prompt("Enter your email address.");
+    const email = prompt("이메일 주소를 입력해 주세요.");
     if (!email) return;
     try {
         await sendPasswordResetEmail(auth, email);
-        alert("Password reset email sent.");
+        alert("비밀번호 재설정 메일을 보냈습니다.");
     } catch (error) {
-        alert("Failed to send reset email.");
+        alert("비밀번호 재설정 메일을 보내지 못했습니다.");
     }
 });

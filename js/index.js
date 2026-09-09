@@ -22,7 +22,7 @@ onAuthStateChanged(auth,async user=>{
   try {
     if (user) {
       profile=await getCurrentProfile(user);
-      userName.textContent=profile.name||user.displayName||"User";
+      userName.textContent=profile.name||user.displayName||"사용자";
       const response = await apiRequest("/api/deepsky/dashboard", {}, user);
       renderDashboard(await response.json());
     }

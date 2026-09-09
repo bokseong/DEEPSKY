@@ -292,7 +292,7 @@ onAuthStateChanged(auth, async user => {
         elements.loginLink.style.display = "none";
         elements.logout.style.display = "inline-flex";
         elements.userName.style.display = "inline";
-        elements.userName.textContent = profile.name || user.displayName || "User";
+        elements.userName.textContent = profile.name || user.displayName || "사용자";
         if (profile.role !== "admin") {
             elements.mode.querySelector('option[value="server"]')?.remove();
         }

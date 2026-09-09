@@ -10,7 +10,7 @@ const SCHOOLS = {
     const postId = params.get("id");
     if (!school || !postId) {
         location.replace("talk.html");
-        throw new Error("Invalid school or post id.");
+        throw new Error("게시판 또는 글 번호가 올바르지 않습니다.");
     }
     const encodedPostId = encodeURIComponent(postId);
 let currentUser = null;

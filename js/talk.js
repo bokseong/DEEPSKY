@@ -31,7 +31,7 @@ onAuthStateChanged(auth,async user=>{
     loginLink.style.display="none";
     logoutBtn.style.display="inline-flex";
     userName.style.display="inline";
-    userName.textContent=userDataCache.name||user.displayName||"User";
+    userName.textContent=userDataCache.name||user.displayName||"사용자";
     await initializeAnnouncementSection({
         section: document.getElementById("talk-announcement-section"),
         container: document.getElementById("talk-announcement-list"),
