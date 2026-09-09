@@ -65,16 +65,12 @@
     font-weight: 700;
 }
 
-.github-btn::before {
-    content: "GH";
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
+.github-btn-icon {
+    width: 22px;
     height: 22px;
-    margin-right: 8px;
-    font-size: .78rem;
-    font-weight: 800;
+    margin-right: 10px;
+    flex: 0 0 auto;
+    fill: currentColor;
 }
 
 .github-btn:hover,
