@@ -161,33 +161,6 @@ export async function apiFetchUrl(url, options = {}) {
     return fetch(target.href, options);
 }
 
-const SAFE_LOGO_ASSET_PATTERN = /^(?:logo\.png|assets\/logos\/[a-z0-9-]+\.png)$/;
-
-export async function applySiteBranding() {
-    try {
-        const response = await apiFetch("/api/deepsky/site-settings/logo", {
-            headers: { "ngrok-skip-browser-warning": "69420" }
-        });
-        if (!response.ok) return null;
-        const settings = await response.json();
-        const asset = String(settings.activeAsset || "");
-        if (!SAFE_LOGO_ASSET_PATTERN.test(asset)) return null;
-        const version = settings.updatedAt ? `?v=${encodeURIComponent(settings.updatedAt)}` : "";
-        const source = `${asset}${version}`;
-        document.querySelectorAll("img.nav-logo, img.hero-logo, img.emblem-image").forEach(image => {
-            image.src = source;
-        });
-        document.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]').forEach(link => {
-            link.href = source;
-        });
-        document.documentElement.dataset.activeLogo = String(settings.activeLogo || "classic");
-        return settings;
-    } catch (error) {
-        console.warn("동아리 로고 설정을 불러오지 못해 기본 로고를 사용합니다.", error);
-        return null;
-    }
-}
-
 // 다른 화면 모듈이 초기 데이터를 요청하기 전부터 사용 가능한 경로를 선택합니다.
 selectAvailableApi().catch(() => {});
 
@@ -1083,7 +1056,6 @@ function createAiLauncher() {
 }
 
 function initializeCommonUi() {
-    void applySiteBranding();
     startApiStatusMonitor();
     normalizeNavigation();
     createSearchPopover();
