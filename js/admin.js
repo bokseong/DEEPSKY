@@ -451,12 +451,19 @@ async function loadReports() {
 }
 
 async function updateReport(id, status) {
-    await apiRequest(`/api/deepsky/admin/reports/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status })
-    }, currentAdminUser);
-    await Promise.all([loadReports(), loadAuditLogs()]);
+    const action = status === "resolved" ? "처리" : "기각";
+    if (!confirm(`이 신고를 ${action}하고 신고 기록을 삭제하시겠습니까?`)) return;
+    try {
+        await apiRequest(`/api/deepsky/admin/reports/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status })
+        }, currentAdminUser);
+        await Promise.all([loadReports(), loadAuditLogs()]);
+        alert(`신고가 ${action}되었으며 신고 기록이 삭제되었습니다.`);
+    } catch (error) {
+        alert(error.message);
+    }
 }
 
 async function loadAuditLogs() {
