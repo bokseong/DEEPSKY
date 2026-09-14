@@ -1,9 +1,9 @@
 import { apiFetch, auth, authHeaders as getAuthHeaders, getCurrentProfile } from "./common.js";
-import { initializeAnnouncementSection } from "./announcement-manager.js";
+import { initializeAnnouncementSection } from "./announcement-manager.js?v=20260914-deputy-role";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
-        b: { collection:"club-board", title:"Talk", boardTitle:"동아리 게시글", subtitle:"동아리 부원 전용 소통과 활동 기록 공간입니다.", roles:["admin", "teacher", "student"], categories:["천체 관측 데이터", "실험 보고서", "보고서", "훈련 자료", "소스 코드", "기타"], writeUrl:"school-write.html?school=b", viewUrl:"school-view.html?school=b" },
-        q: { collection:"questions", title:"Questions", boardTitle:"질문 게시판", subtitle:"천문·항공우주 활동과 홈페이지 이용에 관해 묻고 답하는 공간입니다.", roles:["admin", "teacher", "student", "member"], categories:["천문 관측", "데이터 처리", "장비", "웹사이트 이용", "기타"], writeUrl:"school-write.html?school=q", viewUrl:"school-view.html?school=q" }
+        b: { collection:"club-board", title:"Talk", boardTitle:"동아리 게시글", subtitle:"동아리 부원 전용 소통과 활동 기록 공간입니다.", roles:["admin", "teacher", "deputy", "student"], categories:["천체 관측 데이터", "실험 보고서", "보고서", "훈련 자료", "소스 코드", "기타"], writeUrl:"school-write.html?school=b", viewUrl:"school-view.html?school=b" },
+        q: { collection:"questions", title:"Questions", boardTitle:"질문 게시판", subtitle:"천문·항공우주 활동과 홈페이지 이용에 관해 묻고 답하는 공간입니다.", roles:["admin", "teacher", "deputy", "student", "member"], categories:["천문 관측", "데이터 처리", "장비", "웹사이트 이용", "기타"], writeUrl:"school-write.html?school=q", viewUrl:"school-view.html?school=q" }
     };
 
     const params = new URLSearchParams(location.search);
@@ -28,7 +28,7 @@ let currentUser = null;
     let allPosts = [];
 
     const roleAllowed = (role) => school.roles.includes(role);
-    const canManage = (post) => currentUser && (post.uid === currentUser.uid || ["admin", "teacher"].includes(currentRole));
+    const canManage = (post) => currentUser && (post.uid === currentUser.uid || ["admin", "teacher", "deputy"].includes(currentRole));
     const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
 
     document.getElementById("logout-btn").addEventListener("click", async () => {

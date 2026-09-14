@@ -1,7 +1,7 @@
 import { API_BASE_URL, apiFetch, auth, authHeaders, getCurrentProfile } from "./common.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const COLLECTION = "resources";
-const WRITABLE_ROLES = ['teacher', 'admin'];
+const WRITABLE_ROLES = ['teacher', 'deputy', 'admin'];
 let currentUser = null;
     let currentRole = 'guest';
     let allPosts = [];
@@ -71,7 +71,7 @@ let currentUser = null;
 
         const canDelete = (p) => currentUser && (
             p.uid === currentUser.uid ||
-            ['admin', 'teacher'].includes(currentRole)
+            ['admin', 'teacher', 'deputy'].includes(currentRole)
         );
 
         listDiv.replaceChildren();

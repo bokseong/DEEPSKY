@@ -5,7 +5,7 @@ let currentUser = null;
 let currentProfile = null;
 const roleMap = {
     admin: "관리자", teacher: "교사",
-    student: "동아리 부원", member: "일반 회원"
+    deputy: "차장", student: "동아리 부원", member: "일반 회원"
 };
 
 async function logout() {

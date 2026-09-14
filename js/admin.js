@@ -3,11 +3,12 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 
 const roleMap = {
     admin: "관리자", teacher: "교사",
-    student: "동아리 부원", member: "일반 회원"
+    deputy: "차장", student: "동아리 부원", member: "일반 회원"
 };
 const userNameDisplay = document.getElementById("user-name");
 const logoutBtn = document.getElementById("logout-btn");
 let currentAdminUser = null;
+let currentAdminRole = "guest";
 let recentActivity = [];
 let activityFilter = "all";
 
@@ -41,6 +42,7 @@ onAuthStateChanged(auth, async user => {
             return;
         }
         currentAdminUser = user;
+        currentAdminRole = profile.role || "member";
         userNameDisplay.style.display = "inline";
         userNameDisplay.textContent = `${profile.name || "관리자"}님`;
         logoutBtn.style.display = "inline";
@@ -125,6 +127,16 @@ async function loadUsers() {
             return;
         }
         users.forEach(user => {
+            if (currentAdminRole === "deputy") {
+                const row = document.createElement("tr");
+                const action = user.role === "member"
+                    ? `<button class="btn-update" data-promote>부원으로 변경</button>`
+                    : "<span>변경 불가</span>";
+                row.innerHTML = `<td>${escapeHtml(user.name || "이름 없음")}</td><td>${escapeHtml(user.school || "-")}</td><td>${escapeHtml(user.email || "-")}</td><td><span style="color:var(--accent)">${escapeHtml(roleMap[user.role] || user.role || "member")}</span></td><td>${action}</td>`;
+                row.querySelector("[data-promote]")?.addEventListener("click", () => updateUserRole(user.uid, "student"));
+                userList.appendChild(row);
+                return;
+            }
             const options = Object.entries(roleMap).map(([value, label]) =>
                 `<option value="${value}" ${user.role === value ? "selected" : ""}>${label}</option>`
             ).join("");
@@ -158,6 +170,9 @@ function renderRolePermissions(payload) {
     const container = document.getElementById("role-permission-matrix");
     const definitions = Array.isArray(payload.definitions) ? payload.definitions : [];
     const lockedRoles = new Set(payload.lockedRoles || []);
+    if (currentAdminRole === "deputy") {
+        Object.keys(payload.roles || {}).forEach(role => lockedRoles.add(role));
+    }
     const roles = Object.entries(payload.roles || {});
     container.replaceChildren();
     if (!definitions.length || !roles.length) {
@@ -183,7 +198,7 @@ function renderRolePermissions(payload) {
         if (lockedRoles.has(role)) {
             const status = document.createElement("small");
             status.className = "permission-role-status";
-            status.textContent = "고정";
+            status.textContent = currentAdminRole === "deputy" ? "열람만 가능" : "고정";
             heading.appendChild(status);
         }
         headingRow.appendChild(heading);
@@ -354,9 +369,13 @@ async function loadRequests() {
         }
         requests.forEach(authorityRequest => {
             const row = document.createElement("tr");
-            row.innerHTML = `<td>${formatDate(authorityRequest.created_at)}</td><td>${escapeHtml(authorityRequest.name || "이름 없음")}</td><td>${escapeHtml(authorityRequest.school || "-")}</td><td><span style="color:var(--accent)">${escapeHtml(roleMap[authorityRequest.requested_role] || authorityRequest.requested_role)}</span></td><td><small style="color:#ccc">${escapeHtml(authorityRequest.reason || "-")}</small></td><td><button class="btn-update" data-action="approve">승인</button><button class="btn-update btn-danger" data-action="reject">거절</button></td>`;
+            const actions = currentAdminRole === "deputy"
+                ? '<button class="btn-update" data-action="approve">부원 승격 승인</button>'
+                : '<button class="btn-update" data-action="approve">승인</button><button class="btn-update btn-danger" data-action="reject">거절</button>';
+            row.innerHTML = `<td>${formatDate(authorityRequest.created_at)}</td><td>${escapeHtml(authorityRequest.name || "이름 없음")}</td><td>${escapeHtml(authorityRequest.school || "-")}</td><td><span style="color:var(--accent)">${escapeHtml(roleMap[authorityRequest.requested_role] || authorityRequest.requested_role)}</span></td><td><small style="color:#ccc">${escapeHtml(authorityRequest.reason || "-")}</small></td><td>${actions}</td>`;
             row.querySelector('[data-action="approve"]').onclick = () => handleRequest(authorityRequest.uid, "approve");
-            row.querySelector('[data-action="reject"]').onclick = () => handleRequest(authorityRequest.uid, "reject");
+            const rejectButton = row.querySelector('[data-action="reject"]');
+            if (rejectButton) rejectButton.onclick = () => handleRequest(authorityRequest.uid, "reject");
             list.appendChild(row);
         });
     } catch (error) {
@@ -365,8 +384,8 @@ async function loadRequests() {
     }
 }
 
-async function updateUserRole(uid) {
-    const role = document.getElementById(`role-${uid}`).value;
+async function updateUserRole(uid, requestedRole = "") {
+    const role = requestedRole || document.getElementById(`role-${uid}`).value;
     if (!confirm(`해당 사용자의 등급을 ${roleMap[role] || role}(으)로 변경하시겠습니까?`)) return;
     try {
         await apiRequest(`/api/deepsky/admin/users/${encodeURIComponent(uid)}/role`, {

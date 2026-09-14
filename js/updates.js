@@ -180,7 +180,7 @@ function toLocalInput(value) {
 
 export async function initializeUpdates(user = null, profile = null) {
     currentUser = user;
-    canManage = Boolean(user && ["admin", "teacher"].includes(profile?.role));
+    canManage = Boolean(user && ["admin", "teacher", "deputy"].includes(profile?.role));
     elements.compose.hidden = !canManage;
     if (!canManage) closeForm();
     await loadUpdates();

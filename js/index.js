@@ -1,7 +1,7 @@
 import { apiRequest, auth, getCurrentProfile } from "./common.js";
-import { initializeAnnouncements } from "./announcements.js?v=20260826-home-records";
-import { initializeSchedule } from "./schedule.js?v=20260826-home-records";
-import { initializeUpdates } from "./updates.js?v=20260826-home-records";
+import { initializeAnnouncements } from "./announcements.js?v=20260914-deputy-role";
+import { initializeSchedule } from "./schedule.js?v=20260914-deputy-role";
+import { initializeUpdates } from "./updates.js?v=20260914-deputy-role";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const loginLink=document.getElementById("login-link");
 const logoutBtn=document.getElementById("logout-btn");

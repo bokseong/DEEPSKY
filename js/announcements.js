@@ -1,4 +1,4 @@
-import { initializeAnnouncementSection } from "./announcement-manager.js";
+import { initializeAnnouncementSection } from "./announcement-manager.js?v=20260914-deputy-role";
 
 const section = document.getElementById("announcement-board");
 const container = document.getElementById("announcement-list");

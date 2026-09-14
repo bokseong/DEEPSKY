@@ -1,13 +1,13 @@
 import { apiRequest, auth, getCurrentProfile } from "./js/common.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const ROLES = {
-    loggedIn: ["admin", "teacher", "student", "member"],
-    ai: ["admin", "teacher", "student"],
-    resourceWrite: ["admin", "teacher"],
-    suggestions: ["admin", "teacher", "student"],
-    suggestionRead: ["admin", "teacher"],
-    clubBoard: ["admin", "teacher", "student"],
-    questionBoard: ["admin", "teacher", "student", "member"]
+    loggedIn: ["admin", "teacher", "deputy", "student", "member"],
+    ai: ["admin", "teacher", "deputy", "student"],
+    resourceWrite: ["admin", "teacher", "deputy"],
+    suggestions: ["admin", "teacher", "deputy", "student"],
+    suggestionRead: ["admin", "teacher", "deputy"],
+    clubBoard: ["admin", "teacher", "deputy", "student"],
+    questionBoard: ["admin", "teacher", "deputy", "student", "member"]
 };
 
 const PAGE_RULES = [

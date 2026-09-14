@@ -52,7 +52,7 @@ window.gateCheck=(targetUrl,studentRole)=>{
         return;
     }
     const role=userDataCache.role||"member";
-    if(role==="admin"||role==="teacher"||role===studentRole){
+    if(role==="admin"||role==="teacher"||role==="deputy"||role===studentRole){
         location.href=targetUrl;
         return;
     }

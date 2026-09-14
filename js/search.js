@@ -97,7 +97,7 @@ function renderResult(item) {
 
 function limitCollectionOptions(role) {
     const allowed = new Set(["resources", "questions"]);
-    if (["admin", "teacher", "student"].includes(role)) allowed.add("club-board");
+    if (["admin", "teacher", "deputy", "student"].includes(role)) allowed.add("club-board");
     document.querySelectorAll("#search-collection option[value]").forEach(option => {
         if (option.value && !allowed.has(option.value)) option.remove();
     });

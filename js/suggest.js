@@ -2,7 +2,7 @@ import { apiRequest, auth, getCurrentProfile, logoutTo } from "./common.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const SUGGESTION_ROLES = new Set([
-    "admin", "teacher", "student"
+    "admin", "teacher", "deputy", "student"
 ]);
 
 const loginLink = document.getElementById("login-link");
