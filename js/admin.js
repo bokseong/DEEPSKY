@@ -170,10 +170,7 @@ function renderRolePermissions(payload) {
     const container = document.getElementById("role-permission-matrix");
     const definitions = Array.isArray(payload.definitions) ? payload.definitions : [];
     const lockedRoles = new Set(payload.lockedRoles || []);
-    const lockedPermissions = new Map(
-        Object.entries(payload.lockedPermissions || {}).map(([role, keys]) => [role, new Set(keys || [])])
-    );
-    if (currentAdminRole === "deputy") {
+    if (currentAdminRole !== "admin") {
         Object.keys(payload.roles || {}).forEach(role => lockedRoles.add(role));
     }
     const roles = Object.entries(payload.roles || {});
@@ -201,12 +198,7 @@ function renderRolePermissions(payload) {
         if (lockedRoles.has(role)) {
             const status = document.createElement("small");
             status.className = "permission-role-status";
-            status.textContent = currentAdminRole === "deputy" ? "열람만 가능" : "고정";
-            heading.appendChild(status);
-        } else if (lockedPermissions.get(role)?.size) {
-            const status = document.createElement("small");
-            status.className = "permission-role-status";
-            status.textContent = "공개 열람만 조정";
+            status.textContent = currentAdminRole !== "admin" ? "열람만 가능" : "고정";
             heading.appendChild(status);
         }
         headingRow.appendChild(heading);
@@ -237,7 +229,7 @@ function renderRolePermissions(payload) {
             checkbox.dataset.role = role;
             checkbox.dataset.permission = definition.key;
             checkbox.checked = Boolean(permissions?.[definition.key]);
-            checkbox.disabled = lockedRoles.has(role) || Boolean(lockedPermissions.get(role)?.has(definition.key));
+            checkbox.disabled = lockedRoles.has(role);
             checkbox.setAttribute("aria-label", `${payload.roleLabels?.[role] || roleMap[role] || role}: ${definition.label}`);
             const visibleLabel = document.createElement("span");
             visibleLabel.textContent = checkbox.checked ? "허용" : "차단";
