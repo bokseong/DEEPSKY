@@ -1,4 +1,4 @@
-import { apiFetch, apiFetchUrl, auth, getCurrentProfile, normalizeSafeLinkUrl, optionalAuthHeaders } from "./common.js?v=20260920-guest-permissions";
+import { apiFetch, apiFetchUrl, auth, getCurrentPermissions, getCurrentProfile, normalizeSafeLinkUrl, optionalAuthHeaders } from "./common.js?v=20260920-guest-permissions";
 import { appendCommentReportButton, setupPostTools } from "./post-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
@@ -16,6 +16,7 @@ const SCHOOLS = {
 let currentUser = null;
     let currentRole = "guest";
     let currentUserName = "익명";
+    let currentPermissions = {};
     let post = null;
 
     const roleAllowed = (role) => school.roles.includes(role);
@@ -23,6 +24,7 @@ let currentUser = null;
     const headers = async () => optionalAuthHeaders(currentUser);
     const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
     const isFileAttachment = (link, href) => link?.type === "file" || href.includes("/api/deepsky/uploads/");
+    const commentPermissionKey = school.collection === "questions" ? "questions.answer" : "boards.comment";
 
     document.getElementById("logout-btn").onclick = async () => { if (confirm("로그아웃 하시겠습니까?")) { await signOut(auth); location.href = "index.html"; } };
     document.getElementById("btn-list").onclick = () => location.href = school.boardUrl;
@@ -38,21 +40,33 @@ let currentUser = null;
             document.getElementById("user-name").style.display = "none";
             document.getElementById("logout-btn").style.display = "none";
             document.getElementById("login-link").style.display = "inline";
-            await loadPost();
-            await loadComments();
+            try {
+                currentPermissions = await getCurrentPermissions(null);
+                configureCommentAccess();
+                await loadPost();
+                await loadComments();
+            } catch (err) {
+                console.error(err);
+                location.replace("block.html");
+            }
             return;
         }
         try {
-            const data = await getCurrentProfile(user);
+            const [data, permissionData] = await Promise.all([
+                getCurrentProfile(user),
+                getCurrentPermissions(user)
+            ]);
             const role = data.role || "member";
             if (!roleAllowed(role)) { location.replace("block.html"); return; }
             currentUser = user;
             currentRole = role;
             currentUserName = data.name || "익명";
+            currentPermissions = permissionData;
             document.getElementById("user-name").style.display = "inline";
             document.getElementById("user-name").textContent = `${currentUserName}님`;
             document.getElementById("logout-btn").style.display = "inline";
             document.getElementById("login-link").style.display = "none";
+            configureCommentAccess();
             await loadPost();
             await loadComments();
         } catch (err) {
@@ -124,7 +138,10 @@ let currentUser = null;
         const list = document.getElementById("comment-list");
         if (!res.ok) { list.innerHTML = ""; return; }
         const comments = await res.json();
-        if (comments.length === 0) { list.innerHTML = '<p style="color:#777; text-align:center;">첫 댓글을 남겨보세요.</p>'; return; }
+        if (comments.length === 0) {
+            list.innerHTML = `<p style="color:#777; text-align:center;">첫 ${school.collection === "questions" ? "답변" : "댓글"}을 남겨보세요.</p>`;
+            return;
+        }
         list.replaceChildren();
         comments.forEach(comment => {
             const item = document.createElement("div");
@@ -228,13 +245,32 @@ let currentUser = null;
     }
 
     async function createComment() {
-        if (!currentUser) { alert("댓글을 작성하려면 로그인해 주세요."); return; }
+        const itemLabel = school.collection === "questions" ? "답변" : "댓글";
+        if (!currentUser) { alert(`${itemLabel}을 작성하려면 로그인해 주세요.`); return; }
+        if (!currentPermissions[commentPermissionKey]) { alert(`${itemLabel} 작성 권한이 없습니다.`); return; }
         const input = document.getElementById("comment-input");
         const content = input.value.trim();
         if (!content) return;
         const res = await apiFetch(`/api/deepsky/board/${school.collection}/${encodedPostId}/comments`, { method:"POST", headers:{ ...(await headers()), "Content-Type":"application/json" }, body:JSON.stringify({ content, authorName:currentUserName }) });
         if (res.ok) { input.value = ""; await loadComments(); }
-        else alert("댓글 등록 권한이 없거나 오류가 발생했습니다.");
+        else alert(`${itemLabel} 등록 권한이 없거나 오류가 발생했습니다.`);
+    }
+
+    function configureCommentAccess() {
+        const isQuestion = school.collection === "questions";
+        const itemLabel = isQuestion ? "답변" : "댓글";
+        const canRespond = Boolean(currentUser) && Boolean(currentPermissions[commentPermissionKey]);
+        const form = document.getElementById("comment-form");
+        const message = document.getElementById("comment-permission-message");
+        document.getElementById("comment-heading").textContent = itemLabel;
+        document.getElementById("comment-input").setAttribute("aria-label", itemLabel);
+        document.getElementById("comment-input").placeholder = isQuestion ? "질문에 대한 답변을 작성하세요." : "의견을 남겨보세요.";
+        document.getElementById("comment-submit").textContent = isQuestion ? "답변 등록" : "등록";
+        form.hidden = !canRespond;
+        message.hidden = canRespond;
+        message.textContent = currentUser
+            ? `${itemLabel} 작성 권한이 없습니다.`
+            : `${itemLabel}을 작성하려면 로그인해 주세요.`;
     }
 
     async function deleteComment(commentId) {

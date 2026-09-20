@@ -29,6 +29,8 @@
         .btn-danger { color:#ff4d4d; border-color:#ff4d4d; }
         .hidden { display:none !important; }
         .comment-panel { margin-top:22px; }
+        .comment-panel h2 { margin:0 0 14px; color:var(--accent); font-size:1.25rem; }
+        .status-message { margin:0 0 18px; padding:12px 14px; border:1px solid rgba(255,255,255,.12); border-radius:7px; background:rgba(255,255,255,.04); color:#aeb8bc; font-size:.85rem; }
         .comment-form { display:flex; gap:10px; margin-bottom:20px; }
         .comment-input { flex:1; min-width:0; background:rgba(0,0,0,.3); border:1px solid var(--border-color); color:white; border-radius:6px; padding:10px 12px; }
         .comment { border-top:1px solid var(--border-color); padding:16px 0; }

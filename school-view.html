@@ -8,7 +8,7 @@
     <title>DEEP SKY | 글 보기</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/common.css">
-    <link rel="stylesheet" href="css/school-view.css">
+    <link rel="stylesheet" href="css/school-view.css?v=20260920-question-answer-permission">
 </head>
 <body>
 <div class="auth-bar">
@@ -47,7 +47,9 @@
     </article>
 
     <section class="comment-panel">
-        <div class="comment-form"><input id="comment-input" class="comment-input" type="text" aria-label="댓글" placeholder="의견을 남겨보세요."><button id="comment-submit" class="btn-primary">등록</button></div>
+        <h2 id="comment-heading">댓글</h2>
+        <p id="comment-permission-message" class="status-message" hidden></p>
+        <div id="comment-form" class="comment-form"><input id="comment-input" class="comment-input" type="text" aria-label="댓글" placeholder="의견을 남겨보세요."><button id="comment-submit" class="btn-primary">등록</button></div>
         <div id="comment-list"></div>
     </section>
 </main>
@@ -57,7 +59,7 @@
   <p>Designed by jw-astro09 | Contact: 2jw5464@gmail.com</p>
 </footer>
 
-<script type="module" src="js/school-view.js?v=20260920-guest-permissions"></script>
+<script type="module" src="js/school-view.js?v=20260920-question-answer-permission"></script>
 <script type="module" src="frontend-access-control.js?v=20260920-guest-permissions"></script>
 </body>
 </html>
