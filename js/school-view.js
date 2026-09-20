@@ -1,9 +1,9 @@
-import { apiFetch, apiFetchUrl, auth, authHeaders as getAuthHeaders, getCurrentProfile, normalizeSafeLinkUrl } from "./common.js";
+import { apiFetch, apiFetchUrl, auth, getCurrentProfile, normalizeSafeLinkUrl, optionalAuthHeaders } from "./common.js?v=20260920-guest-permissions";
 import { appendCommentReportButton, setupPostTools } from "./post-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
         b: { collection:"club-board", roles:["admin", "teacher", "deputy", "student"], boardUrl:"talk.html", writeUrl:"school-write.html?school=b" },
-        q: { collection:"questions", roles:["admin", "teacher", "deputy", "student", "member"], boardUrl:"question.html", writeUrl:"school-write.html?school=q" }
+        q: { collection:"questions", roles:["admin", "teacher", "deputy", "student", "member", "guest"], boardUrl:"question.html", writeUrl:"school-write.html?school=q" }
     };
     const params = new URLSearchParams(location.search);
     const school = SCHOOLS[params.get("school")];
@@ -20,7 +20,7 @@ let currentUser = null;
 
     const roleAllowed = (role) => school.roles.includes(role);
     const canManagePost = () => post && currentUser && (post.uid === currentUser.uid || ["admin", "teacher", "deputy"].includes(currentRole));
-    const headers = async () => getAuthHeaders(currentUser);
+    const headers = async () => optionalAuthHeaders(currentUser);
     const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
     const isFileAttachment = (link, href) => link?.type === "file" || href.includes("/api/deepsky/uploads/");
 
@@ -31,7 +31,17 @@ let currentUser = null;
     document.getElementById("comment-submit").onclick = createComment;
 
     onAuthStateChanged(auth, async (user) => {
-        if (!user) { location.replace("block.html"); return; }
+        if (!user) {
+            if (!roleAllowed("guest")) { location.replace("block.html"); return; }
+            currentUser = null;
+            currentRole = "guest";
+            document.getElementById("user-name").style.display = "none";
+            document.getElementById("logout-btn").style.display = "none";
+            document.getElementById("login-link").style.display = "inline";
+            await loadPost();
+            await loadComments();
+            return;
+        }
         try {
             const data = await getCurrentProfile(user);
             const role = data.role || "member";
@@ -128,7 +138,7 @@ let currentUser = null;
             date.textContent = comment.created_at ? new Date(comment.created_at).toLocaleString() : "";
             meta.append(author, date);
 
-            const canDelete = comment.uid === currentUser.uid || canManagePost();
+            const canDelete = Boolean(currentUser) && (comment.uid === currentUser.uid || canManagePost());
             if (canDelete) {
                 const deleteButton = document.createElement("button");
                 deleteButton.type = "button";
@@ -185,7 +195,6 @@ let currentUser = null;
     async function openAttachment(url, filename, mode = "preview") {
         let previewWindow = null;
         try {
-            if (!currentUser) throw new Error("로그인이 필요합니다.");
             if (mode === "preview") {
                 previewWindow = window.open("about:blank", "_blank");
                 if (!previewWindow) throw new Error("팝업이 차단되어 미리보기를 열 수 없습니다.");
@@ -219,6 +228,7 @@ let currentUser = null;
     }
 
     async function createComment() {
+        if (!currentUser) { alert("댓글을 작성하려면 로그인해 주세요."); return; }
         const input = document.getElementById("comment-input");
         const content = input.value.trim();
         if (!content) return;

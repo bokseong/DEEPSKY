@@ -1,4 +1,4 @@
-import { apiFetch, apiFetchUrl, auth, authHeaders, getCurrentProfile, normalizeSafeLinkUrl } from "./common.js";
+import { apiFetch, apiFetchUrl, auth, authHeaders, getCurrentProfile, normalizeSafeLinkUrl } from "./common.js?v=20260920-guest-permissions";
 import { appendCommentReportButton, setupPostTools } from "./post-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const COLLECTION = "resources";
@@ -235,7 +235,6 @@ let currentUser = null;
     async function openAttachment(url, filename, mode = 'preview') {
         let previewWindow = null;
         try {
-            if (!currentUser) throw new Error('로그인이 필요합니다.');
             if (mode === 'preview') {
                 previewWindow = window.open('about:blank', '_blank');
                 if (!previewWindow) throw new Error('팝업이 차단되어 미리보기를 열 수 없습니다.');

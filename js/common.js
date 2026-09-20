@@ -239,6 +239,30 @@ export async function apiRequest(path, options = {}, user = auth.currentUser) {
     return response;
 }
 
+export async function optionalAuthHeaders(user = auth.currentUser, json = false) {
+    if (user) return authHeaders(user, json);
+    const headers = { "ngrok-skip-browser-warning": "69420" };
+    if (json) headers["Content-Type"] = "application/json";
+    return headers;
+}
+
+export async function apiRequestOptional(path, options = {}, user = auth.currentUser) {
+    const headers = new Headers(options.headers || {});
+    const authValues = await optionalAuthHeaders(user);
+    Object.entries(authValues).forEach(([key, value]) => headers.set(key, value));
+    const response = await apiFetch(path, { ...options, headers });
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `요청에 실패했습니다. (${response.status})`);
+    }
+    return response;
+}
+
+export async function getCurrentPermissions(user = auth.currentUser) {
+    const response = await apiRequestOptional("/api/deepsky/me/permissions", {}, user);
+    return response.json();
+}
+
 export function clearProfileCache() {
     profileUid = null;
     profilePromise = null;

@@ -1,4 +1,4 @@
-import { apiRequest, auth, getCurrentProfile } from "./common.js";
+import { apiRequest, auth, getCurrentProfile } from "./common.js?v=20260920-guest-permissions";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const roleMap = {
@@ -170,6 +170,9 @@ function renderRolePermissions(payload) {
     const container = document.getElementById("role-permission-matrix");
     const definitions = Array.isArray(payload.definitions) ? payload.definitions : [];
     const lockedRoles = new Set(payload.lockedRoles || []);
+    const lockedPermissions = new Map(
+        Object.entries(payload.lockedPermissions || {}).map(([role, keys]) => [role, new Set(keys || [])])
+    );
     if (currentAdminRole === "deputy") {
         Object.keys(payload.roles || {}).forEach(role => lockedRoles.add(role));
     }
@@ -200,6 +203,11 @@ function renderRolePermissions(payload) {
             status.className = "permission-role-status";
             status.textContent = currentAdminRole === "deputy" ? "열람만 가능" : "고정";
             heading.appendChild(status);
+        } else if (lockedPermissions.get(role)?.size) {
+            const status = document.createElement("small");
+            status.className = "permission-role-status";
+            status.textContent = "공개 열람만 조정";
+            heading.appendChild(status);
         }
         headingRow.appendChild(heading);
     });
@@ -229,7 +237,7 @@ function renderRolePermissions(payload) {
             checkbox.dataset.role = role;
             checkbox.dataset.permission = definition.key;
             checkbox.checked = Boolean(permissions?.[definition.key]);
-            checkbox.disabled = lockedRoles.has(role);
+            checkbox.disabled = lockedRoles.has(role) || Boolean(lockedPermissions.get(role)?.has(definition.key));
             checkbox.setAttribute("aria-label", `${payload.roleLabels?.[role] || roleMap[role] || role}: ${definition.label}`);
             const visibleLabel = document.createElement("span");
             visibleLabel.textContent = checkbox.checked ? "허용" : "차단";

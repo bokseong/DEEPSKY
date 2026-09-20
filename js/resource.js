@@ -1,4 +1,4 @@
-import { API_BASE_URL, apiFetch, auth, authHeaders, getCurrentProfile } from "./common.js";
+import { apiRequestOptional, auth, getCurrentProfile } from "./common.js?v=20260920-guest-permissions";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const COLLECTION = "resources";
 const WRITABLE_ROLES = ['teacher', 'deputy', 'admin'];
@@ -15,8 +15,13 @@ let currentUser = null;
 
     onAuthStateChanged(auth, async (user) => {
         if (!user) {
-            alert('로그인이 필요합니다.');
-            location.replace('login.html');
+            currentUser = null;
+            currentRole = 'guest';
+            document.getElementById('user-name').style.display = 'none';
+            document.getElementById('logout-btn').style.display = 'none';
+            document.getElementById('login-link').style.display = 'inline';
+            document.getElementById('write-btn').style.display = 'none';
+            await loadPosts();
             return;
         }
 
@@ -42,7 +47,7 @@ let currentUser = null;
     });
     async function loadPosts() {
         try {
-            const res = await apiFetch(`/api/deepsky/board/${COLLECTION}`, { headers: await authHeaders(currentUser) });
+            const res = await apiRequestOptional(`/api/deepsky/board/${COLLECTION}`, {}, currentUser);
             if (!res.ok) {
                 document.getElementById('resource-list').innerHTML = '<div style="padding:100px; text-align:center; color:#ff4d4d;">서버 연결에 실패했습니다.</div>';
                 return;
@@ -136,10 +141,9 @@ let currentUser = null;
     async function deletePost(postId) {
         if (!confirm("이 자료를 삭제하시겠습니까?")) return;
         try {
-            const res = await apiFetch(`/api/deepsky/board/${COLLECTION}/${encodeURIComponent(String(postId))}`, {
+            const res = await apiRequestOptional(`/api/deepsky/board/${COLLECTION}/${encodeURIComponent(String(postId))}`, {
                 method: 'DELETE',
-                headers: await authHeaders(currentUser)
-            });
+            }, currentUser);
             if (res.ok) {
                 alert("삭제되었습니다.");
                 await loadPosts();

@@ -1,4 +1,4 @@
-import { apiRequest, auth, getCurrentProfile } from "./js/common.js";
+import { auth, getCurrentPermissions, getCurrentProfile } from "./js/common.js?v=20260920-guest-permissions";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const ROLES = {
     loggedIn: ["admin", "teacher", "deputy", "student", "member"],
@@ -13,20 +13,20 @@ const ROLES = {
 const PAGE_RULES = [
     { match: /^admin\.html$/, permission: "admin.access" },
     { match: /^talk\.html$/, roles: ROLES.clubBoard },
-    { match: /^question\.html$/, roles: ROLES.questionBoard },
-    { match: /^photo\.html$/, roles: ROLES.loggedIn },
+    { match: /^question\.html$/, permission: "questions.read" },
+    { match: /^photo\.html$/, permission: "gallery.read" },
     { match: /^write\.html$/, roles: ROLES.resourceWrite },
     { match: /^suggest\.html$/, roles: ROLES.loggedIn },
-    { match: /^resource\.html$/, roles: ROLES.loggedIn },
-    { match: /^view\.html$/, roles: ROLES.loggedIn },
+    { match: /^resource\.html$/, permission: "boards.read.shared" },
+    { match: /^view\.html$/, permission: "boards.read.shared" },
     { match: /^ai\.html$/, roles: ROLES.ai },
     { match: /^search\.html$/, roles: ROLES.loggedIn },
     { match: /^notifications\.html$/, roles: ROLES.loggedIn },
     { match: /^mypage\.html$/, roles: ROLES.loggedIn },
     { match: /^adjust\.html$/, roles: ROLES.loggedIn },
-    { match: /^school-board\.html$/, roles: schoolRolesFromQuery },
-    { match: /^school-view\.html$/, roles: schoolRolesFromQuery },
-    { match: /^school-write\.html$/, roles: schoolRolesFromQuery }
+    { match: /^school-board\.html$/, permission: schoolReadPermissionFromQuery, roles: schoolRolesFromQuery },
+    { match: /^school-view\.html$/, permission: schoolReadPermissionFromQuery, roles: schoolRolesFromQuery },
+    { match: /^school-write\.html$/, permission: schoolWritePermissionFromQuery, roles: schoolRolesFromQuery }
 ];
 
 function schoolRolesFromQuery(searchParams = new URLSearchParams(location.search)) {
@@ -34,6 +34,14 @@ function schoolRolesFromQuery(searchParams = new URLSearchParams(location.search
     if (school === "b") return ROLES.clubBoard;
     if (school === "q") return ROLES.questionBoard;
     return [];
+}
+
+function schoolReadPermissionFromQuery(searchParams = new URLSearchParams(location.search)) {
+    return searchParams.get("school") === "q" ? "questions.read" : "";
+}
+
+function schoolWritePermissionFromQuery(searchParams = new URLSearchParams(location.search)) {
+    return searchParams.get("school") === "q" ? "questions.write" : "";
 }
 
 function currentPage() {
@@ -46,7 +54,10 @@ function findRule(page = currentPage()) {
 
 function canAccess(role, rule, searchParams = new URLSearchParams(location.search), permissions = {}) {
     if (!rule) return true;
-    if (rule.permission) return Boolean(permissions[rule.permission]);
+    if (rule.permission) {
+        const permission = typeof rule.permission === "function" ? rule.permission(searchParams) : rule.permission;
+        if (permission) return Boolean(permissions[permission]);
+    }
     const roles = typeof rule.roles === "function" ? rule.roles(searchParams) : rule.roles;
     return roles.includes(role);
 }
@@ -110,9 +121,7 @@ async function resolveRole(user) {
 }
 
 async function resolvePermissions(user) {
-    if (!user) return {};
-    const response = await apiRequest("/api/deepsky/me/permissions", {}, user);
-    return response.json();
+    return getCurrentPermissions(user);
 }
 
 installNavGuards("guest");

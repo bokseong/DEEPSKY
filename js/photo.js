@@ -1,4 +1,4 @@
-import { apiRequest, auth, getCurrentProfile, logoutTo } from "./common.js";
+import { apiRequest, apiRequestOptional, auth, getCurrentPermissions, getCurrentProfile, logoutTo } from "./common.js?v=20260920-guest-permissions";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const loginLink = document.getElementById("login-link");
@@ -37,14 +37,27 @@ window.addEventListener("beforeunload", clearObjectUrls);
 
 onAuthStateChanged(auth, async user => {
     if (!user) {
-        location.replace("login.html");
+        currentUser = null;
+        currentProfile = { role: "guest", name: "" };
+        try {
+            permissions = await getCurrentPermissions(null);
+            if (!permissions["gallery.read"]) { location.replace("block.html"); return; }
+            loginLink.hidden = false;
+            userName.hidden = true;
+            logoutButton.hidden = true;
+            formSection.hidden = true;
+            await loadPhotos();
+        } catch (error) {
+            boardStatus.textContent = error.message;
+            boardStatus.classList.add("error");
+        }
         return;
     }
     currentUser = user;
     try {
         [currentProfile, permissions] = await Promise.all([
             getCurrentProfile(user),
-            apiRequest("/api/deepsky/me/permissions", {}, user).then(response => response.json())
+            getCurrentPermissions(user)
         ]);
         loginLink.hidden = true;
         userName.hidden = false;
@@ -61,7 +74,7 @@ onAuthStateChanged(auth, async user => {
 async function loadPhotos() {
     boardStatus.textContent = "사진을 불러오는 중입니다.";
     boardStatus.classList.remove("error");
-    const response = await apiRequest("/api/deepsky/photos", {}, currentUser);
+    const response = await apiRequestOptional("/api/deepsky/photos", {}, currentUser);
     photos = await response.json();
     await renderFilteredPhotos();
 }
@@ -121,7 +134,7 @@ async function createPhotoCard(photo) {
     meta.className = "photo-card-meta";
     meta.textContent = `${photo.author_name || "사용자"} · ${formatDate(photo.created_at)}`;
     body.append(title, content, meta);
-    if (photo.uid === currentUser.uid || permissions["gallery.manage"]) {
+    if ((currentUser && photo.uid === currentUser.uid) || permissions["gallery.manage"]) {
         const remove = document.createElement("button");
         remove.type = "button";
         remove.className = "photo-delete";
@@ -134,7 +147,7 @@ async function createPhotoCard(photo) {
 }
 
 async function loadImage(path) {
-    const response = await apiRequest(path, { cache: "no-store" }, currentUser);
+    const response = await apiRequestOptional(path, { cache: "no-store" }, currentUser);
     const blob = await response.blob();
     if (!blob.type.startsWith("image/")) throw new Error("올바른 이미지 응답이 아닙니다.");
     const url = URL.createObjectURL(blob);

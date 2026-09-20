@@ -1,9 +1,9 @@
-import { apiFetch, auth, authHeaders as getAuthHeaders, getCurrentProfile } from "./common.js";
+import { apiFetch, auth, getCurrentProfile, optionalAuthHeaders } from "./common.js?v=20260920-guest-permissions";
 import { initializeAnnouncementSection } from "./announcement-manager.js?v=20260914-deputy-role";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
         b: { collection:"club-board", title:"Talk", boardTitle:"동아리 게시글", subtitle:"동아리 부원 전용 소통과 활동 기록 공간입니다.", roles:["admin", "teacher", "deputy", "student"], categories:["천체 관측 데이터", "실험 보고서", "보고서", "훈련 자료", "소스 코드", "기타"], writeUrl:"school-write.html?school=b", viewUrl:"school-view.html?school=b" },
-        q: { collection:"questions", title:"Questions", boardTitle:"질문 게시판", subtitle:"천문·항공우주 활동과 홈페이지 이용에 관해 묻고 답하는 공간입니다.", roles:["admin", "teacher", "deputy", "student", "member"], categories:["천문 관측", "데이터 처리", "장비", "웹사이트 이용", "기타"], writeUrl:"school-write.html?school=q", viewUrl:"school-view.html?school=q" }
+        q: { collection:"questions", title:"Questions", boardTitle:"질문 게시판", subtitle:"천문·항공우주 활동과 홈페이지 이용에 관해 묻고 답하는 공간입니다.", roles:["admin", "teacher", "deputy", "student", "member", "guest"], categories:["천문 관측", "데이터 처리", "장비", "웹사이트 이용", "기타"], writeUrl:"school-write.html?school=q", viewUrl:"school-view.html?school=q" }
     };
 
     const params = new URLSearchParams(location.search);
@@ -39,7 +39,17 @@ let currentUser = null;
     });
 
     onAuthStateChanged(auth, async (user) => {
-        if (!user) { location.replace("block.html"); return; }
+        if (!user) {
+            if (!roleAllowed("guest")) { location.replace("block.html"); return; }
+            currentUser = null;
+            currentRole = "guest";
+            document.getElementById("user-name").style.display = "none";
+            document.getElementById("logout-btn").style.display = "none";
+            document.getElementById("login-link").style.display = "inline";
+            document.getElementById("write-btn").style.display = "none";
+            await loadPosts();
+            return;
+        }
         try {
             const userData = await getCurrentProfile(user);
             const role = userData.role || "member";
@@ -69,7 +79,7 @@ let currentUser = null;
     });
 
     async function authHeaders() {
-        return getAuthHeaders(currentUser);
+        return optionalAuthHeaders(currentUser);
     }
 
     async function loadPosts() {
