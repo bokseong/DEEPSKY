@@ -8,7 +8,7 @@
     <title>DEEP SKY | 관리자</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/common.css">
-    <link rel="stylesheet" href="css/admin.css?v=20260909-no-logo-settings">
+    <link rel="stylesheet" href="css/admin.css?v=20260920-separate-permissions">
 </head>
 <body>
 <div class="auth-bar">
@@ -23,7 +23,7 @@
 </div>
 <header class="page-hero">
     <h1>관리자</h1>
-    <p>회원 등급, 권한과 운영 요청을 관리합니다.</p>
+    <p>회원 등급과 운영 요청을 관리합니다.</p>
 </header>
 <nav class="sub-nav-container" aria-label="주요 메뉴">
     <div class="nav-menu">
@@ -75,8 +75,11 @@
         </table>
     </div>
 
-    <div class="section-title">부원 권한 관리</div>
-    <p class="section-note">관리자는 모든 등급을 조정할 수 있습니다. 차장은 일반 회원을 동아리 부원으로 승격하는 작업만 할 수 있습니다.</p>
+    <div class="admin-section-heading">
+        <div class="section-title">부원 등급 관리</div>
+        <a id="permission-page-link" class="permission-page-link" href="permissions.html" hidden>별도 권한 관리 페이지</a>
+    </div>
+    <p class="section-note">관리자는 모든 등급을 조정할 수 있습니다. 차장은 일반 회원을 동아리 부원으로 승격하는 작업만 할 수 있습니다. 기능 권한은 부장 전용 권한 관리 페이지에서만 변경합니다.</p>
     <div class="admin-card">
         <table class="user-table">
             <thead>
@@ -94,18 +97,6 @@
                 </tr>
             </tbody>
         </table>
-    </div>
-
-    <div class="section-title" id="role-permissions">등급별 기능 권한</div>
-    <p class="section-note">부장만 비회원을 포함한 각 등급의 모든 기능 권한을 변경할 수 있습니다. 관리자와 차장 등급 자체의 권한은 고정됩니다.</p>
-    <div class="permission-panel">
-        <div class="permission-panel-toolbar">
-            <p>변경 내용은 서버 API 권한 검사에 즉시 적용됩니다.</p>
-            <button id="permission-refresh" type="button" class="btn-update">새로고침</button>
-        </div>
-        <div id="role-permission-matrix" class="role-permission-table-host" aria-live="polite">
-            <p class="permission-status">권한 설정을 불러오는 중입니다.</p>
-        </div>
     </div>
 
     <div class="section-title">접수된 건의 사항</div>
@@ -169,7 +160,7 @@
   <p>&copy; 2026 DEEP SKY | Bokseong Astro &amp; Space Club | All rights reserved.</p>
   <p>Designed by jw-astro09 | Contact: 2jw5464@gmail.com</p>
 </footer>
-<script type="module" src="js/admin.js?v=20260920-guest-owner-only"></script>
-<script type="module" src="frontend-access-control.js?v=20260914-deputy-role"></script>
+<script type="module" src="js/admin.js?v=20260920-separate-permissions"></script>
+<script type="module" src="frontend-access-control.js?v=20260920-separate-permissions"></script>
 </body>
 </html>

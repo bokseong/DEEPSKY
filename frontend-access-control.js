@@ -11,6 +11,7 @@ const ROLES = {
 };
 
 const PAGE_RULES = [
+    { match: /^permissions\.html$/, roles: ["admin"] },
     { match: /^admin\.html$/, permission: "admin.access" },
     { match: /^talk\.html$/, roles: ROLES.clubBoard },
     { match: /^question\.html$/, permission: "questions.read" },

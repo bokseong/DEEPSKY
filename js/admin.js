@@ -25,7 +25,6 @@ document.querySelectorAll("[data-activity-filter]").forEach(button => {
 });
 
 document.getElementById("activity-refresh").addEventListener("click", () => loadRecentActivity());
-document.getElementById("permission-refresh").addEventListener("click", () => loadRolePermissions());
 
 onAuthStateChanged(auth, async user => {
     if (!user) {
@@ -43,13 +42,13 @@ onAuthStateChanged(auth, async user => {
         }
         currentAdminUser = user;
         currentAdminRole = profile.role || "member";
+        document.getElementById("permission-page-link").hidden = currentAdminRole !== "admin";
         userNameDisplay.style.display = "inline";
         userNameDisplay.textContent = `${profile.name || "관리자"}님`;
         logoutBtn.style.display = "inline";
         const tasks = [
             loadRecentActivity(),
             loadUsers(),
-            loadRolePermissions(),
             loadSuggestions(),
             loadRequests(),
             loadReports(),
@@ -148,147 +147,6 @@ async function loadUsers() {
     } catch (error) {
         console.error(error);
         userList.innerHTML = '<tr><td colspan="5" style="text-align:center;">사용자 목록을 불러올 수 없습니다.</td></tr>';
-    }
-}
-
-async function loadRolePermissions() {
-    const container = document.getElementById("role-permission-matrix");
-    const refreshButton = document.getElementById("permission-refresh");
-    container.innerHTML = '<p class="permission-status">권한 설정을 불러오는 중입니다.</p>';
-    refreshButton.disabled = true;
-    try {
-        const response = await apiRequest("/api/deepsky/admin/role-permissions", {}, currentAdminUser);
-        renderRolePermissions(await response.json());
-    } catch (error) {
-        container.innerHTML = `<p class="permission-status permission-error">${escapeHtml(error.message)}</p>`;
-    } finally {
-        refreshButton.disabled = false;
-    }
-}
-
-function renderRolePermissions(payload) {
-    const container = document.getElementById("role-permission-matrix");
-    const definitions = Array.isArray(payload.definitions) ? payload.definitions : [];
-    const lockedRoles = new Set(payload.lockedRoles || []);
-    if (currentAdminRole !== "admin") {
-        Object.keys(payload.roles || {}).forEach(role => lockedRoles.add(role));
-    }
-    const roles = Object.entries(payload.roles || {});
-    container.replaceChildren();
-    if (!definitions.length || !roles.length) {
-        container.innerHTML = '<p class="permission-status">표시할 권한 설정이 없습니다.</p>';
-        return;
-    }
-
-    const table = document.createElement("table");
-    table.className = "permission-table";
-    const thead = document.createElement("thead");
-    const headingRow = document.createElement("tr");
-    const featureHeading = document.createElement("th");
-    featureHeading.scope = "col";
-    featureHeading.textContent = "기능 권한";
-    headingRow.appendChild(featureHeading);
-    roles.forEach(([role]) => {
-        const heading = document.createElement("th");
-        heading.scope = "col";
-        const label = document.createElement("span");
-        label.className = "permission-role-label";
-        label.textContent = payload.roleLabels?.[role] || roleMap[role] || role;
-        heading.appendChild(label);
-        if (lockedRoles.has(role)) {
-            const status = document.createElement("small");
-            status.className = "permission-role-status";
-            status.textContent = currentAdminRole !== "admin" ? "열람만 가능" : "고정";
-            heading.appendChild(status);
-        }
-        headingRow.appendChild(heading);
-    });
-    thead.appendChild(headingRow);
-    table.appendChild(thead);
-
-    const tbody = document.createElement("tbody");
-    definitions.forEach(definition => {
-        const row = document.createElement("tr");
-        const feature = document.createElement("th");
-        feature.scope = "row";
-        feature.className = "permission-feature";
-        const title = document.createElement("strong");
-        title.textContent = definition.label;
-        const description = document.createElement("small");
-        description.textContent = definition.description;
-        feature.append(title, description);
-        row.appendChild(feature);
-
-        roles.forEach(([role, permissions]) => {
-            const cell = document.createElement("td");
-            cell.className = "permission-cell";
-            const label = document.createElement("label");
-            label.className = "permission-toggle";
-            const checkbox = document.createElement("input");
-            checkbox.type = "checkbox";
-            checkbox.dataset.role = role;
-            checkbox.dataset.permission = definition.key;
-            checkbox.checked = Boolean(permissions?.[definition.key]);
-            checkbox.disabled = lockedRoles.has(role);
-            checkbox.setAttribute("aria-label", `${payload.roleLabels?.[role] || roleMap[role] || role}: ${definition.label}`);
-            const visibleLabel = document.createElement("span");
-            visibleLabel.textContent = checkbox.checked ? "허용" : "차단";
-            checkbox.addEventListener("change", () => {
-                visibleLabel.textContent = checkbox.checked ? "허용" : "차단";
-            });
-            label.append(checkbox, visibleLabel);
-            cell.appendChild(label);
-            row.appendChild(cell);
-        });
-        tbody.appendChild(row);
-    });
-    table.appendChild(tbody);
-
-    const tfoot = document.createElement("tfoot");
-    const actionRow = document.createElement("tr");
-    const actionHeading = document.createElement("th");
-    actionHeading.scope = "row";
-    actionHeading.textContent = "변경 저장";
-    actionRow.appendChild(actionHeading);
-    roles.forEach(([role]) => {
-        const locked = lockedRoles.has(role);
-        const cell = document.createElement("td");
-        cell.className = "permission-cell";
-        const saveButton = document.createElement("button");
-        saveButton.type = "button";
-        saveButton.className = "btn-update permission-save";
-        saveButton.textContent = locked ? "고정" : "저장";
-        saveButton.dataset.defaultLabel = saveButton.textContent;
-        saveButton.disabled = locked;
-        saveButton.addEventListener("click", () => saveRolePermissions(role, definitions, container, saveButton));
-        cell.appendChild(saveButton);
-        actionRow.appendChild(cell);
-    });
-    tfoot.appendChild(actionRow);
-    table.appendChild(tfoot);
-    container.appendChild(table);
-}
-
-async function saveRolePermissions(role, definitions, container, button) {
-    const permissions = Object.fromEntries(definitions.map(definition => [
-        definition.key,
-        Boolean(container.querySelector(`[data-role="${CSS.escape(role)}"][data-permission="${CSS.escape(definition.key)}"]`)?.checked)
-    ]));
-    if (!confirm(`${roleMap[role] || role} 등급의 기능 권한을 저장하시겠습니까?`)) return;
-    button.disabled = true;
-    button.textContent = "저장 중...";
-    try {
-        await apiRequest("/api/deepsky/admin/role-permissions", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ role, permissions })
-        }, currentAdminUser);
-        await loadRolePermissions();
-        alert("등급별 기능 권한이 저장되었습니다.");
-    } catch (error) {
-        button.disabled = false;
-        button.textContent = button.dataset.defaultLabel || "저장";
-        alert(error.message);
     }
 }
 

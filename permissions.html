@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow,noarchive">
+    <link rel="icon" href="logo.png" type="image/png">
+    <link rel="apple-touch-icon" href="logo.png">
+    <title>DEEP SKY | 권한 관리</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/permissions.css?v=20260920-separate-permissions">
+</head>
+<body class="secure-loading">
+<div class="auth-bar">
+    <a href="index.html" class="logo-link">
+        <img src="logo.png" alt="DEEP SKY 로고" class="nav-logo">
+        <span>DEEP SKY</span>
+    </a>
+    <div class="auth-user-zone">
+        <span id="user-name" hidden></span>
+        <button id="logout-btn" class="auth-btn" hidden>로그아웃</button>
+    </div>
+</div>
+
+<header class="permission-hero protected-content">
+    <span class="security-label">ADMIN ONLY</span>
+    <h1>권한 관리</h1>
+    <p>페이지별 기능 권한을 확인하고 등급별 허용 범위를 관리합니다.</p>
+</header>
+
+<nav class="permission-nav protected-content" aria-label="관리 메뉴">
+    <a href="index.html">홈</a>
+    <a href="admin.html">관리자 페이지</a>
+    <a href="permissions.html" class="active" aria-current="page">권한 관리</a>
+</nav>
+
+<main class="permission-main protected-content">
+    <section class="security-notice" aria-labelledby="security-notice-title">
+        <div>
+            <strong id="security-notice-title">부장 전용 보안 영역</strong>
+            <p>권한 조회와 변경은 로그인된 관리자 역할에서만 서버가 허용합니다. 변경 내용은 감사 로그에 기록됩니다.</p>
+        </div>
+        <span>등급 변경은 <a href="admin.html">기존 관리자 페이지</a>에서 진행</span>
+    </section>
+
+    <section aria-labelledby="page-permission-title">
+        <div class="section-heading">
+            <div>
+                <h2 id="page-permission-title">페이지별 권한</h2>
+                <p>각 페이지에 연결된 권한을 선택하면 아래 표가 해당 항목만 표시합니다.</p>
+            </div>
+        </div>
+        <div id="page-permission-overview" class="page-permission-overview" aria-live="polite"></div>
+    </section>
+
+    <section aria-labelledby="permission-matrix-title">
+        <div class="section-heading matrix-heading">
+            <div>
+                <h2 id="permission-matrix-title">등급별 기능 권한</h2>
+                <p>관리자와 차장 권한은 고정되며, 비회원·일반 회원·동아리 부원·교사 권한을 관리할 수 있습니다.</p>
+            </div>
+            <button id="permission-refresh" type="button" class="primary-button">새로고침</button>
+        </div>
+
+        <div class="permission-toolbar" role="search">
+            <label class="search-field">
+                <span>권한 검색</span>
+                <input id="permission-search" type="search" autocomplete="off" placeholder="권한명, 설명, 코드 또는 페이지 검색">
+            </label>
+            <label class="page-filter-field">
+                <span>페이지 선택</span>
+                <select id="page-filter">
+                    <option value="">전체 페이지</option>
+                </select>
+            </label>
+            <span id="permission-result-count" class="result-count" aria-live="polite"></span>
+        </div>
+
+        <div id="permission-status" class="permission-status" role="status">권한 설정을 불러오는 중입니다.</div>
+        <div id="role-permission-matrix" class="role-permission-table-host" aria-live="polite"></div>
+    </section>
+</main>
+
+<footer class="protected-content">
+    <p>&copy; 2026 DEEP SKY | Bokseong Astro &amp; Space Club | All rights reserved.</p>
+    <p>Designed by jw-astro09 | Contact: 2jw5464@gmail.com</p>
+</footer>
+
+<script type="module" src="js/permissions.js?v=20260920-separate-permissions"></script>
+<script type="module" src="frontend-access-control.js?v=20260920-separate-permissions"></script>
+</body>
+</html>

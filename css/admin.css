@@ -26,32 +26,10 @@
         .btn-update { background:var(--accent); color:#000; border:none; padding:7px 14px; border-radius:6px; cursor:pointer; font-weight:700; font-size:.8rem; transition:.25s; margin:2px; }
         .btn-update:hover { background:white; }
         .btn-danger { background:#ff4444; color:white; }
-        .permission-panel { background:var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:22px; }
-        .permission-panel-toolbar { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:18px; }
-        .permission-panel-toolbar p { margin:0; color:#8f9b9f; }
-        .role-permission-table-host { overflow-x:auto; border:1px solid rgba(255,255,255,.08); border-radius:10px; background:#090b0c; }
-        .permission-table { width:100%; min-width:700px; border-collapse:collapse; font-size:.84rem; }
-        .permission-table th, .permission-table td { padding:11px 12px; border-right:1px solid rgba(255,255,255,.07); border-bottom:1px solid rgba(255,255,255,.07); }
-        .permission-table tr > :last-child { border-right:0; }
-        .permission-table tbody tr:last-child th, .permission-table tbody tr:last-child td { border-bottom:1px solid rgba(255,255,255,.12); }
-        .permission-table thead th { color:var(--accent); text-align:center; background:#0d1112; white-space:nowrap; }
-        .permission-table thead th:first-child { text-align:left; }
-        .permission-feature { min-width:260px; text-align:left; font-weight:400; }
-        .permission-feature strong { display:block; color:#f2f5f6; font-size:.85rem; }
-        .permission-feature small { display:block; margin-top:2px; color:#818b8f; font-weight:400; line-height:1.35; }
-        .permission-role-label { display:block; }
-        .permission-role-status { display:block; margin-top:1px; color:#ffb6cf; font-weight:400; }
-        .permission-cell { min-width:90px; text-align:center; }
-        .permission-toggle { display:inline-flex; align-items:center; justify-content:center; gap:6px; cursor:pointer; white-space:nowrap; }
-        .permission-toggle input { width:16px; height:16px; margin:0; accent-color:var(--accent); }
-        .permission-toggle input:disabled { opacity:.65; cursor:not-allowed; }
-        .permission-toggle span { color:#aeb6ba; font-size:.75rem; }
-        .permission-table tfoot th, .permission-table tfoot td { border-bottom:0; background:#0d1112; }
-        .permission-table tfoot th { text-align:left; color:#c6ced1; }
-        .permission-save { min-width:62px; margin:0; }
-        .permission-save:disabled { background:#3e4649; color:#aeb4b6; cursor:not-allowed; }
-        .permission-status { text-align:center; color:#8f9b9f; padding:18px; }
-        .permission-error { color:#ff9aa3; }
+        .admin-section-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:18px; margin-top:46px; }
+        .admin-section-heading .section-title { margin:0 0 18px; }
+        .permission-page-link { margin-bottom:18px; padding:8px 14px; border:1px solid rgba(0,229,255,.5); border-radius:7px; color:var(--accent); text-decoration:none; font-size:.82rem; font-weight:700; }
+        .permission-page-link:hover { background:var(--accent); color:#001012; }
         .activity-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1px; margin-bottom:16px; border:1px solid var(--border); background:var(--border); }
         .activity-stat { min-width:0; padding:16px 18px; background:#090b0c; }
         .activity-stat strong { display:block; color:var(--accent); font-size:1.45rem; line-height:1.2; }
@@ -218,6 +196,8 @@
             .activity-toolbar {
                 align-items: stretch;
             }
+            .admin-section-heading { align-items:flex-start; flex-direction:column; gap:0; }
+            .permission-page-link { margin-top:-8px; }
             .activity-filter {
                 flex: 1 1 auto;
             }
