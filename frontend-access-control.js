@@ -69,9 +69,36 @@ function setLinkVisibility(selector, visible) {
     });
 }
 
+function ensurePermissionsNavigation(role) {
+    document.querySelectorAll(".nav-menu").forEach(nav => {
+        let link = nav.querySelector('a[href="permissions.html"]');
+        if (!link && role === "admin") {
+            link = document.createElement("a");
+            link.href = "permissions.html";
+            link.textContent = "권한 관리";
+
+            const adminLink = nav.querySelector('a[href="admin.html"]');
+            if (adminLink) {
+                adminLink.insertAdjacentElement("afterend", link);
+            } else {
+                nav.appendChild(link);
+            }
+        }
+
+        if (!link) return;
+        link.style.display = role === "admin" ? "" : "none";
+        if (currentPage() === "permissions.html") {
+            link.classList.add("active");
+            link.setAttribute("aria-current", "page");
+        }
+    });
+}
+
 function hardenNavigation(role, permissions = {}) {
     setLinkVisibility(".nav-menu a", true);
+    ensurePermissionsNavigation(role);
     setLinkVisibility('a[href="admin.html"]', Boolean(permissions["admin.access"]));
+    setLinkVisibility('a[href="permissions.html"]', role === "admin");
 
     document.querySelectorAll('a[href="write.html"]:not(.nav-menu a), button[onclick*="write.html"]').forEach(el => {
         el.style.display = ROLES.resourceWrite.includes(role) ? "" : "none";

@@ -9,7 +9,7 @@
     <title>DEEP SKY | 권한 관리</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/common.css">
-    <link rel="stylesheet" href="css/permissions.css?v=20260920-separate-permissions">
+    <link rel="stylesheet" href="css/permissions.css?v=20260920-permission-nav-session">
 </head>
 <body class="secure-loading">
 <div class="auth-bar">
@@ -29,10 +29,22 @@
     <p>페이지별 기능 권한을 확인하고 등급별 허용 범위를 관리합니다.</p>
 </header>
 
-<nav class="permission-nav protected-content" aria-label="관리 메뉴">
-    <a href="index.html">홈</a>
-    <a href="admin.html">관리자 페이지</a>
-    <a href="permissions.html" class="active" aria-current="page">권한 관리</a>
+<nav class="sub-nav-container protected-content" aria-label="주요 메뉴">
+    <div class="nav-menu">
+        <a href="index.html">홈</a>
+        <a href="introduction.html">소개</a>
+        <a href="talk.html">동아리 게시판</a>
+        <a href="question.html">질문 게시판</a>
+        <a href="photo.html">사진 게시판</a>
+        <a href="resource.html">자료실</a>
+        <a href="weather.html">날씨</a>
+        <a href="ai.html">AI</a>
+        <a href="search.html">통합 검색</a>
+        <a href="notifications.html">알림</a>
+        <a href="suggest.html">건의</a>
+        <a href="mypage.html">마이페이지</a>
+        <a href="admin.html">관리자</a>
+    </div>
 </nav>
 
 <main class="permission-main protected-content">
@@ -87,7 +99,7 @@
     <p>Designed by jw-astro09 | Contact: 2jw5464@gmail.com</p>
 </footer>
 
-<script type="module" src="js/permissions.js?v=20260920-separate-permissions"></script>
-<script type="module" src="frontend-access-control.js?v=20260920-separate-permissions"></script>
+<script type="module" src="js/permissions.js?v=20260920-permission-nav-session"></script>
+<script type="module" src="frontend-access-control.js?v=20260920-permission-nav-session"></script>
 </body>
 </html>

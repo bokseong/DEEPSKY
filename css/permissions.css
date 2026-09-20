@@ -31,10 +31,6 @@ body {
 .security-label { padding: 5px 10px; border: 1px solid rgba(255, 128, 151, 0.55); border-radius: 999px; color: #ffb0be; font-size: 0.7rem; letter-spacing: 1.6px; font-weight: 700; }
 .permission-hero h1 { margin: 14px 0 8px; color: var(--permission-accent); font-size: clamp(2.2rem, 6vw, 3.5rem); }
 .permission-hero p { margin: 0; color: #a7b2b6; }
-.permission-nav { position: sticky; top: 60px; z-index: 900; min-height: 52px; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 0 16px; background: #090d0f; border-bottom: 1px solid var(--permission-border); }
-.permission-nav a { height: 52px; padding: 0 17px; display: inline-flex; align-items: center; color: #aab4b8; text-decoration: none; font-size: 0.87rem; }
-.permission-nav a:hover, .permission-nav a.active { color: var(--permission-accent); background: rgba(0, 229, 255, 0.07); }
-
 .permission-main { width: min(1440px, calc(100% - 40px)); margin: 42px auto 90px; }
 .security-notice { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 20px 22px; border: 1px solid rgba(255, 128, 151, 0.28); border-left: 4px solid var(--permission-danger); border-radius: 12px; background: rgba(255, 128, 151, 0.055); }
 .security-notice strong { color: #ffc0ca; }
@@ -92,7 +88,6 @@ footer { padding: 52px 20px; border-top: 1px solid var(--permission-border); bac
 @media (max-width: 760px) {
     .auth-bar { height: 56px; padding: 0 14px; }
     .nav-logo { width: 34px; height: 34px; }
-    .permission-nav { top: 56px; justify-content: flex-start; overflow-x: auto; }
     .permission-main { width: calc(100% - 28px); margin-top: 28px; }
     .security-notice { align-items: flex-start; flex-direction: column; gap: 10px; }
     .security-notice > span { white-space: normal; }

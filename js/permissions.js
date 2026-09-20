@@ -240,10 +240,8 @@ function createFeatureCell(definition) {
         const badge = document.createElement("a");
         badge.className = "page-badge";
         badge.href = page;
-        badge.target = "_blank";
-        badge.rel = "noopener";
-        badge.textContent = pageName(page);
-        badge.title = page;
+        badge.textContent = `${pageName(page)} 상세`;
+        badge.title = `${pageName(page)} 페이지로 이동`;
         badges.appendChild(badge);
     });
     feature.append(title, code, description, badges);
