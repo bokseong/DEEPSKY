@@ -141,6 +141,12 @@ for (const requiredPattern of [
         fail(path.join(root, "js", "common.js"), "공유 링크 URL 보안 정책이 누락되었습니다.");
     }
 }
+if (!/if\s*\(!forToday\)\s*return;/.test(commonSource)) {
+    fail(path.join(root, "js", "common.js"), "오늘 하루 보지 않기를 선택하지 않은 닫기까지 저장합니다.");
+}
+if (/deepsky:popup:session/.test(commonSource)) {
+    fail(path.join(root, "js", "common.js"), "일반 닫기를 세션에 저장하여 새로고침 후 팝업이 숨겨집니다.");
+}
 
 const { normalizeLinkUrl } = await import(pathToFileURL(path.join(root, "js", "link-policy.js")));
 const apiBaseUrl = "https://api.example.com";

@@ -809,19 +809,14 @@ function localDateKey() {
 
 function isAnnouncementPopupDismissed(announcement) {
     const version = announcementPopupVersion(announcement);
-    return (
-        storageValue(sessionStorage, `deepsky:popup:session:${version}`) === "1"
-        || storageValue(localStorage, `deepsky:popup:day:${version}`) === localDateKey()
-    );
+    return storageValue(localStorage, `deepsky:popup:day:${version}`) === localDateKey();
 }
 
 function dismissAnnouncementPopups(announcements, forToday) {
+    if (!forToday) return;
     announcements.forEach(announcement => {
         const version = announcementPopupVersion(announcement);
-        storeValue(sessionStorage, `deepsky:popup:session:${version}`, "1");
-        if (forToday) {
-            storeValue(localStorage, `deepsky:popup:day:${version}`, localDateKey());
-        }
+        storeValue(localStorage, `deepsky:popup:day:${version}`, localDateKey());
     });
 }
 
