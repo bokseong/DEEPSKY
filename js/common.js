@@ -1094,7 +1094,10 @@ function initializeCommonUi() {
     createSearchPopover();
     createNotificationPopover();
     createAiLauncher();
-    createAnnouncementPopup();
+    const pageName = location.pathname.split("/").pop();
+    if (!pageName || pageName === "index.html") {
+        createAnnouncementPopup();
+    }
 }
 
 if (document.readyState === "loading") {

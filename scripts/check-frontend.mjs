@@ -147,6 +147,9 @@ if (!/if\s*\(!forToday\)\s*return;/.test(commonSource)) {
 if (/deepsky:popup:session/.test(commonSource)) {
     fail(path.join(root, "js", "common.js"), "일반 닫기를 세션에 저장하여 새로고침 후 팝업이 숨겨집니다.");
 }
+if (!/if\s*\(!pageName\s*\|\|\s*pageName\s*===\s*["']index\.html["']\)\s*\{\s*createAnnouncementPopup\(\);\s*\}/.test(commonSource)) {
+    fail(path.join(root, "js", "common.js"), "공지 팝업이 index 화면으로 제한되지 않았습니다.");
+}
 
 const { normalizeLinkUrl } = await import(pathToFileURL(path.join(root, "js", "link-policy.js")));
 const apiBaseUrl = "https://api.example.com";
