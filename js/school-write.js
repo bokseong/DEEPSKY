@@ -2,11 +2,12 @@ import { apiFetch, auth, authHeaders as getAuthHeaders, getCurrentProfile, norma
 import { createDraftController, uploadFilesWithProgress } from "./write-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
-        b: { collection:"club-board", name:"DEEP SKY 동아리", roles:["admin", "teacher", "deputy", "student"], categories:["천체 관측 데이터", "실험 보고서", "보고서", "훈련 자료", "소스 코드", "기타"], boardUrl:"talk.html", viewUrl:"school-view.html?school=b" },
+        b: { collection:"club-board", name:"DEEP SKY 동아리", roles:["admin", "teacher", "deputy", "student"], categories:["천체 관측 데이터", "보고서", "훈련 자료", "소스 코드", "기타"], boardUrl:"talk.html", viewUrl:"school-view.html?school=b" },
         q: { collection:"questions", name:"DEEP SKY 질문", roles:["admin", "teacher", "deputy", "student", "member"], categories:["천문 관측", "데이터 처리", "장비", "웹사이트 이용", "기타"], boardUrl:"question.html", viewUrl:"school-view.html?school=q" }
     };
     const params = new URLSearchParams(location.search);
     const school = SCHOOLS[params.get("school")];
+    const normalizeBoardCategory = value => params.get("school") === "b" && value === "실험 보고서" ? "보고서" : (value || "기타");
     const editId = params.get("id");
     if (!school) {
         location.replace("talk.html");
@@ -109,7 +110,7 @@ let currentUser = null;
             restore: draft => {
                 document.getElementById("post-title").value = draft.title || "";
                 document.getElementById("post-content").value = draft.content || "";
-                document.getElementById("category").value = draft.category || "기타";
+                document.getElementById("category").value = normalizeBoardCategory(draft.category);
                 document.getElementById("link-container").innerHTML = "";
                 (draft.links?.length ? draft.links : [{}]).forEach(link => addLinkField(link.url || "", link.name || ""));
             }
@@ -121,7 +122,7 @@ let currentUser = null;
         if (!res.ok) { location.replace("block.html"); return; }
         editPost = await res.json();
         if (!canEditPost()) { location.replace("block.html"); return; }
-        document.getElementById("category").value = editPost.category || "기타";
+        document.getElementById("category").value = normalizeBoardCategory(editPost.category);
         document.getElementById("post-title").value = editPost.title || "";
         document.getElementById("post-content").value = editPost.content || "";
         document.getElementById("link-container").innerHTML = "";

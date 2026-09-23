@@ -59,13 +59,15 @@ let currentUser = null;
         }
     }
 
+    const normalizeResourceCategory = value => ["발표 및 보고서", "발표 및 세미나"].includes(value) ? "발표" : (value || "기타");
+
     function renderPosts() {
         const keyword = document.getElementById('search-keyword').value.toLowerCase();
         const category = document.getElementById('filter-category').value;
         const listDiv = document.getElementById('resource-list');
 
         const filtered = allPosts.filter(p =>
-            (category === 'all' || p.category === category) &&
+            (category === 'all' || normalizeResourceCategory(p.category) === category) &&
             ((p.title || '').toLowerCase().includes(keyword) || (p.author_name || '').toLowerCase().includes(keyword))
         );
 
@@ -115,7 +117,7 @@ let currentUser = null;
             const tag = document.createElement('span');
             tag.className = 'tag';
             tag.style.cssText = 'margin-bottom:8px; display:inline-block;';
-            tag.textContent = post.category || '기타';
+            tag.textContent = normalizeResourceCategory(post.category);
 
             const title = document.createElement('span');
             title.className = 'item-title';

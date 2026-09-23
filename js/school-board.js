@@ -2,7 +2,7 @@ import { apiFetch, auth, getCurrentProfile, optionalAuthHeaders } from "./common
 import { initializeAnnouncementSection } from "./announcement-manager.js?v=20260914-deputy-role";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
-        b: { collection:"club-board", title:"Talk", boardTitle:"동아리 게시글", subtitle:"동아리 부원 전용 소통과 활동 기록 공간입니다.", roles:["admin", "teacher", "deputy", "student"], categories:["천체 관측 데이터", "실험 보고서", "보고서", "훈련 자료", "소스 코드", "기타"], writeUrl:"school-write.html?school=b", viewUrl:"school-view.html?school=b" },
+        b: { collection:"club-board", title:"Talk", boardTitle:"동아리 게시글", subtitle:"동아리 부원 전용 소통과 활동 기록 공간입니다.", roles:["admin", "teacher", "deputy", "student"], categories:["천체 관측 데이터", "보고서", "훈련 자료", "소스 코드", "기타"], writeUrl:"school-write.html?school=b", viewUrl:"school-view.html?school=b" },
         q: { collection:"questions", title:"Questions", boardTitle:"질문 게시판", subtitle:"천문·항공우주 활동과 홈페이지 이용에 관해 묻고 답하는 공간입니다.", roles:["admin", "teacher", "deputy", "student", "member", "guest"], categories:["천문 관측", "데이터 처리", "장비", "웹사이트 이용", "기타"], writeUrl:"school-write.html?school=q", viewUrl:"school-view.html?school=q" }
     };
 
@@ -10,6 +10,7 @@ const SCHOOLS = {
     const currentPage = location.pathname.split("/").pop() || "index.html";
     const schoolKey = params.get("school") || (currentPage === "talk.html" ? "b" : currentPage === "question.html" ? "q" : "");
     const school = SCHOOLS[schoolKey];
+    const normalizeBoardCategory = value => schoolKey === "b" && value === "실험 보고서" ? "보고서" : (value || "기타");
     if (!school) {
         location.replace("talk.html");
         throw new Error("올바르지 않은 게시판입니다.");
@@ -96,7 +97,7 @@ let currentUser = null;
     function renderPosts() {
         const keyword = document.getElementById("search-keyword").value.toLowerCase();
         const category = document.getElementById("filter-category").value;
-        const filtered = allPosts.filter(p => (category === "all" || p.category === category) && ((p.title || "").toLowerCase().includes(keyword) || (p.author_name || "").toLowerCase().includes(keyword)));
+        const filtered = allPosts.filter(p => (category === "all" || normalizeBoardCategory(p.category) === category) && ((p.title || "").toLowerCase().includes(keyword) || (p.author_name || "").toLowerCase().includes(keyword)));
         const listDiv = document.getElementById("resource-list");
         if (filtered.length === 0) {
             listDiv.innerHTML = '<div class="empty-msg">등록된 자료가 없습니다.</div>';
@@ -141,7 +142,7 @@ let currentUser = null;
             meta.className = "item-meta";
             const tag = document.createElement("span");
             tag.className = "tag";
-            tag.textContent = post.category || "기타";
+            tag.textContent = normalizeBoardCategory(post.category);
             const author = document.createElement("span");
             author.textContent = post.author_name || "익명";
             const separator = document.createElement("span");

@@ -106,10 +106,13 @@ const resourceSource = fs.readFileSync(path.join(root, "js", "resource.js"), "ut
 if (/innerHTML\s*=\s*filtered\.map/.test(resourceSource)) {
     fail(path.join(root, "js", "resource.js"), "서버 자료를 innerHTML 템플릿으로 렌더링하고 있습니다.");
 }
-for (const field of ["title", "category", "author_name"]) {
+for (const field of ["title", "author_name"]) {
     if (!new RegExp(`\\.textContent\\s*=\\s*post\\.${field}`).test(resourceSource)) {
         fail(path.join(root, "js", "resource.js"), `${field} 필드가 textContent로 렌더링되지 않습니다.`);
     }
+}
+if (!/\.textContent\s*=\s*normalizeResourceCategory\(post\.category\)/.test(resourceSource)) {
+    fail(path.join(root, "js", "resource.js"), "category 필드가 정규화 후 textContent로 렌더링되지 않습니다.");
 }
 
 const signupSource = fs.readFileSync(path.join(root, "js", "signup.js"), "utf8");
@@ -130,6 +133,27 @@ for (const [fileName, pattern] of [
 ]) {
     const file = path.join(root, "js", fileName);
     if (!pattern.test(fs.readFileSync(file, "utf8"))) fail(file, "질문 게시판 연동이 누락되었습니다.");
+}
+
+for (const fileName of ["school-board.js", "school-write.js"]) {
+    const file = path.join(root, "js", fileName);
+    const source = fs.readFileSync(file, "utf8");
+    const clubCategories = source.match(/b:\s*\{[^\n]*categories:\s*\[([^\]]+)\]/)?.[1] || "";
+    if (/실험 보고서/.test(clubCategories) || !/보고서/.test(clubCategories)) {
+        fail(file, "동아리 게시판의 실험 보고서와 보고서 분류가 통합되지 않았습니다.");
+    }
+}
+
+for (const [fileName, required] of [
+    ["resource.html", [/value="발표"/, /value="보고서"/]],
+    ["write.html", [/value="발표"/, /value="보고서"/]],
+    ["search.html", [/<option>발표<\/option>/, /<option>보고서<\/option>/]]
+]) {
+    const file = path.join(root, fileName);
+    const source = fs.readFileSync(file, "utf8");
+    if (required.some(pattern => !pattern.test(source)) || /발표 및 (?:보고서|세미나)/.test(source)) {
+        fail(file, "자료실의 발표와 보고서 분류가 분리되지 않았습니다.");
+    }
 }
 
 const commonSource = fs.readFileSync(path.join(root, "js", "common.js"), "utf8");

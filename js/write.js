@@ -3,6 +3,7 @@ import { createDraftController, uploadFilesWithProgress } from "./write-tools.js
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const COLLECTION = "resources";
 const WRITABLE_ROLES = ['teacher', 'deputy', 'admin'];
+const normalizeResourceCategory = value => ["발표 및 보고서", "발표 및 세미나"].includes(value) ? "발표" : (value || "천체 관측 데이터");
 const editPostId = new URLSearchParams(window.location.search).get('id');
     let currentUser = null;
     let currentRole = 'guest';
@@ -49,7 +50,7 @@ const editPostId = new URLSearchParams(window.location.search).get('id');
         if (!canEdit) { alert('수정 권한이 없습니다.'); location.replace('resource.html'); return; }
         document.getElementById('postTitle').value = data.title || '';
         document.getElementById('postContent').value = data.content || data.description || '';
-        document.getElementById('category').value = data.category || '천체 관측 데이터';
+        document.getElementById('category').value = normalizeResourceCategory(data.category);
         if (data.links && data.links.length > 0) {
             document.getElementById('linkContainer').innerHTML = '';
             data.links.forEach(link => addLinkField(link.url, link.name));
@@ -121,7 +122,7 @@ const editPostId = new URLSearchParams(window.location.search).get('id');
             restore: draft => {
                 document.getElementById('postTitle').value = draft.title || '';
                 document.getElementById('postContent').value = draft.content || '';
-                document.getElementById('category').value = draft.category || '천체 관측 데이터';
+                document.getElementById('category').value = normalizeResourceCategory(draft.category);
                 document.getElementById('linkContainer').innerHTML = '';
                 (draft.links?.length ? draft.links : [{}]).forEach(link => addLinkField(link.url || '', link.name || ''));
             }
