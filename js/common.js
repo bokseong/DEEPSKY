@@ -828,31 +828,36 @@ function dismissAnnouncementPopups(announcements, forToday) {
 function showAnnouncementPopup(announcements) {
     if (!announcements.length || document.getElementById("site-announcement-dialog")) return;
 
-    const dialog = document.createElement("dialog");
-    dialog.id = "site-announcement-dialog";
-    dialog.className = "site-announcement-dialog";
-    dialog.setAttribute("aria-labelledby", "site-announcement-dialog-title");
+    const queue = [...announcements];
 
-    const header = document.createElement("header");
-    header.className = "site-announcement-dialog-header";
-    const headingGroup = document.createElement("div");
-    const eyebrow = document.createElement("span");
-    eyebrow.className = "site-announcement-dialog-eyebrow";
-    eyebrow.textContent = "DEEP SKY 공지";
-    const heading = document.createElement("h2");
-    heading.id = "site-announcement-dialog-title";
-    heading.textContent = announcements.length > 1 ? `중요 공지 ${announcements.length}건` : "중요 공지";
-    headingGroup.append(eyebrow, heading);
-    const closeButton = document.createElement("button");
-    closeButton.type = "button";
-    closeButton.className = "site-announcement-dialog-close";
-    closeButton.textContent = "닫기";
-    closeButton.setAttribute("aria-label", "공지 팝업 닫기");
-    header.append(headingGroup, closeButton);
+    const showNext = () => {
+        const announcement = queue.shift();
+        if (!announcement) return;
 
-    const list = document.createElement("div");
-    list.className = "site-announcement-dialog-list";
-    announcements.forEach(announcement => {
+        const dialog = document.createElement("dialog");
+        dialog.id = "site-announcement-dialog";
+        dialog.className = "site-announcement-dialog";
+        dialog.setAttribute("aria-labelledby", "site-announcement-dialog-title");
+
+        const header = document.createElement("header");
+        header.className = "site-announcement-dialog-header";
+        const headingGroup = document.createElement("div");
+        const eyebrow = document.createElement("span");
+        eyebrow.className = "site-announcement-dialog-eyebrow";
+        eyebrow.textContent = "DEEP SKY 공지";
+        const heading = document.createElement("h2");
+        heading.id = "site-announcement-dialog-title";
+        heading.textContent = "중요 공지";
+        headingGroup.append(eyebrow, heading);
+        const closeButton = document.createElement("button");
+        closeButton.type = "button";
+        closeButton.className = "site-announcement-dialog-close";
+        closeButton.textContent = "닫기";
+        closeButton.setAttribute("aria-label", "공지 팝업 닫기");
+        header.append(headingGroup, closeButton);
+
+        const list = document.createElement("div");
+        list.className = "site-announcement-dialog-list";
         const article = document.createElement("article");
         const title = document.createElement("h3");
         title.textContent = announcement.title || "공지";
@@ -865,49 +870,57 @@ function showAnnouncementPopup(announcements) {
             : "";
         article.append(title, content, time);
         list.appendChild(article);
-    });
 
-    const footer = document.createElement("footer");
-    footer.className = "site-announcement-dialog-footer";
-    const todayLabel = document.createElement("label");
-    const todayCheckbox = document.createElement("input");
-    todayCheckbox.type = "checkbox";
-    todayLabel.append(todayCheckbox, document.createTextNode(" 오늘 하루 보지 않기"));
-    const detailsLink = document.createElement("a");
-    detailsLink.href = "talk.html#talk-announcement-title";
-    detailsLink.className = "btn btn-primary";
-    detailsLink.textContent = "전체 공지 보기";
-    footer.append(todayLabel, detailsLink);
-    dialog.append(header, list, footer);
-    document.body.appendChild(dialog);
+        const footer = document.createElement("footer");
+        footer.className = "site-announcement-dialog-footer";
+        const todayLabel = document.createElement("label");
+        const todayCheckbox = document.createElement("input");
+        todayCheckbox.type = "checkbox";
+        todayLabel.append(todayCheckbox, document.createTextNode(" 오늘 하루 보지 않기"));
+        const detailsLink = document.createElement("a");
+        detailsLink.href = "talk.html#talk-announcement-title";
+        detailsLink.className = "btn btn-primary";
+        detailsLink.textContent = "전체 공지 보기";
+        footer.append(todayLabel, detailsLink);
+        dialog.append(header, list, footer);
+        document.body.appendChild(dialog);
 
-    let dismissed = false;
-    const dismiss = () => {
-        if (dismissed) return;
-        dismissed = true;
-        dismissAnnouncementPopups(announcements, todayCheckbox.checked);
-    };
-    closeButton.addEventListener("click", () => {
-        dismiss();
-        dialog.close();
-    });
-    detailsLink.addEventListener("click", dismiss);
-    dialog.addEventListener("cancel", dismiss);
-    dialog.addEventListener("click", event => {
-        if (event.target !== dialog) return;
-        const bounds = dialog.getBoundingClientRect();
-        const inside = (
-            event.clientX >= bounds.left
-            && event.clientX <= bounds.right
-            && event.clientY >= bounds.top
-            && event.clientY <= bounds.bottom
-        );
-        if (!inside) {
+        let dismissed = false;
+        const dismiss = () => {
+            if (dismissed) return;
+            dismissed = true;
+            dismissAnnouncementPopups([announcement], todayCheckbox.checked);
+        };
+        const closeAndContinue = () => {
             dismiss();
             dialog.close();
-        }
-    });
-    dialog.showModal();
+        };
+        closeButton.addEventListener("click", closeAndContinue);
+        detailsLink.addEventListener("click", dismiss);
+        dialog.addEventListener("cancel", event => {
+            event.preventDefault();
+            closeAndContinue();
+        });
+        dialog.addEventListener("click", event => {
+            if (event.target !== dialog) return;
+            const bounds = dialog.getBoundingClientRect();
+            const inside = (
+                event.clientX >= bounds.left
+                && event.clientX <= bounds.right
+                && event.clientY >= bounds.top
+                && event.clientY <= bounds.bottom
+            );
+            if (!inside) closeAndContinue();
+        });
+        dialog.addEventListener("close", () => {
+            dismiss();
+            dialog.remove();
+            window.setTimeout(showNext, 100);
+        }, { once: true });
+        dialog.showModal();
+    };
+
+    showNext();
 }
 
 async function createAnnouncementPopup() {
