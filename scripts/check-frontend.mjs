@@ -185,7 +185,8 @@ for (const pattern of [
     /weather\.go\.kr\/w\/weather\/warning\/status\.do/,
     /weather\.go\.kr\/w\/weather\/radar\/radar\.do/,
     /meteoblue\.com\/ko\/weather\/outdoorsports\/seeing/,
-    /windy\.com\/34\.950\/127\.490/
+    /windy\.com\/34\.950\/127\.490/,
+    /class="weather-tool-card weather-tool-wide"[^>]*>[\s\S]*?Stellarium Web/
 ]) {
     if (!pattern.test(weatherHtml)) fail(path.join(root, "weather.html"), "관측용 날씨 기능 또는 기상청 안전 링크가 누락되었습니다.");
 }
