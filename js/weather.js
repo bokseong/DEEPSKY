@@ -186,9 +186,9 @@ function observingScore(item) {
 }
 
 function scoreRating(score) {
-  if (score >= 78) return { label: "좋음", className: "rating-good", color: "var(--weather-good)", guide: "구름과 강수 위험이 낮아 관측을 계획하기 좋은 조건입니다." };
-  if (score >= 58) return { label: "보통", className: "rating-fair", color: "var(--weather-fair)", guide: "관측은 가능하지만 시간대별 구름과 바람 변화를 확인하세요." };
-  if (score >= 38) return { label: "주의", className: "rating-poor", color: "var(--weather-poor)", guide: "구름 또는 바람의 영향이 예상됩니다. 짧은 관측을 우선 검토하세요." };
+  if (score >= 90) return { label: "좋음", className: "rating-good", color: "var(--weather-good)", guide: "구름과 강수 위험이 낮아 관측을 계획하기 좋은 조건입니다." };
+  if (score >= 70) return { label: "보통", className: "rating-fair", color: "var(--weather-fair)", guide: "관측은 가능하지만 시간대별 구름과 바람 변화를 확인하세요." };
+  if (score >= 50) return { label: "주의", className: "rating-poor", color: "var(--weather-poor)", guide: "구름 또는 바람의 영향이 예상됩니다. 짧은 관측을 우선 검토하세요." };
   return { label: "어려움", className: "rating-bad", color: "var(--weather-bad)", guide: "구름·강수·시정 조건으로 관측 성공 가능성이 낮습니다." };
 }
 
