@@ -175,6 +175,37 @@ if (!/if\s*\(!pageName\s*\|\|\s*pageName\s*===\s*["']index\.html["']\)\s*\{\s*cr
     fail(path.join(root, "js", "common.js"), "공지 팝업이 index 화면으로 제한되지 않았습니다.");
 }
 
+const weatherHtml = fs.readFileSync(path.join(root, "weather.html"), "utf8");
+const weatherSource = fs.readFileSync(path.join(root, "js", "weather.js"), "utf8");
+for (const pattern of [
+    /id="weather-location"/,
+    /id="red-mode-toggle"/,
+    /id="moon-phase"/,
+    /id="twilight-time"/,
+    /weather\.go\.kr\/w\/weather\/warning\/status\.do/,
+    /weather\.go\.kr\/w\/weather\/radar\/radar\.do/,
+    /meteoblue\.com\/ko\/weather\/outdoorsports\/seeing/,
+    /windy\.com\/34\.950\/127\.490/
+]) {
+    if (!pattern.test(weatherHtml)) fail(path.join(root, "weather.html"), "관측용 날씨 기능 또는 기상청 안전 링크가 누락되었습니다.");
+}
+for (const pattern of [/CACHE_MAX_AGE/, /navigator\.geolocation/, /getMoonInfo/, /getAstronomicalTwilight/, /red-night-mode/]) {
+    if (!pattern.test(weatherSource)) fail(path.join(root, "js", "weather.js"), "날씨 복구·위치·천문·야간 모드 로직이 누락되었습니다.");
+}
+if (!/activeLocation\.key === ["']device["']/.test(weatherSource)) {
+    fail(path.join(root, "js", "weather.js"), "현재 위치 예보를 브라우저 저장소에 남기지 않는 보호 로직이 누락되었습니다.");
+}
+const astronomyModule = await import(pathToFileURL(path.join(root, "js", "astronomy.js")));
+const astronomyDate = new Date("2026-09-25T12:00:00+09:00");
+const moonCheck = astronomyModule.getMoonInfo(astronomyDate, 34.9506, 127.4872);
+const twilightCheck = astronomyModule.getAstronomicalTwilight(astronomyDate, 34.9506, 127.4872);
+if (!Number.isFinite(moonCheck.age) || moonCheck.age < 0 || moonCheck.age >= 30 || moonCheck.illumination < 0 || moonCheck.illumination > 100) {
+    fail(path.join(root, "js", "astronomy.js"), "달 위상 계산값이 정상 범위를 벗어났습니다.");
+}
+if (!(twilightCheck.dawn instanceof Date) || !(twilightCheck.dusk instanceof Date) || !Number.isFinite(twilightCheck.dawn.valueOf()) || !Number.isFinite(twilightCheck.dusk.valueOf())) {
+    fail(path.join(root, "js", "astronomy.js"), "천문박명 계산 결과가 올바르지 않습니다.");
+}
+
 const { normalizeLinkUrl } = await import(pathToFileURL(path.join(root, "js", "link-policy.js")));
 const apiBaseUrl = "https://api.example.com";
 for (const unsafe of [

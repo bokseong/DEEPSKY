@@ -7,7 +7,7 @@
   <link rel="apple-touch-icon" href="logo.png">
   <title>DEEP SKY | 날씨</title>
   <link rel="stylesheet" href="css/common.css">
-  <link rel="stylesheet" href="css/weather.css?v=20260828-observing-weather">
+  <link rel="stylesheet" href="css/weather.css?v=20260925-observing-planner">
 </head>
 <body>
 <div class="auth-bar">
@@ -39,7 +39,15 @@
 <main class="weather-main">
   <div class="weather-toolbar">
     <p id="weather-status" class="weather-status" role="status">최신 예보를 불러오는 중입니다.</p>
-    <button id="weather-refresh" class="btn" type="button">새로고침</button>
+    <div class="weather-controls">
+      <label for="weather-location">관측지</label>
+      <select id="weather-location" aria-label="관측지 선택">
+        <option value="school">복성고등학교 인근</option>
+        <option value="device">현재 위치</option>
+      </select>
+      <button id="red-mode-toggle" class="btn" type="button" aria-pressed="false">적색 야간 모드</button>
+      <button id="weather-refresh" class="btn" type="button">새로고침</button>
+    </div>
   </div>
 
   <section class="weather-overview" aria-labelledby="current-weather-title">
@@ -53,16 +61,31 @@
       <div class="score-row"><strong id="observing-score">-</strong><span id="observing-label">계산 중</span></div>
       <div class="score-track" aria-hidden="true"><span id="observing-score-bar"></span></div>
       <p id="observing-guide">구름, 강수 확률, 시정과 바람을 종합하고 있습니다.</p>
+      <details class="score-details">
+        <summary>점수 산정 근거</summary>
+        <div id="score-breakdown">시간대별 조건을 계산하고 있습니다.</div>
+      </details>
     </article>
   </section>
 
   <section class="current-metrics" aria-label="현재 기상 지표">
     <article><span>구름량</span><strong id="metric-cloud">-</strong></article>
     <article><span>습도</span><strong id="metric-humidity">-</strong></article>
+    <article><span>강수 확률</span><strong id="metric-precipitation-probability">-</strong></article>
     <article><span>강수량</span><strong id="metric-precipitation">-</strong></article>
+    <article><span>시정</span><strong id="metric-visibility">-</strong></article>
     <article><span>바람</span><strong id="metric-wind">-</strong></article>
     <article><span>돌풍</span><strong id="metric-gust">-</strong></article>
     <article><span>체감온도</span><strong id="metric-apparent">-</strong></article>
+  </section>
+
+  <section class="astronomy-panel" aria-labelledby="astronomy-title">
+    <div class="panel-heading"><div><p class="weather-eyebrow">밤하늘</p><h2 id="astronomy-title">오늘 밤 천문 정보</h2></div><p id="astronomy-location">순천 기준</p></div>
+    <div class="astronomy-grid">
+      <article><span id="moon-icon" class="astronomy-icon" aria-hidden="true">🌙</span><div><span>달 위상</span><strong id="moon-phase">계산 중</strong><p id="moon-detail">월령과 밝기를 계산하고 있습니다.</p></div></article>
+      <article><span class="astronomy-icon" aria-hidden="true">↗</span><div><span>월출·월몰</span><strong id="moon-rise-set">계산 중</strong><p>지평선과 기상 조건에 따라 실제 시각이 달라질 수 있습니다.</p></div></article>
+      <article><span class="astronomy-icon" aria-hidden="true">✦</span><div><span>천문박명</span><strong id="twilight-time">계산 중</strong><p id="dark-window">태양 고도 -18° 이하의 어두운 시간입니다.</p></div></article>
+    </div>
   </section>
 
   <section class="weather-panel" aria-labelledby="night-forecast-title">
@@ -80,21 +103,31 @@
     <div id="daily-forecast" class="daily-forecast"><p>예보를 불러오는 중입니다.</p></div>
   </section>
 
+  <section class="safety-links" aria-label="기상 안전 정보">
+    <div><strong>출발 전 안전 확인</strong><p>수치예보와 함께 기상청 특보 및 레이더를 확인하세요.</p></div>
+    <a class="btn" href="https://www.weather.go.kr/w/weather/warning/status.do" target="_blank" rel="noopener">기상특보</a>
+    <a class="btn" href="https://www.weather.go.kr/w/weather/radar/radar.do" target="_blank" rel="noopener">강수 레이더</a>
+    <a class="btn" href="talk.html">관측 계획 남기기</a>
+  </section>
+
   <section class="weather-tools" aria-labelledby="weather-tools-title">
     <div class="panel-heading weather-tools-heading"><div><p class="weather-eyebrow">관측 도구</p><h2 id="weather-tools-title">상세 관측 도구</h2></div><p>기존 기상 페이지의 관측 도구를 유지했습니다.</p></div>
     <div class="weather-tools-grid">
-      <article class="weather-tool-card weather-tool-wide">
-        <div class="tool-card-heading"><div><span>대기 상태</span><h3>Meteoblue 천문 관측 지수</h3></div><p>구름층, 시상과 행성 관측 조건</p></div>
-        <div class="embed-frame embed-frame-seeing"><iframe src="https://www.meteoblue.com/ko/weather/widget/seeing/suncheon_republic-of-korea_1835648?geosize=monochrome&amp;layout=dark&amp;clouds=3&amp;planets=1&amp;seeing=1" title="순천 Meteoblue 천문 관측 지수" loading="lazy"></iframe></div>
-      </article>
-      <article class="weather-tool-card weather-tool-wide">
-        <div class="tool-card-heading"><div><span>위성 영상</span><h3>Windy 구름 분포</h3></div><p>타임라인으로 위성 구름 이동 확인</p></div>
-        <div class="embed-frame"><iframe src="https://embed.windy.com/embed.html?type=map&amp;location=coordinates&amp;metricRain=mm&amp;metricTemp=%C2%B0C&amp;metricWind=m%2Fs&amp;zoom=9&amp;overlay=satellite&amp;product=satellite&amp;level=surface&amp;lat=34.95&amp;lon=127.49&amp;message=true" title="순천 Windy 위성 구름 지도" loading="lazy"></iframe></div>
-      </article>
-      <article class="weather-tool-card">
-        <div class="tool-card-heading"><div><span>밤하늘 지도</span><h3>Stellarium Web</h3></div><p>현재 밤하늘과 관측 대상 확인 · <a class="tool-link" href="https://stellarium-web.org/" target="_blank" rel="noopener">새 창</a></p></div>
-        <div class="embed-frame"><iframe src="https://stellarium-web.org/" title="Stellarium 웹 천구 지도" loading="lazy"></iframe></div>
-      </article>
+      <details class="weather-tool-card weather-tool-wide">
+        <summary class="tool-card-heading"><div><span>대기 상태</span><h3>Meteoblue 천문 관측 지수</h3></div><p>구름층, 시상과 행성 관측 조건 · 열기</p></summary>
+        <p class="tool-external-link"><a class="tool-link" href="https://www.meteoblue.com/ko/weather/outdoorsports/seeing/suncheon_republic-of-korea_1835648" target="_blank" rel="noopener">임베드가 보이지 않으면 새 창에서 열기</a></p>
+        <div class="embed-frame embed-frame-seeing"><iframe data-src="https://www.meteoblue.com/ko/weather/widget/seeing/suncheon_republic-of-korea_1835648?geosize=monochrome&amp;layout=dark&amp;clouds=3&amp;planets=1&amp;seeing=1" title="순천 Meteoblue 천문 관측 지수" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+      </details>
+      <details class="weather-tool-card weather-tool-wide">
+        <summary class="tool-card-heading"><div><span>위성 영상</span><h3>Windy 구름 분포</h3></div><p>타임라인으로 위성 구름 이동 확인 · 열기</p></summary>
+        <p class="tool-external-link"><a class="tool-link" href="https://www.windy.com/34.950/127.490?34.950,127.490,9" target="_blank" rel="noopener">임베드가 보이지 않으면 새 창에서 열기</a></p>
+        <div class="embed-frame"><iframe data-src="https://embed.windy.com/embed.html?type=map&amp;location=coordinates&amp;metricRain=mm&amp;metricTemp=%C2%B0C&amp;metricWind=m%2Fs&amp;zoom=9&amp;overlay=satellite&amp;product=satellite&amp;level=surface&amp;lat=34.95&amp;lon=127.49&amp;message=true" title="순천 Windy 위성 구름 지도" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+      </details>
+      <details class="weather-tool-card">
+        <summary class="tool-card-heading"><div><span>밤하늘 지도</span><h3>Stellarium Web</h3></div><p>현재 밤하늘과 관측 대상 확인 · 열기</p></summary>
+        <p class="tool-external-link"><a class="tool-link" href="https://stellarium-web.org/" target="_blank" rel="noopener">새 창에서 Stellarium 열기</a></p>
+        <div class="embed-frame"><iframe data-src="https://stellarium-web.org/" title="Stellarium 웹 천구 지도" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+      </details>
     </div>
   </section>
 
@@ -106,7 +139,7 @@
 </main>
 
 <footer><p>&copy; 2026 DEEP SKY | Bokseong Astro &amp; Space Club | All rights reserved.</p><p>Designed by jw-astro09 | Contact: 2jw5464@gmail.com</p></footer>
-<script type="module" src="js/weather.js?v=20260828-observing-weather"></script>
+<script type="module" src="js/weather.js?v=20260925-observing-planner"></script>
 <script type="module" src="frontend-access-control.js?v=20260920-permission-nav-session"></script>
 </body>
 </html>
