@@ -1017,10 +1017,63 @@ footer {
     border-top: 1px solid var(--border-color);
 }
 
-.ai-launcher {
+html.night-mode-active {
+    --bg-dark: #030000;
+    --accent: #ff554b;
+    --text-main: #ffc4bd;
+    --card-bg: rgba(90, 4, 0, .14);
+    --nav-bg: rgba(12, 0, 0, .96);
+    --border-color: rgba(255, 100, 90, .24);
+    color-scheme: dark;
+}
+
+html.night-mode-active body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 2147483646;
+    pointer-events: none;
+    background: #ff180f;
+    mix-blend-mode: multiply;
+    opacity: var(--night-mode-opacity, .57);
+}
+
+html.night-mode-active dialog {
+    border-color: rgba(255, 100, 90, .3);
+    background: #100101;
+    color: #ffc4bd;
+}
+
+html.night-mode-active dialog::backdrop {
+    background: rgba(12, 0, 0, .84);
+}
+
+.night-mode-toggle {
     position: fixed;
     right: max(18px, env(safe-area-inset-right));
     bottom: max(18px, env(safe-area-inset-bottom));
+    z-index: 2147483647;
+    width: 52px;
+    height: 52px;
+    border: 1px solid rgba(255, 104, 92, .78);
+    border-radius: 50%;
+    background: #130202;
+    color: #ff8b80;
+    font: 700 1.45rem/1 Arial, sans-serif;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, .5);
+    cursor: pointer;
+}
+
+.night-mode-toggle:hover,
+.night-mode-toggle.is-active {
+    background: #ff4a3f;
+    color: #160100;
+}
+
+.ai-launcher {
+    position: fixed;
+    right: max(18px, env(safe-area-inset-right));
+    bottom: max(82px, calc(env(safe-area-inset-bottom) + 64px));
     z-index: 1800;
     display: flex;
     flex-direction: column;
@@ -1209,12 +1262,18 @@ footer {
 
     .ai-launcher {
         right: max(12px, env(safe-area-inset-right));
-        bottom: max(12px, env(safe-area-inset-bottom));
+        bottom: max(72px, calc(env(safe-area-inset-bottom) + 60px));
     }
 
-    .ai-launcher-toggle {
+    .ai-launcher-toggle,
+    .night-mode-toggle {
         width: 48px;
         height: 48px;
+    }
+
+    .night-mode-toggle {
+        right: max(12px, env(safe-area-inset-right));
+        bottom: max(12px, env(safe-area-inset-bottom));
     }
 
     .ai-quick-panel {

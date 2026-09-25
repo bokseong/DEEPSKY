@@ -1,4 +1,5 @@
 import { apiFetch, apiRequest, auth, authHeaders, getCurrentProfile, updateCurrentProfile } from "./common.js";
+import { getNightModeStrength, setNightModeStrength } from "./night-mode.js?v=20260925-global-night-mode";
 import { EmailAuthProvider, onAuthStateChanged, reauthenticateWithCredential, sendPasswordResetEmail, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 let currentUser = null;
@@ -7,6 +8,29 @@ const roleMap = {
     admin: "관리자", teacher: "교사",
     deputy: "차장", student: "동아리 부원", member: "일반 회원"
 };
+
+initializeNightModePreference();
+
+function initializeNightModePreference() {
+    const slider = document.getElementById("night-mode-strength");
+    const output = document.getElementById("night-mode-strength-value");
+    const status = document.getElementById("night-mode-strength-help");
+    const render = value => {
+        const strength = Number(value);
+        slider.value = String(strength);
+        output.value = `${strength}%`;
+        output.textContent = `${strength}%`;
+    };
+
+    render(getNightModeStrength());
+    slider.addEventListener("input", () => {
+        render(setNightModeStrength(slider.value));
+        status.textContent = "야간 모드 강도를 적용했습니다.";
+    });
+    window.addEventListener("deepsky:night-mode-change", event => {
+        if (event.detail?.strength) render(event.detail.strength);
+    });
+}
 
 async function logout() {
     await signOut(auth);

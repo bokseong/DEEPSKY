@@ -1,3 +1,4 @@
+import "./js/night-mode.js?v=20260925-global-night-mode";
 import { auth, getCurrentPermissions, getCurrentProfile } from "./js/common.js?v=20260920-guest-permissions";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const ROLES = {

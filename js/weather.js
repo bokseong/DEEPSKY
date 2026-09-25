@@ -10,13 +10,11 @@ const DEFAULT_LOCATION = Object.freeze({
 });
 const CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
 const CACHE_PREFIX = "deepsky:weather-cache:v2";
-const RED_MODE_KEY = "deepsky:weather-red-mode";
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 const status = document.getElementById("weather-status");
 const refreshButton = document.getElementById("weather-refresh");
 const locationSelect = document.getElementById("weather-location");
-const redModeButton = document.getElementById("red-mode-toggle");
 const loginLink = document.getElementById("login-link");
 const logoutButton = document.getElementById("logout-btn");
 const userName = document.getElementById("user-name");
@@ -24,7 +22,6 @@ let activeLocation = { ...DEFAULT_LOCATION };
 
 refreshButton.addEventListener("click", () => loadWeather());
 locationSelect.addEventListener("change", handleLocationChange);
-redModeButton.addEventListener("click", toggleRedMode);
 logoutButton.addEventListener("click", async () => { await signOut(auth); location.href = "index.html"; });
 
 onAuthStateChanged(auth, async user => {
@@ -40,7 +37,6 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
-initializeRedMode();
 initializeWeatherTools();
 loadWeather();
 
@@ -361,24 +357,6 @@ function readCache() {
 
 function cacheKey() {
   return `${CACHE_PREFIX}:${activeLocation.key}`;
-}
-
-function initializeRedMode() {
-  let enabled = false;
-  try { enabled = localStorage.getItem(RED_MODE_KEY) === "1"; } catch { enabled = false; }
-  applyRedMode(enabled);
-}
-
-function toggleRedMode() {
-  const enabled = !document.body.classList.contains("red-night-mode");
-  applyRedMode(enabled);
-  try { localStorage.setItem(RED_MODE_KEY, enabled ? "1" : "0"); } catch { /* preference is optional */ }
-}
-
-function applyRedMode(enabled) {
-  document.body.classList.toggle("red-night-mode", enabled);
-  redModeButton.setAttribute("aria-pressed", String(enabled));
-  redModeButton.textContent = enabled ? "일반 색상 모드" : "적색 야간 모드";
 }
 
 function initializeWeatherTools() {

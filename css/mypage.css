@@ -16,6 +16,50 @@
     margin-top: 22px;
 }
 
+.preference-panel {
+    margin-top: 22px;
+}
+
+.preference-help,
+.preference-status {
+    color: #b8c0c7;
+}
+
+.preference-help {
+    margin: 0 0 18px;
+    line-height: 1.7;
+}
+
+.night-strength-heading,
+.night-strength-scale {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.night-strength-heading output {
+    color: var(--accent);
+    font-weight: 800;
+}
+
+.night-strength-range {
+    width: 100%;
+    margin: 10px 0 2px;
+    accent-color: var(--accent);
+}
+
+.night-strength-scale {
+    color: #7f898d;
+    font-size: .78rem;
+}
+
+.preference-status {
+    min-height: 1.5em;
+    margin: 12px 0 0;
+    font-size: .86rem;
+}
+
 .password-help,
 .password-rule {
     color: #b8c0c7;

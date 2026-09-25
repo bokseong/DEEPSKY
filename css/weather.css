@@ -116,26 +116,6 @@ body { background: var(--bg-dark); color: var(--text-main); }
 .tool-status { margin: 12px 0 0; color: var(--weather-muted); font-size: .8rem; }
 .tool-status.error { color: var(--weather-bad); }
 
-body.red-night-mode {
-  --accent: #ff4949;
-  --text-main: #ffb1a8;
-  --weather-muted: #c56f68;
-  --weather-good: #ff786e;
-  --weather-fair: #ff625a;
-  --weather-poor: #ff4138;
-  --weather-bad: #ff241c;
-  filter: saturate(.82);
-}
-body.red-night-mode .page-hero,
-body.red-night-mode .auth-bar,
-body.red-night-mode .sub-nav-container,
-body.red-night-mode footer { background-image: none; background-color: #090000; }
-body.red-night-mode .weather-main { color: #ffb1a8; }
-body.red-night-mode img,
-body.red-night-mode iframe { filter: grayscale(1) sepia(1) saturate(4) hue-rotate(315deg) brightness(.55); }
-body.red-night-mode .btn,
-body.red-night-mode select { border-color: #7e231f; color: #ff9a91; background: #160201; }
-
 @media (max-width: 900px) {
   .weather-overview { grid-template-columns: 1fr; }
   .current-metrics { grid-template-columns: repeat(3, 1fr); }

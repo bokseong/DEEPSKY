@@ -39,6 +39,13 @@ const pageHeroFiles = [
 for (const file of htmlFiles) {
     const html = fs.readFileSync(file, "utf8");
 
+    if (!/css\/common\.css\?v=20260925-global-night-mode/.test(html)) {
+        fail(file, "공통 야간 모드 스타일의 캐시 버전이 적용되지 않았습니다.");
+    }
+    if (!/frontend-access-control\.js\?v=20260925-global-night-mode/.test(html)) {
+        fail(file, "공통 야간 모드가 포함된 접근 제어 스크립트 버전이 적용되지 않았습니다.");
+    }
+
     for (const match of html.matchAll(/<img\b[^>]*>/gi)) {
         if (!/\balt\s*=/i.test(match[0])) fail(file, "img 요소에 alt 속성이 없습니다.");
     }
@@ -157,6 +164,9 @@ for (const [fileName, required] of [
 }
 
 const commonSource = fs.readFileSync(path.join(root, "js", "common.js"), "utf8");
+const nightModeSource = fs.readFileSync(path.join(root, "js", "night-mode.js"), "utf8");
+const commonCss = fs.readFileSync(path.join(root, "css", "common.css"), "utf8");
+const mypageHtml = fs.readFileSync(path.join(root, "mypage.html"), "utf8");
 for (const requiredPattern of [
     /normalizeLinkUrl/,
     /apiBaseUrl:\s*API_BASE_URL/
@@ -174,12 +184,20 @@ if (/deepsky:popup:session/.test(commonSource)) {
 if (!/if\s*\(!pageName\s*\|\|\s*pageName\s*===\s*["']index\.html["']\)\s*\{\s*createAnnouncementPopup\(\);\s*\}/.test(commonSource)) {
     fail(path.join(root, "js", "common.js"), "공지 팝업이 index 화면으로 제한되지 않았습니다.");
 }
+for (const pattern of [/night-mode-toggle/, /deepsky:night-mode:enabled/, /deepsky:night-mode:strength/, /setNightModeStrength/]) {
+    if (!pattern.test(nightModeSource)) fail(path.join(root, "js", "night-mode.js"), "공통 야간 모드 토글 또는 강도 저장 로직이 누락되었습니다.");
+}
+if (!/html\.night-mode-active body::after/.test(commonCss) || !/\.night-mode-toggle/.test(commonCss)) {
+    fail(path.join(root, "css", "common.css"), "모든 페이지에 적용할 야간 모드 오버레이 또는 플로팅 버튼 스타일이 누락되었습니다.");
+}
+if (!/id="night-mode-strength"[^>]*type="range"/.test(mypageHtml)) {
+    fail(path.join(root, "mypage.html"), "마이페이지 야간 모드 강도 설정이 누락되었습니다.");
+}
 
 const weatherHtml = fs.readFileSync(path.join(root, "weather.html"), "utf8");
 const weatherSource = fs.readFileSync(path.join(root, "js", "weather.js"), "utf8");
 for (const pattern of [
     /id="weather-location"/,
-    /id="red-mode-toggle"/,
     /id="moon-phase"/,
     /id="twilight-time"/,
     /weather\.go\.kr\/w\/weather\/warning\/status\.do/,
@@ -190,7 +208,7 @@ for (const pattern of [
 ]) {
     if (!pattern.test(weatherHtml)) fail(path.join(root, "weather.html"), "관측용 날씨 기능 또는 기상청 안전 링크가 누락되었습니다.");
 }
-for (const pattern of [/CACHE_MAX_AGE/, /navigator\.geolocation/, /getMoonInfo/, /getAstronomicalTwilight/, /red-night-mode/]) {
+for (const pattern of [/CACHE_MAX_AGE/, /navigator\.geolocation/, /getMoonInfo/, /getAstronomicalTwilight/]) {
     if (!pattern.test(weatherSource)) fail(path.join(root, "js", "weather.js"), "날씨 복구·위치·천문·야간 모드 로직이 누락되었습니다.");
 }
 if (!/activeLocation\.key === ["']device["']/.test(weatherSource)) {

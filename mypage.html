@@ -6,8 +6,8 @@
     <link rel="icon" href="logo.png" type="image/png">
     <link rel="apple-touch-icon" href="logo.png">
     <title>DEEP SKY | 마이페이지</title>
-    <link rel="stylesheet" href="css/common.css">
-    <link rel="stylesheet" href="css/mypage.css">
+    <link rel="stylesheet" href="css/common.css?v=20260925-global-night-mode">
+    <link rel="stylesheet" href="css/mypage.css?v=20260925-global-night-mode">
   </head>
   <body>
     <div class="auth-bar">
@@ -52,6 +52,17 @@
           <button class="btn btn-primary" id="update-profile-btn">적용</button>
           <button class="btn" id="card-logout-btn">로그아웃</button>
         </div>
+      </section>
+      <section id="display-preferences" class="panel preference-panel" aria-labelledby="display-preferences-title">
+        <h2 id="display-preferences-title" class="section-title">야간 관측 화면</h2>
+        <p class="preference-help">우측 하단 달 버튼으로 적색 야간 모드를 켜고 끌 수 있습니다. 강도는 이 브라우저에 저장되며 모든 페이지에 적용됩니다.</p>
+        <div class="night-strength-heading">
+          <label for="night-mode-strength">야간 모드 강도</label>
+          <output id="night-mode-strength-value" for="night-mode-strength">70%</output>
+        </div>
+        <input id="night-mode-strength" class="night-strength-range" type="range" min="20" max="100" step="5" value="70" aria-describedby="night-mode-strength-help">
+        <div class="night-strength-scale" aria-hidden="true"><span>은은하게</span><span>강하게</span></div>
+        <p id="night-mode-strength-help" class="preference-status" role="status">슬라이더를 움직이면 즉시 적용됩니다.</p>
       </section>
       <section id="password-management" class="panel password-panel" aria-labelledby="password-management-title">
         <h2 id="password-management-title" class="section-title">비밀번호 관리</h2>
@@ -101,7 +112,7 @@
       <p>&copy; 2026 DEEP SKY | Bokseong Astro &amp; Space Club | All rights reserved.</p>
       <p>Designed by jw-astro09 | Contact: 2jw5464@gmail.com</p>
     </footer>
-    <script type="module" src="js/mypage.js?v=20260914-deputy-role"></script>
-    <script type="module" src="frontend-access-control.js?v=20260920-permission-nav-session"></script>
+    <script type="module" src="js/mypage.js?v=20260925-global-night-mode"></script>
+    <script type="module" src="frontend-access-control.js?v=20260925-global-night-mode"></script>
   </body>
 </html>
