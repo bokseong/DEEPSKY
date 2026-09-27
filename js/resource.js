@@ -1,9 +1,9 @@
-import { apiRequestOptional, auth, getCurrentProfile } from "./common.js?v=20260920-guest-permissions";
+import { apiRequestOptional, auth, getCurrentPermissions, getCurrentProfile } from "./common.js?v=20260920-guest-permissions";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const COLLECTION = "resources";
-const WRITABLE_ROLES = ['teacher', 'deputy', 'admin'];
 let currentUser = null;
     let currentRole = 'guest';
+    let currentPermissions = {};
     let allPosts = [];
 
     document.getElementById('logout-btn').addEventListener('click', async () => {
@@ -17,6 +17,7 @@ let currentUser = null;
         if (!user) {
             currentUser = null;
             currentRole = 'guest';
+            currentPermissions = await getCurrentPermissions(null);
             document.getElementById('user-name').style.display = 'none';
             document.getElementById('logout-btn').style.display = 'none';
             document.getElementById('login-link').style.display = 'inline';
@@ -27,15 +28,19 @@ let currentUser = null;
 
         try {
             currentUser = user;
-            const userData = await getCurrentProfile(user);
+            const [userData, permissions] = await Promise.all([
+                getCurrentProfile(user),
+                getCurrentPermissions(user)
+            ]);
             currentRole = userData.role || 'member';
+            currentPermissions = permissions;
             document.getElementById('user-name').style.display = 'inline';
             document.getElementById('user-name').innerText = `${userData.name || '사용자'}님`;
 
             document.getElementById('logout-btn').style.display = 'inline';
             document.getElementById('login-link').style.display = 'none';
 
-            if (WRITABLE_ROLES.includes(currentRole)) {
+            if (currentPermissions["boards.write.shared"]) {
                 document.getElementById('write-btn').style.display = 'inline';
             }
 
@@ -78,7 +83,7 @@ let currentUser = null;
 
         const canDelete = (p) => currentUser && (
             p.uid === currentUser.uid ||
-            ['admin', 'teacher', 'deputy'].includes(currentRole)
+            currentPermissions["boards.manage.school"]
         );
 
         listDiv.replaceChildren();

@@ -2,48 +2,35 @@ import "./js/night-mode.js?v=20260925-global-night-mode";
 import { auth, getCurrentPermissions, getCurrentProfile } from "./js/common.js?v=20260920-guest-permissions";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const ROLES = {
-    loggedIn: ["admin", "teacher", "deputy", "student", "member"],
-    ai: ["admin", "teacher", "deputy", "student"],
-    resourceWrite: ["admin", "teacher", "deputy"],
-    suggestions: ["admin", "teacher", "deputy", "student"],
-    suggestionRead: ["admin", "teacher", "deputy"],
-    clubBoard: ["admin", "teacher", "deputy", "student"],
-    questionBoard: ["admin", "teacher", "deputy", "student", "member"]
+    loggedIn: ["admin", "teacher", "deputy", "student", "member"]
 };
 
 const PAGE_RULES = [
     { match: /^permissions\.html$/, roles: ["admin"] },
     { match: /^admin\.html$/, permission: "admin.access" },
-    { match: /^talk\.html$/, roles: ROLES.clubBoard },
+    { match: /^talk\.html$/, permission: "boards.read.school" },
     { match: /^question\.html$/, permission: "questions.read" },
     { match: /^photo\.html$/, permission: "gallery.read" },
-    { match: /^write\.html$/, roles: ROLES.resourceWrite },
-    { match: /^suggest\.html$/, roles: ROLES.loggedIn },
+    { match: /^write\.html$/, permission: "boards.write.shared" },
+    { match: /^suggest\.html$/, permission: "suggestions.create" },
     { match: /^resource\.html$/, permission: "boards.read.shared" },
     { match: /^view\.html$/, permission: "boards.read.shared" },
-    { match: /^ai\.html$/, roles: ROLES.ai },
+    { match: /^ai\.html$/, permission: "ai.use" },
     { match: /^search\.html$/, roles: ROLES.loggedIn },
     { match: /^notifications\.html$/, roles: ROLES.loggedIn },
     { match: /^mypage\.html$/, roles: ROLES.loggedIn },
     { match: /^adjust\.html$/, roles: ROLES.loggedIn },
-    { match: /^school-board\.html$/, permission: schoolReadPermissionFromQuery, roles: schoolRolesFromQuery },
-    { match: /^school-view\.html$/, permission: schoolReadPermissionFromQuery, roles: schoolRolesFromQuery },
-    { match: /^school-write\.html$/, permission: schoolWritePermissionFromQuery, roles: schoolRolesFromQuery }
+    { match: /^school-board\.html$/, permission: schoolReadPermissionFromQuery },
+    { match: /^school-view\.html$/, permission: schoolReadPermissionFromQuery },
+    { match: /^school-write\.html$/, permission: schoolWritePermissionFromQuery }
 ];
 
-function schoolRolesFromQuery(searchParams = new URLSearchParams(location.search)) {
-    const school = searchParams.get("school");
-    if (school === "b") return ROLES.clubBoard;
-    if (school === "q") return ROLES.questionBoard;
-    return [];
-}
-
 function schoolReadPermissionFromQuery(searchParams = new URLSearchParams(location.search)) {
-    return searchParams.get("school") === "q" ? "questions.read" : "";
+    return searchParams.get("school") === "q" ? "questions.read" : "boards.read.school";
 }
 
 function schoolWritePermissionFromQuery(searchParams = new URLSearchParams(location.search)) {
-    return searchParams.get("school") === "q" ? "questions.write" : "";
+    return searchParams.get("school") === "q" ? "questions.write" : "boards.write.school";
 }
 
 function currentPage() {
@@ -102,7 +89,7 @@ function hardenNavigation(role, permissions = {}) {
     setLinkVisibility('a[href="permissions.html"]', role === "admin");
 
     document.querySelectorAll('a[href="write.html"]:not(.nav-menu a), button[onclick*="write.html"]').forEach(el => {
-        el.style.display = ROLES.resourceWrite.includes(role) ? "" : "none";
+        el.style.display = permissions["boards.write.shared"] ? "" : "none";
     });
 }
 

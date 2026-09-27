@@ -1,4 +1,4 @@
-import { apiFetch, auth, getCurrentProfile, optionalAuthHeaders } from "./common.js?v=20260920-guest-permissions";
+import { apiFetch, auth, getCurrentPermissions, getCurrentProfile, optionalAuthHeaders } from "./common.js?v=20260920-guest-permissions";
 import { initializeAnnouncementSection } from "./announcement-manager.js?v=20260914-deputy-role";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
@@ -26,10 +26,12 @@ const SCHOOLS = {
     school.categories.forEach(category => categorySelect.add(new Option(category, category)));
 let currentUser = null;
     let currentRole = "guest";
+    let currentPermissions = {};
     let allPosts = [];
 
-    const roleAllowed = (role) => school.roles.includes(role);
-    const canManage = (post) => currentUser && (post.uid === currentUser.uid || ["admin", "teacher", "deputy"].includes(currentRole));
+    const readPermissionKey = schoolKey === "q" ? "questions.read" : "boards.read.school";
+    const writePermissionKey = schoolKey === "q" ? "questions.write" : "boards.write.school";
+    const canManage = (post) => currentUser && (post.uid === currentUser.uid || currentPermissions["boards.manage.school"]);
     const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
 
     document.getElementById("logout-btn").addEventListener("click", async () => {
@@ -41,9 +43,10 @@ let currentUser = null;
 
     onAuthStateChanged(auth, async (user) => {
         if (!user) {
-            if (!roleAllowed("guest")) { location.replace("block.html"); return; }
             currentUser = null;
             currentRole = "guest";
+            currentPermissions = await getCurrentPermissions(null);
+            if (!currentPermissions[readPermissionKey]) { location.replace("block.html"); return; }
             document.getElementById("user-name").style.display = "none";
             document.getElementById("logout-btn").style.display = "none";
             document.getElementById("login-link").style.display = "inline";
@@ -52,16 +55,20 @@ let currentUser = null;
             return;
         }
         try {
-            const userData = await getCurrentProfile(user);
+            const [userData, permissions] = await Promise.all([
+                getCurrentProfile(user),
+                getCurrentPermissions(user)
+            ]);
             const role = userData.role || "member";
-            if (!roleAllowed(role)) { location.replace("block.html"); return; }
+            if (!permissions[readPermissionKey]) { location.replace("block.html"); return; }
             currentUser = user;
             currentRole = role;
+            currentPermissions = permissions;
             document.getElementById("user-name").style.display = "inline";
             document.getElementById("user-name").textContent = `${userData.name || "사용자"}님`;
             document.getElementById("logout-btn").style.display = "inline";
             document.getElementById("login-link").style.display = "none";
-            document.getElementById("write-btn").style.display = "inline";
+            document.getElementById("write-btn").style.display = permissions[writePermissionKey] ? "inline" : "none";
             await Promise.all([
                 loadPosts(),
                 initializeAnnouncementSection({

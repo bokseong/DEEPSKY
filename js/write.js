@@ -1,12 +1,12 @@
-import { apiFetch, auth, authHeaders, getCurrentProfile, normalizeSafeLinkUrl } from "./common.js";
+import { apiFetch, auth, authHeaders, getCurrentPermissions, getCurrentProfile, normalizeSafeLinkUrl } from "./common.js";
 import { createDraftController, uploadFilesWithProgress } from "./write-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const COLLECTION = "resources";
-const WRITABLE_ROLES = ['teacher', 'deputy', 'admin'];
 const normalizeResourceCategory = value => ["발표 및 보고서", "발표 및 세미나"].includes(value) ? "발표" : (value || "천체 관측 데이터");
 const editPostId = new URLSearchParams(window.location.search).get('id');
     let currentUser = null;
     let currentRole = 'guest';
+    let currentPermissions = {};
     let currentUserName = '익명';
     let draftController = null;
 
@@ -17,9 +17,13 @@ const editPostId = new URLSearchParams(window.location.search).get('id');
     onAuthStateChanged(auth, async (user) => {
         if (!user) { alert('로그인이 필요합니다.'); location.replace('login.html'); return; }
         try {
-            const userData = await getCurrentProfile(user);
+            const [userData, permissions] = await Promise.all([
+                getCurrentProfile(user),
+                getCurrentPermissions(user)
+            ]);
             currentRole = userData.role || 'member';
-            if (!WRITABLE_ROLES.includes(currentRole)) { alert('작성 권한이 없습니다. 차장, 교사 또는 관리자만 작성할 수 있습니다.'); location.replace('resource.html'); return; }
+            currentPermissions = permissions;
+            if (!currentPermissions["boards.write.shared"]) { alert('자료 작성 권한이 없습니다.'); location.replace('resource.html'); return; }
             currentUser = user;
             currentUserName = userData.name || user.displayName || '사용자';
             document.getElementById('user-name').style.display = 'inline';
@@ -46,7 +50,7 @@ const editPostId = new URLSearchParams(window.location.search).get('id');
         const res = await apiFetch(`/api/deepsky/board/${COLLECTION}/${encodeURIComponent(editPostId)}`, { headers: await getHeaders() });
         if (!res.ok) { alert('자료를 찾을 수 없습니다.'); location.replace('resource.html'); return; }
         const data = await res.json();
-        const canEdit = data.uid === currentUser.uid || WRITABLE_ROLES.includes(currentRole);
+        const canEdit = data.uid === currentUser.uid || currentPermissions["boards.manage.school"];
         if (!canEdit) { alert('수정 권한이 없습니다.'); location.replace('resource.html'); return; }
         document.getElementById('postTitle').value = data.title || '';
         document.getElementById('postContent').value = data.content || data.description || '';

@@ -183,10 +183,6 @@ export const roleLabelMap = {
     guest: "비회원"
 };
 
-const AI_ALLOWED_ROLES = new Set([
-    "admin", "teacher", "deputy", "student"
-]);
-
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 let appCheckEnabled = false;
@@ -1034,9 +1030,10 @@ function createAiLauncher() {
         setOpen(false);
         if (!user) return;
         try {
-            const profile = await getCurrentProfile(user);
+            await getCurrentProfile(user);
+            const permissions = await getCurrentPermissions(user);
             if (sequence !== authSequence) return;
-            aiAccessAllowed = AI_ALLOWED_ROLES.has(profile.role);
+            aiAccessAllowed = Boolean(permissions["ai.use"]);
             launcher.hidden = !aiAccessAllowed;
         } catch {
             if (sequence === authSequence) launcher.hidden = true;

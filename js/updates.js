@@ -1,4 +1,4 @@
-import { apiFetch, apiRequest } from "./common.js";
+import { apiFetch, apiRequest, getCurrentPermissions } from "./common.js";
 
 const elements = {
     compose: document.getElementById("update-compose-toggle"),
@@ -180,7 +180,8 @@ function toLocalInput(value) {
 
 export async function initializeUpdates(user = null, profile = null) {
     currentUser = user;
-    canManage = Boolean(user && ["admin", "teacher", "deputy"].includes(profile?.role));
+    const permissions = await getCurrentPermissions(user);
+    canManage = Boolean(user && permissions["schedule.manage"]);
     elements.compose.hidden = !canManage;
     if (!canManage) closeForm();
     await loadUpdates();

@@ -19,8 +19,8 @@ let currentUser = null;
     let currentPermissions = {};
     let post = null;
 
-    const roleAllowed = (role) => school.roles.includes(role);
-    const canManagePost = () => post && currentUser && (post.uid === currentUser.uid || ["admin", "teacher", "deputy"].includes(currentRole));
+    const readPermissionKey = school.collection === "questions" ? "questions.read" : "boards.read.school";
+    const canManagePost = () => post && currentUser && (post.uid === currentUser.uid || currentPermissions["boards.manage.school"]);
     const headers = async () => optionalAuthHeaders(currentUser);
     const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
     const isFileAttachment = (link, href) => link?.type === "file" || href.includes("/api/deepsky/uploads/");
@@ -34,7 +34,6 @@ let currentUser = null;
 
     onAuthStateChanged(auth, async (user) => {
         if (!user) {
-            if (!roleAllowed("guest")) { location.replace("block.html"); return; }
             currentUser = null;
             currentRole = "guest";
             document.getElementById("user-name").style.display = "none";
@@ -42,6 +41,7 @@ let currentUser = null;
             document.getElementById("login-link").style.display = "inline";
             try {
                 currentPermissions = await getCurrentPermissions(null);
+                if (!currentPermissions[readPermissionKey]) { location.replace("block.html"); return; }
                 configureCommentAccess();
                 await loadPost();
                 await loadComments();
@@ -57,7 +57,7 @@ let currentUser = null;
                 getCurrentPermissions(user)
             ]);
             const role = data.role || "member";
-            if (!roleAllowed(role)) { location.replace("block.html"); return; }
+            if (!permissionData[readPermissionKey]) { location.replace("block.html"); return; }
             currentUser = user;
             currentRole = role;
             currentUserName = data.name || "익명";

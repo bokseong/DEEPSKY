@@ -228,6 +228,35 @@ for (const pattern of [/const permissionGroups = \[/, /groupForDefinition/, /per
 if (/id="page-filter"|id="page-permission-overview"/.test(permissionsHtml)) {
     fail(path.join(root, "permissions.html"), "페이지별 권한 분류 UI가 남아 있습니다.");
 }
+if (!/모든 등급의 전체 기능 권한/.test(permissionsHtml)) {
+    fail(path.join(root, "permissions.html"), "모든 등급의 전체 권한을 관리한다는 안내가 누락되었습니다.");
+}
+const accessControlSource = fs.readFileSync(path.join(root, "frontend-access-control.js"), "utf8");
+for (const [pagePattern, permission] of [
+    ["talk\\.html", "boards.read.school"],
+    ["write\\.html", "boards.write.shared"],
+    ["suggest\\.html", "suggestions.create"],
+    ["ai\\.html", "ai.use"]
+]) {
+    if (!accessControlSource.includes(`match: /^${pagePattern}$/, permission: "${permission}"`)) {
+        fail(path.join(root, "frontend-access-control.js"), `${permission} 권한이 페이지 접근에 연결되지 않았습니다.`);
+    }
+}
+for (const [fileName, permission] of [
+    ["resource.js", "boards.write.shared"],
+    ["write.js", "boards.write.shared"],
+    ["school-board.js", "boards.write.school"],
+    ["school-write.js", "boards.write.school"],
+    ["suggest.js", "suggestions.create"],
+    ["schedule.js", "schedule.manage"],
+    ["updates.js", "schedule.manage"],
+    ["search.js", "boards.read.school"]
+]) {
+    const file = path.join(root, "js", fileName);
+    if (!fs.readFileSync(file, "utf8").includes(permission)) {
+        fail(file, `${permission} 권한 연동이 누락되었습니다.`);
+    }
+}
 const astronomyModule = await import(pathToFileURL(path.join(root, "js", "astronomy.js")));
 const astronomyDate = new Date("2026-09-25T12:00:00+09:00");
 const moonCheck = astronomyModule.getMoonInfo(astronomyDate, 34.9506, 127.4872);

@@ -1,4 +1,4 @@
-import { apiRequest, auth, getCurrentProfile, logoutTo } from "./common.js";
+import { apiRequest, auth, getCurrentPermissions, getCurrentProfile, logoutTo } from "./common.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const form = document.getElementById("search-form");
@@ -15,9 +15,12 @@ onAuthStateChanged(auth, async user => {
     }
     try {
         currentUser = user;
-        const profile = await getCurrentProfile(user);
+        const [profile, permissions] = await Promise.all([
+            getCurrentProfile(user),
+            getCurrentPermissions(user)
+        ]);
         document.getElementById("user-name").textContent = `${profile.name || "사용자"}님`;
-        limitCollectionOptions(profile.role);
+        limitCollectionOptions(permissions);
         const initialParams = new URLSearchParams(location.search);
         const fields = {
             q: "search-query",
@@ -95,9 +98,11 @@ function renderResult(item) {
     return article;
 }
 
-function limitCollectionOptions(role) {
-    const allowed = new Set(["resources", "questions"]);
-    if (["admin", "teacher", "deputy", "student"].includes(role)) allowed.add("club-board");
+function limitCollectionOptions(permissions) {
+    const allowed = new Set();
+    if (permissions["boards.read.shared"]) allowed.add("resources");
+    if (permissions["questions.read"]) allowed.add("questions");
+    if (permissions["boards.read.school"]) allowed.add("club-board");
     document.querySelectorAll("#search-collection option[value]").forEach(option => {
         if (option.value && !allowed.has(option.value)) option.remove();
     });

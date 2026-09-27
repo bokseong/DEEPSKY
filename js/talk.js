@@ -1,7 +1,8 @@
-import { auth, getCurrentProfile } from "./common.js";
+import { auth, getCurrentPermissions, getCurrentProfile } from "./common.js";
 import { initializeAnnouncementSection } from "./announcement-manager.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 let userDataCache=null;
+let permissionCache={};
 
 const loginLink=document.getElementById("login-link");
 const logoutBtn=document.getElementById("logout-btn");
@@ -15,6 +16,7 @@ logoutBtn.addEventListener("click",async()=>{
 onAuthStateChanged(auth,async user=>{
     if(!user){
         userDataCache=null;
+        permissionCache=await getCurrentPermissions(null);
         loginLink.style.display="inline-flex";
         logoutBtn.style.display="none";
         userName.style.display="none";
@@ -27,7 +29,10 @@ onAuthStateChanged(auth,async user=>{
         return;
     }
 
-    userDataCache=await getCurrentProfile(user);
+    [userDataCache,permissionCache]=await Promise.all([
+        getCurrentProfile(user),
+        getCurrentPermissions(user)
+    ]);
     loginLink.style.display="none";
     logoutBtn.style.display="inline-flex";
     userName.style.display="inline";
@@ -42,7 +47,7 @@ onAuthStateChanged(auth,async user=>{
     });
 });
 
-window.gateCheck=(targetUrl,studentRole)=>{
+window.gateCheck=(targetUrl)=>{
     if(!auth.currentUser){
         location.href="block.html";
         return;
@@ -51,8 +56,8 @@ window.gateCheck=(targetUrl,studentRole)=>{
         alert("권한 정보를 불러오는 중입니다. 잠시 후 다시 시도하세요.");
         return;
     }
-    const role=userDataCache.role||"member";
-    if(role==="admin"||role==="teacher"||role==="deputy"||role===studentRole){
+    const requiredPermission=targetUrl.includes("school-write.html")?"boards.write.school":"boards.read.school";
+    if(permissionCache[requiredPermission]){
         location.href=targetUrl;
         return;
     }

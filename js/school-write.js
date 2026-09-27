@@ -1,4 +1,4 @@
-import { apiFetch, auth, authHeaders as getAuthHeaders, getCurrentProfile, normalizeSafeLinkUrl } from "./common.js";
+import { apiFetch, auth, authHeaders as getAuthHeaders, getCurrentPermissions, getCurrentProfile, normalizeSafeLinkUrl } from "./common.js";
 import { createDraftController, uploadFilesWithProgress } from "./write-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
@@ -15,6 +15,7 @@ const SCHOOLS = {
     }
 let currentUser = null;
     let currentRole = "guest";
+    let currentPermissions = {};
     let currentUserName = "익명";
     let editPost = null;
     let draftController = null;
@@ -29,19 +30,23 @@ let currentUser = null;
     school.categories.forEach(category => categorySelect.add(new Option(category, category)));
     addLinkField();
 
-    const roleAllowed = (role) => school.roles.includes(role);
-    const canEditPost = () => editPost && currentUser && (editPost.uid === currentUser.uid || ["admin", "teacher", "deputy"].includes(currentRole));
+    const writePermissionKey = params.get("school") === "q" ? "questions.write" : "boards.write.school";
+    const canEditPost = () => editPost && currentUser && (editPost.uid === currentUser.uid || currentPermissions["boards.manage.school"]);
     const authHeaders = async () => getAuthHeaders(currentUser);
     document.getElementById("logout-btn").onclick = async () => { if (confirm("로그아웃 하시겠습니까?")) { await signOut(auth); location.href = "index.html"; } };
 
     onAuthStateChanged(auth, async (user) => {
         if (!user) { location.replace("block.html"); return; }
         try {
-            const data = await getCurrentProfile(user);
+            const [data, permissions] = await Promise.all([
+                getCurrentProfile(user),
+                getCurrentPermissions(user)
+            ]);
             const role = data.role || "member";
-            if (!roleAllowed(role)) { location.replace("block.html"); return; }
+            if (!permissions[writePermissionKey]) { location.replace("block.html"); return; }
             currentUser = user;
             currentRole = role;
+            currentPermissions = permissions;
             currentUserName = data.name || "익명";
             document.getElementById("user-name").style.display = "inline";
             document.getElementById("user-name").textContent = `${currentUserName}님`;

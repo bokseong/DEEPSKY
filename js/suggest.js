@@ -1,9 +1,5 @@
-import { apiRequest, auth, getCurrentProfile, logoutTo } from "./common.js";
+import { apiRequest, auth, getCurrentPermissions, getCurrentProfile, logoutTo } from "./common.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-const SUGGESTION_ROLES = new Set([
-    "admin", "teacher", "deputy", "student"
-]);
 
 const loginLink = document.getElementById("login-link");
 const logoutBtn = document.getElementById("logout-btn");
@@ -26,6 +22,7 @@ const submitButton = document.querySelector(".submit-btn");
 
 let currentUser = null;
 let currentProfile = null;
+let currentPermissions = {};
 
 logoutBtn.addEventListener("click", () => logoutTo());
 categorySelect.addEventListener("change", applyCategoryMode);
@@ -39,14 +36,17 @@ onAuthStateChanged(auth, async user => {
     }
     try {
         currentUser = user;
-        currentProfile = await getCurrentProfile(user);
+        [currentProfile, currentPermissions] = await Promise.all([
+            getCurrentProfile(user),
+            getCurrentPermissions(user)
+        ]);
         loginLink.style.display = "none";
         userNameDisplay.style.display = "inline";
         userNameDisplay.textContent = `${currentProfile.name || "사용자"}님`;
         logoutBtn.style.display = "inline";
         nameInput.value = currentProfile.name || "";
 
-        if (!SUGGESTION_ROLES.has(currentProfile.role)) {
+        if (!currentPermissions["suggestions.create"]) {
             [...categorySelect.options].forEach(option => {
                 if (option.value !== "등급 조정") option.remove();
             });

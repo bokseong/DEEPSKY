@@ -1,4 +1,4 @@
-import { apiRequest } from "./common.js";
+import { apiRequest, getCurrentPermissions } from "./common.js";
 import { loadAnnouncementFeed } from "./announcement-feed.js";
 
 export async function initializeAnnouncementSection({
@@ -11,7 +11,8 @@ export async function initializeAnnouncementSection({
 }) {
     const form = section.querySelector(".announcement-inline-form");
     const openButton = section.querySelector(".announcement-compose-toggle");
-    const canManage = user && canManageScope(profile?.role, scope);
+    const permissions = await getCurrentPermissions(user);
+    const canManage = Boolean(user && scope === "all" && permissions["schedule.manage"]);
     let editingItem = null;
 
     openButton.hidden = !canManage;
@@ -128,8 +129,4 @@ function toLocalInput(value) {
     const date = new Date(value);
     const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
     return local.toISOString().slice(0, 16);
-}
-
-function canManageScope(role, scope) {
-    return scope === "all" && ["admin", "teacher", "deputy"].includes(role);
 }

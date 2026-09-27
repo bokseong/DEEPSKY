@@ -1,4 +1,4 @@
-import { apiRequest } from "./common.js";
+import { apiRequest, getCurrentPermissions } from "./common.js";
 
 const list = document.getElementById("event-list");
 const form = document.getElementById("event-form");
@@ -6,6 +6,7 @@ const formStatus = document.getElementById("event-form-status");
 const periodButtons = document.querySelectorAll("[data-period]");
 let currentUser = null;
 let currentProfile = null;
+let currentPermissions = {};
 let currentPeriod = "upcoming";
 let eventCache = [];
 
@@ -28,6 +29,7 @@ export async function initializeSchedule(user = null, profile = null) {
     }
     currentUser = user;
     currentProfile = profile;
+    currentPermissions = await getCurrentPermissions(user);
     configureManagerForm();
     await loadEvents();
 }
@@ -148,8 +150,7 @@ async function deleteEvent(item) {
 }
 
 function configureManagerForm() {
-    const role = currentProfile?.role;
-    const manager = ["admin", "teacher", "deputy"].includes(role);
+    const manager = Boolean(currentPermissions["schedule.manage"]);
     form.hidden = !manager;
 }
 
