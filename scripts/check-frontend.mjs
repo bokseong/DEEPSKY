@@ -217,6 +217,17 @@ if (!/apiFetch\(["']\/api\/deepsky\/weather["']/.test(weatherSource)) {
 if (!/activeLocation\.key === ["']device["']/.test(weatherSource)) {
     fail(path.join(root, "js", "weather.js"), "현재 위치 예보를 브라우저 저장소에 남기지 않는 보호 로직이 누락되었습니다.");
 }
+const permissionsHtml = fs.readFileSync(path.join(root, "permissions.html"), "utf8");
+const permissionsSource = fs.readFileSync(path.join(root, "js", "permissions.js"), "utf8");
+for (const pattern of [/id="permission-group-overview"/, /id="group-filter"/, /기능별 권한 묶음/]) {
+    if (!pattern.test(permissionsHtml)) fail(path.join(root, "permissions.html"), "권한 관리 화면의 기능별 분류 UI가 누락되었습니다.");
+}
+for (const pattern of [/const permissionGroups = \[/, /groupForDefinition/, /permission-group-row/]) {
+    if (!pattern.test(permissionsSource)) fail(path.join(root, "js", "permissions.js"), "권한을 비슷한 기능별로 묶는 로직이 누락되었습니다.");
+}
+if (/id="page-filter"|id="page-permission-overview"/.test(permissionsHtml)) {
+    fail(path.join(root, "permissions.html"), "페이지별 권한 분류 UI가 남아 있습니다.");
+}
 const astronomyModule = await import(pathToFileURL(path.join(root, "js", "astronomy.js")));
 const astronomyDate = new Date("2026-09-25T12:00:00+09:00");
 const moonCheck = astronomyModule.getMoonInfo(astronomyDate, 34.9506, 127.4872);

@@ -5,17 +5,17 @@ const state = {
     user: null,
     payload: null,
     query: "",
-    page: ""
+    group: ""
 };
 
 const userName = document.getElementById("user-name");
 const logoutButton = document.getElementById("logout-btn");
 const refreshButton = document.getElementById("permission-refresh");
 const searchInput = document.getElementById("permission-search");
-const pageFilter = document.getElementById("page-filter");
+const groupFilter = document.getElementById("group-filter");
 const status = document.getElementById("permission-status");
 const matrixHost = document.getElementById("role-permission-matrix");
-const pageOverview = document.getElementById("page-permission-overview");
+const groupOverview = document.getElementById("permission-group-overview");
 const resultCount = document.getElementById("permission-result-count");
 
 const pageLabels = {
@@ -35,6 +35,51 @@ const pageLabels = {
     "ai.html": "AI"
 };
 
+const permissionGroups = [
+    {
+        key: "operations",
+        label: "운영 및 관리",
+        description: "관리자 영역과 홈의 일정·공지·업데이트 관리",
+        matches: key => key === "admin.access" || key === "schedule.manage"
+    },
+    {
+        key: "boards",
+        label: "자료실·동아리 게시판",
+        description: "자료와 동아리 글의 열람, 작성, 댓글 및 관리",
+        matches: key => key.startsWith("boards.")
+    },
+    {
+        key: "questions",
+        label: "질문 및 답변",
+        description: "질문 게시판의 열람, 질문 작성과 답변",
+        matches: key => key.startsWith("questions.")
+    },
+    {
+        key: "gallery",
+        label: "사진 및 활동 공유",
+        description: "활동 사진의 열람, 등록 및 관리",
+        matches: key => key.startsWith("gallery.")
+    },
+    {
+        key: "suggestions",
+        label: "건의 및 의견",
+        description: "건의사항 제출과 관리자 열람",
+        matches: key => key.startsWith("suggestions.")
+    },
+    {
+        key: "ai",
+        label: "AI 서비스",
+        description: "DEEP SKY 학습 보조 AI 사용",
+        matches: key => key.startsWith("ai.")
+    },
+    {
+        key: "other",
+        label: "기타 기능",
+        description: "새로 추가되어 아직 별도 분류되지 않은 기능",
+        matches: () => true
+    }
+];
+
 logoutButton.addEventListener("click", async () => {
     await signOut(auth);
     location.replace("login.html");
@@ -45,8 +90,8 @@ searchInput.addEventListener("input", () => {
     state.query = searchInput.value.trim().toLocaleLowerCase("ko");
     renderAll();
 });
-pageFilter.addEventListener("change", () => {
-    state.page = pageFilter.value;
+groupFilter.addEventListener("change", () => {
+    state.group = groupFilter.value;
     renderAll();
 });
 
@@ -80,13 +125,13 @@ async function loadPermissions() {
     try {
         const response = await apiRequest("/api/deepsky/admin/role-permissions", {}, state.user);
         state.payload = await response.json();
-        populatePageFilter();
+        populateGroupFilter();
         renderAll();
         setStatus("변경할 등급의 권한을 조정한 뒤 해당 열 아래의 저장 버튼을 누르세요.");
     } catch (error) {
         state.payload = null;
         matrixHost.replaceChildren();
-        pageOverview.replaceChildren();
+        groupOverview.replaceChildren();
         setStatus(error.message, true);
     } finally {
         refreshButton.disabled = false;
@@ -95,58 +140,66 @@ async function loadPermissions() {
 
 function renderAll() {
     if (!state.payload) return;
-    renderPageOverview();
+    renderGroupOverview();
     renderPermissionMatrix();
 }
 
-function allPages() {
-    const pages = (state.payload?.definitions || []).flatMap(definition => definition.pages || []);
-    return [...new Set(pages)].sort((left, right) => pageName(left).localeCompare(pageName(right), "ko"));
+function groupForDefinition(definition) {
+    return permissionGroups.find(group => group.matches(definition.key)) || permissionGroups.at(-1);
 }
 
-function populatePageFilter() {
-    const selected = state.page;
-    pageFilter.replaceChildren(new Option("전체 페이지", ""));
-    allPages().forEach(page => pageFilter.add(new Option(`${pageName(page)} · ${page}`, page)));
-    if ([...pageFilter.options].some(option => option.value === selected)) pageFilter.value = selected;
-    else state.page = "";
+function activeGroups() {
+    const definitions = state.payload?.definitions || [];
+    return permissionGroups.filter(group => definitions.some(definition => groupForDefinition(definition).key === group.key));
 }
 
-function renderPageOverview() {
-    pageOverview.replaceChildren();
-    allPages().forEach(page => {
-        const definitions = (state.payload.definitions || []).filter(definition => (definition.pages || []).includes(page));
+function populateGroupFilter() {
+    const selected = state.group;
+    groupFilter.replaceChildren(new Option("전체 기능", ""));
+    activeGroups().forEach(group => groupFilter.add(new Option(group.label, group.key)));
+    if ([...groupFilter.options].some(option => option.value === selected)) groupFilter.value = selected;
+    else state.group = "";
+}
+
+function renderGroupOverview() {
+    groupOverview.replaceChildren();
+    activeGroups().forEach(group => {
+        const definitions = (state.payload.definitions || []).filter(definition => groupForDefinition(definition).key === group.key);
         const button = document.createElement("button");
         button.type = "button";
-        button.className = "page-permission-card";
-        button.classList.toggle("active", state.page === page);
+        button.className = "permission-group-card";
+        button.classList.toggle("active", state.group === group.key);
         const title = document.createElement("strong");
-        title.textContent = `${pageName(page)} · ${page}`;
+        title.textContent = group.label;
         const summary = document.createElement("small");
-        summary.textContent = definitions.map(definition => definition.label).join(" · ");
+        summary.textContent = group.description;
         const count = document.createElement("span");
-        count.className = "page-count";
-        count.textContent = `연결 권한 ${definitions.length}개`;
+        count.className = "group-count";
+        count.textContent = `${definitions.length}개 권한`;
         button.append(title, summary, count);
         button.addEventListener("click", () => {
-            state.page = state.page === page ? "" : page;
-            pageFilter.value = state.page;
+            state.group = state.group === group.key ? "" : group.key;
+            groupFilter.value = state.group;
             renderAll();
             document.getElementById("permission-matrix-title").scrollIntoView({ behavior: "smooth", block: "start" });
         });
-        pageOverview.appendChild(button);
+        groupOverview.appendChild(button);
     });
 }
 
 function filteredDefinitions() {
     return (state.payload?.definitions || []).filter(definition => {
         const pages = definition.pages || [];
-        if (state.page && !pages.includes(state.page)) return false;
+        const group = groupForDefinition(definition);
+        if (state.group && group.key !== state.group) return false;
         if (!state.query) return true;
-        const haystack = [definition.key, definition.label, definition.description, ...pages, ...pages.map(pageName)]
+        const haystack = [group.label, group.description, definition.key, definition.label, definition.description, ...pages, ...pages.map(pageName)]
             .join(" ")
             .toLocaleLowerCase("ko");
         return haystack.includes(state.query);
+    }).sort((left, right) => {
+        const groupDifference = permissionGroups.indexOf(groupForDefinition(left)) - permissionGroups.indexOf(groupForDefinition(right));
+        return groupDifference || left.label.localeCompare(right.label, "ko");
     });
 }
 
@@ -171,7 +224,7 @@ function renderPermissionMatrix() {
     const headingRow = document.createElement("tr");
     const featureHeading = document.createElement("th");
     featureHeading.scope = "col";
-    featureHeading.textContent = "기능 및 관련 페이지";
+    featureHeading.textContent = "기능";
     headingRow.appendChild(featureHeading);
     roles.forEach(([role]) => {
         const heading = document.createElement("th");
@@ -192,7 +245,20 @@ function renderPermissionMatrix() {
     table.appendChild(thead);
 
     const tbody = document.createElement("tbody");
+    let currentGroup = "";
     definitions.forEach(definition => {
+        const group = groupForDefinition(definition);
+        if (group.key !== currentGroup) {
+            const groupRow = document.createElement("tr");
+            groupRow.className = "permission-group-row";
+            const groupCell = document.createElement("th");
+            groupCell.colSpan = roles.length + 1;
+            groupCell.scope = "colgroup";
+            groupCell.textContent = `${group.label} · ${group.description}`;
+            groupRow.appendChild(groupCell);
+            tbody.appendChild(groupRow);
+            currentGroup = group.key;
+        }
         const row = document.createElement("tr");
         row.appendChild(createFeatureCell(definition));
         roles.forEach(([role, permissions]) => row.appendChild(createPermissionCell(role, definition, permissions, lockedRoles)));
@@ -240,8 +306,8 @@ function createFeatureCell(definition) {
         const badge = document.createElement("a");
         badge.className = "page-badge";
         badge.href = page;
-        badge.textContent = `${pageName(page)} 상세`;
-        badge.title = `${pageName(page)} 페이지로 이동`;
+        badge.textContent = pageName(page);
+        badge.title = `${pageName(page)} 화면 열기`;
         badges.appendChild(badge);
     });
     feature.append(title, code, description, badges);

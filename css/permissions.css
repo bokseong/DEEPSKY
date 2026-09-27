@@ -42,19 +42,19 @@ section { margin-top: 42px; }
 .section-heading h2 { margin: 0; font-size: 1.5rem; }
 .section-heading p { margin: 5px 0 0; color: var(--permission-muted); font-size: 0.86rem; }
 
-.page-permission-overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
-.page-permission-card { min-height: 132px; padding: 16px; border: 1px solid var(--permission-border); border-radius: 12px; background: var(--permission-panel); color: inherit; text-align: left; cursor: pointer; transition: border-color 0.2s, transform 0.2s, background 0.2s; }
-.page-permission-card:hover, .page-permission-card.active { border-color: rgba(0, 229, 255, 0.65); background: #0d171a; transform: translateY(-2px); }
-.page-permission-card strong { display: block; color: var(--permission-accent); font-size: 0.9rem; overflow-wrap: anywhere; }
-.page-permission-card small { display: block; margin-top: 6px; color: #98a4a8; line-height: 1.45; }
-.page-permission-card .page-count { margin-top: 10px; color: #dce4e6; font-size: 0.75rem; }
+.permission-group-overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.permission-group-card { min-height: 132px; padding: 16px; border: 1px solid var(--permission-border); border-radius: 12px; background: var(--permission-panel); color: inherit; text-align: left; cursor: pointer; transition: border-color 0.2s, transform 0.2s, background 0.2s; }
+.permission-group-card:hover, .permission-group-card.active { border-color: rgba(0, 229, 255, 0.65); background: #0d171a; transform: translateY(-2px); }
+.permission-group-card strong { display: block; color: var(--permission-accent); font-size: 0.92rem; }
+.permission-group-card small { display: block; min-height: 42px; margin-top: 6px; color: #98a4a8; line-height: 1.45; }
+.permission-group-card .group-count { display: block; margin-top: 10px; color: #dce4e6; font-size: 0.75rem; }
 
 .permission-toolbar { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(190px, 0.35fr) auto; align-items: end; gap: 12px; padding: 16px; border: 1px solid var(--permission-border); border-radius: 12px 12px 0 0; background: var(--permission-panel-soft); }
-.search-field, .page-filter-field { display: grid; gap: 6px; }
-.search-field span, .page-filter-field span { color: #9eaaae; font-size: 0.75rem; font-weight: 700; }
-.search-field input, .page-filter-field select { width: 100%; min-height: 42px; box-sizing: border-box; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 7px; padding: 8px 11px; background: #070a0c; color: #fff; outline: none; }
-.search-field input:focus, .page-filter-field select:focus { border-color: var(--permission-accent); box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.12); }
-.page-filter-field option { background: #0a0e10; }
+.search-field, .group-filter-field { display: grid; gap: 6px; }
+.search-field span, .group-filter-field span { color: #9eaaae; font-size: 0.75rem; font-weight: 700; }
+.search-field input, .group-filter-field select { width: 100%; min-height: 42px; box-sizing: border-box; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 7px; padding: 8px 11px; background: #070a0c; color: #fff; outline: none; }
+.search-field input:focus, .group-filter-field select:focus { border-color: var(--permission-accent); box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.12); }
+.group-filter-field option { background: #0a0e10; }
 .result-count { padding: 0 2px 11px; color: var(--permission-accent); font-size: 0.8rem; white-space: nowrap; }
 .permission-status { padding: 14px 16px; border-inline: 1px solid var(--permission-border); color: var(--permission-muted); background: #080c0e; font-size: 0.82rem; }
 .permission-status.error { color: #ff9fac; }
@@ -62,6 +62,7 @@ section { margin-top: 42px; }
 .permission-table { width: 100%; min-width: 980px; border-collapse: collapse; font-size: 0.82rem; }
 .permission-table th, .permission-table td { padding: 12px; border-right: 1px solid rgba(255, 255, 255, 0.07); border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
 .permission-table tr > :last-child { border-right: 0; }
+.permission-group-row th { padding: 10px 14px; border-right: 0; background: #07191d; color: #9cf4ff; font-size: 0.78rem; letter-spacing: 0.01em; text-align: left; }
 .permission-table thead th { position: sticky; top: 0; z-index: 2; background: #101719; color: var(--permission-accent); text-align: center; white-space: nowrap; }
 .permission-table thead th:first-child { left: 0; z-index: 3; text-align: left; }
 .permission-feature { width: 360px; min-width: 320px; text-align: left; font-weight: 400; background: #0b1012; }

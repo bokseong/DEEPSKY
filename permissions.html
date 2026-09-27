@@ -9,7 +9,7 @@
     <title>DEEP SKY | 권한 관리</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/common.css?v=20260925-global-night-mode">
-    <link rel="stylesheet" href="css/permissions.css?v=20260920-permission-nav-session">
+    <link rel="stylesheet" href="css/permissions.css?v=20260927-permission-groups">
 </head>
 <body class="secure-loading">
 <div class="auth-bar">
@@ -26,7 +26,7 @@
 <header class="permission-hero protected-content">
     <span class="security-label">ADMIN ONLY</span>
     <h1>권한 관리</h1>
-    <p>페이지별 기능 권한을 확인하고 등급별 허용 범위를 관리합니다.</p>
+    <p>비슷한 기능을 종류별로 모아 등급별 허용 범위를 관리합니다.</p>
 </header>
 
 <nav class="sub-nav-container protected-content" aria-label="주요 메뉴">
@@ -56,14 +56,14 @@
         <span>등급 변경은 <a href="admin.html">기존 관리자 페이지</a>에서 진행</span>
     </section>
 
-    <section aria-labelledby="page-permission-title">
+    <section aria-labelledby="group-permission-title">
         <div class="section-heading">
             <div>
-                <h2 id="page-permission-title">페이지별 권한</h2>
-                <p>각 페이지에 연결된 권한을 선택하면 아래 표가 해당 항목만 표시합니다.</p>
+                <h2 id="group-permission-title">기능별 권한 묶음</h2>
+                <p>게시판, 질문, 사진, 운영처럼 성격이 비슷한 권한을 선택해 한 번에 확인할 수 있습니다.</p>
             </div>
         </div>
-        <div id="page-permission-overview" class="page-permission-overview" aria-live="polite"></div>
+        <div id="permission-group-overview" class="permission-group-overview" aria-live="polite"></div>
     </section>
 
     <section aria-labelledby="permission-matrix-title">
@@ -78,12 +78,12 @@
         <div class="permission-toolbar" role="search">
             <label class="search-field">
                 <span>권한 검색</span>
-                <input id="permission-search" type="search" autocomplete="off" placeholder="권한명, 설명, 코드 또는 페이지 검색">
+                <input id="permission-search" type="search" autocomplete="off" placeholder="기능명, 분류, 설명 또는 권한 코드 검색">
             </label>
-            <label class="page-filter-field">
-                <span>페이지 선택</span>
-                <select id="page-filter">
-                    <option value="">전체 페이지</option>
+            <label class="group-filter-field">
+                <span>기능 분류</span>
+                <select id="group-filter">
+                    <option value="">전체 기능</option>
                 </select>
             </label>
             <span id="permission-result-count" class="result-count" aria-live="polite"></span>
@@ -99,7 +99,7 @@
     <p>Designed by jw-astro09 | Contact: 2jw5464@gmail.com</p>
 </footer>
 
-<script type="module" src="js/permissions.js?v=20260920-permission-nav-session"></script>
+<script type="module" src="js/permissions.js?v=20260927-permission-groups"></script>
 <script type="module" src="frontend-access-control.js?v=20260925-global-night-mode"></script>
 </body>
 </html>
