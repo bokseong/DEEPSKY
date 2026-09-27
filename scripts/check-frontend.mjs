@@ -211,6 +211,9 @@ for (const pattern of [
 for (const pattern of [/CACHE_MAX_AGE/, /navigator\.geolocation/, /getMoonInfo/, /getAstronomicalTwilight/]) {
     if (!pattern.test(weatherSource)) fail(path.join(root, "js", "weather.js"), "날씨 복구·위치·천문·야간 모드 로직이 누락되었습니다.");
 }
+if (!/apiFetch\(["']\/api\/deepsky\/weather["']/.test(weatherSource)) {
+    fail(path.join(root, "js", "weather.js"), "DEEP SKY 날씨 프록시 연동이 누락되었습니다.");
+}
 if (!/activeLocation\.key === ["']device["']/.test(weatherSource)) {
     fail(path.join(root, "js", "weather.js"), "현재 위치 예보를 브라우저 저장소에 남기지 않는 보호 로직이 누락되었습니다.");
 }

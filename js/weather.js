@@ -1,4 +1,4 @@
-import { auth, getCurrentProfile } from "./common.js";
+import { apiFetch, auth, getCurrentProfile } from "./common.js";
 import { getAstronomicalTwilight, getMoonInfo } from "./astronomy.js?v=20260925-observing-planner";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
@@ -107,10 +107,9 @@ async function loadWeather({ preserveStatus = false } = {}) {
     status.classList.remove("error");
   }
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  const timeout = setTimeout(() => controller.abort(), 20000);
   try {
-    const response = await fetch(buildForecastUrl(activeLocation), { signal: controller.signal, cache: "no-store" });
-    if (!response.ok) throw new Error(`예보 서버 응답 오류 (${response.status})`);
+    const response = await fetchForecast(activeLocation, controller.signal);
     const data = await response.json();
     validateForecast(data);
     renderWeather(data);
@@ -132,6 +131,30 @@ async function loadWeather({ preserveStatus = false } = {}) {
     clearTimeout(timeout);
     refreshButton.disabled = false;
     refreshButton.textContent = "새로고침";
+  }
+}
+
+async function fetchForecast(locationData, signal) {
+  try {
+    const response = await apiFetch("/api/deepsky/weather", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        latitude: locationData.latitude,
+        longitude: locationData.longitude
+      }),
+      signal,
+      cache: "no-store"
+    });
+    if (response.ok) return response;
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || `DEEP SKY 날씨 서버 응답 오류 (${response.status})`);
+  } catch (proxyError) {
+    if (signal.aborted) throw proxyError;
+    console.warn("DEEP SKY 날씨 서버를 사용할 수 없어 원본 예보 서버로 재시도합니다.", proxyError);
+    const response = await fetch(buildForecastUrl(locationData), { signal, cache: "no-store" });
+    if (!response.ok) throw new Error(`예보 서버 응답 오류 (${response.status})`);
+    return response;
   }
 }
 
