@@ -10,8 +10,9 @@
 배포 주소: [bokseong.github.io/DEEPSKY](https://bokseong.github.io/DEEPSKY/)
 
 기상 예보 데이터는 [Open-Meteo](https://open-meteo.com/)를 사용하며 CC BY 4.0 조건에 따라 출처를 표시합니다.
-
-<p>역대 동아리 임원 정보</p>
+<br>
+<br>
+##역대 동아리 임원 정보
 
 | 연도 | 부장 | 부장 메일 | 차장 | 차장 메일 | 담당 교사 |
 |---|---|---|---|---|---|
