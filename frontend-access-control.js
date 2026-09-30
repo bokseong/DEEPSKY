@@ -15,7 +15,6 @@ const PAGE_RULES = [
     { match: /^suggest\.html$/, permission: "suggestions.create" },
     { match: /^resource\.html$/, permission: "boards.read.shared" },
     { match: /^view\.html$/, permission: "boards.read.shared" },
-    { match: /^ai\.html$/, permission: "ai.use" },
     { match: /^search\.html$/, roles: ROLES.loggedIn },
     { match: /^notifications\.html$/, roles: ROLES.loggedIn },
     { match: /^mypage\.html$/, roles: ROLES.loggedIn },

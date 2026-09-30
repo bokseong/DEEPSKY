@@ -341,7 +341,6 @@ function normalizeNavigation() {
         { href: "photo.html", label: "사진 게시판" },
         { href: "resource.html", label: "자료실" },
         { href: "weather.html", label: "날씨" },
-        { href: "ai.html", label: "AI" },
         { href: "search.html", label: "통합 검색" },
         { href: "notifications.html", label: "알림" },
         { href: "suggest.html", label: "건의" },
@@ -950,147 +949,11 @@ function searchCollectionLabel(value) {
     }[value] || value || "자료";
 }
 
-function createAiLauncher() {
-    const page = location.pathname.split("/").pop() || "index.html";
-    if (["ai.html", "login.html", "signup.html", "block.html"].includes(page)) return;
-    if (document.getElementById("ai-launcher")) return;
-
-    const launcher = document.createElement("div");
-    launcher.id = "ai-launcher";
-    launcher.className = "ai-launcher";
-    launcher.hidden = true;
-
-    const toggle = document.createElement("button");
-    toggle.type = "button";
-    toggle.className = "ai-launcher-toggle";
-    toggle.textContent = "AI";
-    toggle.title = "DEEP SKY AI 열기";
-    toggle.setAttribute("aria-label", "DEEP SKY AI 열기");
-    toggle.setAttribute("aria-expanded", "false");
-    toggle.setAttribute("aria-controls", "ai-quick-panel");
-
-    const panel = document.createElement("aside");
-    panel.id = "ai-quick-panel";
-    panel.className = "ai-quick-panel";
-    panel.hidden = true;
-    panel.setAttribute("aria-label", "DEEP SKY AI 빠른 질문");
-
-    const header = document.createElement("div");
-    header.className = "ai-quick-header";
-    const title = document.createElement("strong");
-    title.textContent = "DEEP SKY AI";
-    const close = document.createElement("button");
-    close.type = "button";
-    close.className = "ai-quick-close";
-    close.textContent = "×";
-    close.title = "닫기";
-    close.setAttribute("aria-label", "AI 창 닫기");
-    header.append(title, close);
-
-    const output = document.createElement("div");
-    output.className = "ai-quick-output";
-    output.setAttribute("role", "status");
-    output.setAttribute("aria-live", "polite");
-    output.textContent = "천문·물리 질문을 입력해 주세요.";
-
-    const form = document.createElement("form");
-    form.className = "ai-quick-form";
-    const input = document.createElement("textarea");
-    input.maxLength = 500;
-    input.rows = 2;
-    input.placeholder = "질문 입력";
-    input.setAttribute("aria-label", "AI에게 질문");
-    const submit = document.createElement("button");
-    submit.type = "submit";
-    submit.className = "btn btn-primary";
-    submit.textContent = "보내기";
-    form.append(input, submit);
-
-    const fullPage = document.createElement("a");
-    fullPage.href = "ai.html";
-    fullPage.className = "ai-quick-full-link";
-    fullPage.textContent = "AI 페이지에서 계속";
-
-    panel.append(header, output, form, fullPage);
-    launcher.append(panel, toggle);
-    document.body.append(launcher);
-
-    const setOpen = open => {
-        panel.hidden = !open;
-        toggle.setAttribute("aria-expanded", String(open));
-        if (open) input.focus();
-    };
-
-    let aiAccessAllowed = false;
-    let authSequence = 0;
-    onAuthStateChanged(auth, async user => {
-        const sequence = ++authSequence;
-        aiAccessAllowed = false;
-        launcher.hidden = true;
-        setOpen(false);
-        if (!user) return;
-        try {
-            await getCurrentProfile(user);
-            const permissions = await getCurrentPermissions(user);
-            if (sequence !== authSequence) return;
-            aiAccessAllowed = Boolean(permissions["ai.use"]);
-            launcher.hidden = !aiAccessAllowed;
-        } catch {
-            if (sequence === authSequence) launcher.hidden = true;
-        }
-    });
-
-    toggle.addEventListener("click", () => setOpen(panel.hidden));
-    close.addEventListener("click", () => setOpen(false));
-    document.addEventListener("keydown", event => {
-        if (event.key === "Escape" && !panel.hidden) setOpen(false);
-    });
-
-    const history = [];
-    form.addEventListener("submit", async event => {
-        event.preventDefault();
-        const message = input.value.trim();
-        if (!message) return;
-        if (!auth.currentUser || !aiAccessAllowed) {
-            location.href = "block.html";
-            return;
-        }
-
-        submit.disabled = true;
-        submit.textContent = "응답 중";
-        output.textContent = "답변을 준비하고 있습니다.";
-        try {
-            const response = await apiRequest("/api/deepsky/ai/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    message,
-                    history: history.slice(-4),
-                    saveConversation: false
-                })
-            });
-            const data = await response.json();
-            output.textContent = data.answer;
-            history.push(
-                { role: "user", content: message },
-                { role: "model", content: data.answer }
-            );
-            input.value = "";
-        } catch (error) {
-            output.textContent = error.message;
-        } finally {
-            submit.disabled = false;
-            submit.textContent = "보내기";
-        }
-    });
-}
-
 function initializeCommonUi() {
     startApiStatusMonitor();
     normalizeNavigation();
     createSearchPopover();
     createNotificationPopover();
-    createAiLauncher();
     const pageName = location.pathname.split("/").pop();
     if (!pageName || pageName === "index.html") {
         createAnnouncementPopup();

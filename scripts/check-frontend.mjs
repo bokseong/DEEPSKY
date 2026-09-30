@@ -27,12 +27,12 @@ const htmlFiles = files.filter(file => file.endsWith(".html"));
 const jsFiles = files.filter(file => file.endsWith(".js") || file.endsWith(".mjs"));
 const canonicalNavigation = [
     "index.html", "introduction.html", "talk.html", "question.html", "photo.html",
-    "resource.html", "weather.html", "ai.html", "search.html", "notifications.html",
+    "resource.html", "weather.html", "search.html", "notifications.html",
     "suggest.html", "mypage.html", "admin.html"
 ];
 const pageHeroFiles = [
     "introduction.html", "talk.html", "question.html", "photo.html", "resource.html",
-    "weather.html", "ai.html", "search.html", "notifications.html", "suggest.html",
+    "weather.html", "search.html", "notifications.html", "suggest.html",
     "mypage.html", "admin.html"
 ];
 
@@ -235,8 +235,7 @@ const accessControlSource = fs.readFileSync(path.join(root, "frontend-access-con
 for (const [pagePattern, permission] of [
     ["talk\\.html", "boards.read.school"],
     ["write\\.html", "boards.write.shared"],
-    ["suggest\\.html", "suggestions.create"],
-    ["ai\\.html", "ai.use"]
+    ["suggest\\.html", "suggestions.create"]
 ]) {
     if (!accessControlSource.includes(`match: /^${pagePattern}$/, permission: "${permission}"`)) {
         fail(path.join(root, "frontend-access-control.js"), `${permission} 권한이 페이지 접근에 연결되지 않았습니다.`);

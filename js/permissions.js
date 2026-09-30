@@ -31,8 +31,7 @@ const pageLabels = {
     "school-write.html?school=q": "질문 작성",
     "suggest.html": "건의",
     "photo.html": "사진 게시판",
-    "index.html": "홈",
-    "ai.html": "AI"
+    "index.html": "홈"
 };
 
 const permissionGroups = [
@@ -65,12 +64,6 @@ const permissionGroups = [
         label: "건의 및 의견",
         description: "건의사항 제출과 관리자 열람",
         matches: key => key.startsWith("suggestions.")
-    },
-    {
-        key: "ai",
-        label: "AI 서비스",
-        description: "DEEP SKY 학습 보조 AI 사용",
-        matches: key => key.startsWith("ai.")
     },
     {
         key: "other",
