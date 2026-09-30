@@ -12,9 +12,10 @@ This is an official website of DEEP SKY(Astronomy and Aerospce Club of Suncheon 
 배포 주소: [bokseong.github.io/DEEPSKY](https://bokseong.github.io/DEEPSKY/)
 
 기상 예보 데이터는 [Open-Meteo](https://open-meteo.com/)를 사용하며 CC BY 4.0 조건에 따라 출처를 표시합니다.
-<!-- <br>
-<br>
-### 역대 동아리 임원 정보 -->
+
+
+
+<!-- ### 역대 동아리 임원 정보 -->
 <!-- 동아리 활동 중 도움이 필요할 때 바로 전대 부장들에게 빠르게 도움을 요청하거나 조언을 구할 수 있게 하기 위한 목적으로 제작 -->
 <!-- | 연도 | 부장 | 부장 메일 | 차장 | 차장 메일 | 담당 교사 | -->
 <!-- |---|---|---|---|---|---| -->
