@@ -18,6 +18,6 @@ This is an official website of DEEP SKY(Astronomy and Aerospce Club of Suncheon 
 
 | 연도 | 부장 | 부장 메일 | 차장 | 차장 메일 | 담당 교사 |
 |---|---|---|---|---|---|
-| 2026 | 이정우(jw-astro09) | 2jw5464@gmail.com | - | - | - |
+| 2026 | 이정우(jw-astro09) | 2jw5464@gmail.com <!-- 동아리 활동 관련 도움이 필요하면 자유롭게 연락 바람 --> | - | - | - |
 | 2027 | - | - | - | - | - |
 | 2028 | - | - | - | - | - |
