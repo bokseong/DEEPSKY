@@ -3,8 +3,11 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/fi
 
 const list = document.getElementById("notification-list");
 const filterButtons = document.querySelectorAll("[data-filter]");
+const deleteSelectedButton = document.getElementById("delete-selected-btn");
+const deleteAllButton = document.getElementById("delete-all-btn");
 let currentUser = null;
 let currentFilter = "all";
+const selectedIds = new Set();
 
 document.getElementById("logout-btn").addEventListener("click", () => logoutTo());
 document.getElementById("read-all-btn").addEventListener("click", async () => {
@@ -12,6 +15,18 @@ document.getElementById("read-all-btn").addEventListener("click", async () => {
     await apiRequest("/api/deepsky/notifications/read-all", { method: "PUT" }, currentUser);
     window.dispatchEvent(new CustomEvent("deepsky:notifications-cleared"));
     await loadNotifications();
+});
+
+deleteSelectedButton.addEventListener("click", async () => {
+    if (!currentUser || !selectedIds.size) return;
+    if (!confirm(`선택한 알림 ${selectedIds.size}개를 삭제할까요?`)) return;
+    await deleteNotifications([...selectedIds]);
+});
+
+deleteAllButton.addEventListener("click", async () => {
+    if (!currentUser) return;
+    if (!confirm("모든 알림을 삭제할까요? 삭제한 알림은 복구할 수 없습니다.")) return;
+    await deleteNotifications();
 });
 
 filterButtons.forEach(button => {
@@ -38,6 +53,8 @@ onAuthStateChanged(auth, async user => {
 });
 
 async function loadNotifications() {
+    selectedIds.clear();
+    updateSelectionState();
     list.innerHTML = '<div class="loading-state">알림을 불러오는 중입니다.</div>';
     try {
         const query = currentFilter === "unread" ? "?unread=1" : "";
@@ -60,12 +77,24 @@ function renderNotification(notification) {
 
     const header = document.createElement("div");
     header.className = "list-item-header";
+    const selectLabel = document.createElement("label");
+    selectLabel.className = "notification-select";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = String(notification.id);
+    checkbox.setAttribute("aria-label", `${notification.title || "알림"} 선택`);
+    checkbox.addEventListener("change", () => {
+        if (checkbox.checked) selectedIds.add(notification.id);
+        else selectedIds.delete(notification.id);
+        updateSelectionState();
+    });
     const title = document.createElement("h3");
     title.textContent = notification.title || "알림";
+    selectLabel.append(checkbox, title);
     const state = document.createElement("span");
     state.className = `status-chip${notification.is_read ? "" : " unread"}`;
     state.textContent = notification.is_read ? "읽음" : "새 알림";
-    header.append(title, state);
+    header.append(selectLabel, state);
 
     const message = document.createElement("p");
     message.textContent = notification.message || "";
@@ -100,6 +129,33 @@ function renderNotification(notification) {
     }
     item.append(header, message, meta, actions);
     return item;
+}
+
+function updateSelectionState() {
+    deleteSelectedButton.disabled = selectedIds.size === 0;
+    deleteSelectedButton.textContent = selectedIds.size
+        ? `선택 삭제 (${selectedIds.size})`
+        : "선택 삭제";
+}
+
+async function deleteNotifications(ids) {
+    deleteSelectedButton.disabled = true;
+    deleteAllButton.disabled = true;
+    try {
+        const options = { method: "DELETE" };
+        if (ids) {
+            options.headers = { "Content-Type": "application/json" };
+            options.body = JSON.stringify({ ids });
+        }
+        await apiRequest("/api/deepsky/notifications", options, currentUser);
+        window.dispatchEvent(new CustomEvent("deepsky:notifications-changed"));
+        await loadNotifications();
+    } catch (error) {
+        alert(error.message || "알림을 삭제하지 못했습니다.");
+    } finally {
+        deleteAllButton.disabled = false;
+        updateSelectionState();
+    }
 }
 
 async function markRead(id) {

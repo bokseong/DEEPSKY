@@ -39,7 +39,7 @@ const pageHeroFiles = [
 for (const file of htmlFiles) {
     const html = fs.readFileSync(file, "utf8");
 
-    if (!/css\/common\.css\?v=20260925-global-night-mode/.test(html)) {
+    if (!/css\/common\.css\?v=(?:20260925-global-night-mode|20260930-notification-delete)/.test(html)) {
         fail(file, "공통 야간 모드 스타일의 캐시 버전이 적용되지 않았습니다.");
     }
     if (!/frontend-access-control\.js\?v=20260927-all-permissions/.test(html)) {
@@ -240,6 +240,18 @@ for (const [pagePattern, permission] of [
 ]) {
     if (!accessControlSource.includes(`match: /^${pagePattern}$/, permission: "${permission}"`)) {
         fail(path.join(root, "frontend-access-control.js"), `${permission} 권한이 페이지 접근에 연결되지 않았습니다.`);
+    }
+}
+const notificationsHtml = fs.readFileSync(path.join(root, "notifications.html"), "utf8");
+const notificationsSource = fs.readFileSync(path.join(root, "js", "notifications.js"), "utf8");
+for (const id of ["delete-selected-btn", "delete-all-btn"]) {
+    if (!notificationsHtml.includes(`id="${id}"`)) {
+        fail(path.join(root, "notifications.html"), `${id} 알림 삭제 버튼이 누락되었습니다.`);
+    }
+}
+for (const pattern of [/method: "DELETE"/, /JSON\.stringify\(\{ ids \}\)/, /selectedIds/]) {
+    if (!pattern.test(notificationsSource)) {
+        fail(path.join(root, "js", "notifications.js"), "알림 선택 삭제 로직이 누락되었습니다.");
     }
 }
 for (const [fileName, permission] of [
