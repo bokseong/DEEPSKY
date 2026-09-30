@@ -1,6 +1,7 @@
 # DEEP SKY
 
 복성고등학교 천문·항공우주 동아리 DEEP SKY의 공식 웹사이트입니다.
+
 This is an official website of DEEP SKY(Astronomy and Aerospce Club of Suncheon Bokseong High School in Republic of Korea)
 
 - 동아리 소개, 활동 사진, 자료실 및 동아리 게시판
