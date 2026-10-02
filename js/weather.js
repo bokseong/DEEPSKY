@@ -9,8 +9,61 @@ const DEFAULT_LOCATION = Object.freeze({
   longitude: 127.4872
 });
 const CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
-const CACHE_PREFIX = "deepsky:weather-cache:v2";
+const CACHE_PREFIX = "deepsky:weather-cache:v3";
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+const SVG_NS = "http://www.w3.org/2000/svg";
+const CHART_CONFIGS = Object.freeze({
+  temperature: {
+    label: "기온·체감온도·이슬점",
+    unit: "°C",
+    series: [
+      { key: "temperature_2m", label: "기온", color: "#ffb45b", transform: value => value },
+      { key: "apparent_temperature", label: "체감온도", color: "#ff6b75", transform: value => value },
+      { key: "dew_point_2m", label: "이슬점", color: "#77bfff", transform: value => value }
+    ]
+  },
+  pressure: {
+    label: "지표면 기압",
+    unit: "hPa",
+    series: [{ key: "surface_pressure", label: "기압", color: "#c19cff", transform: value => value }]
+  },
+  moisture: {
+    label: "습도·구름량",
+    unit: "%",
+    fixedRange: [0, 100],
+    series: [
+      { key: "relative_humidity_2m", label: "상대습도", color: "#52d49a", transform: value => value },
+      { key: "cloud_cover", label: "구름량", color: "#aeb5b8", transform: value => value }
+    ]
+  },
+  precipitationChance: {
+    label: "강수 확률",
+    unit: "%",
+    fixedRange: [0, 100],
+    series: [{ key: "precipitation_probability", label: "강수 확률", color: "#77bfff", transform: value => value }]
+  },
+  precipitationAmount: {
+    label: "강수량",
+    unit: "mm",
+    minZero: true,
+    series: [{ key: "precipitation", label: "강수량", color: "#52d49a", transform: value => value }]
+  },
+  wind: {
+    label: "바람·돌풍",
+    unit: "km/h",
+    minZero: true,
+    series: [
+      { key: "wind_speed_10m", label: "바람", color: "#77bfff", transform: value => value },
+      { key: "wind_gusts_10m", label: "돌풍", color: "#ff6b75", transform: value => value }
+    ]
+  },
+  visibility: {
+    label: "시정",
+    unit: "km",
+    minZero: true,
+    series: [{ key: "visibility", label: "시정", color: "#52d49a", transform: value => value / 1000 }]
+  }
+});
 
 const status = document.getElementById("weather-status");
 const refreshButton = document.getElementById("weather-refresh");
@@ -19,10 +72,23 @@ const loginLink = document.getElementById("login-link");
 const logoutButton = document.getElementById("logout-btn");
 const userName = document.getElementById("user-name");
 let activeLocation = { ...DEFAULT_LOCATION };
+let latestForecast = null;
+let activeChartMetric = "temperature";
 
 refreshButton.addEventListener("click", () => loadWeather());
 locationSelect.addEventListener("change", handleLocationChange);
 logoutButton.addEventListener("click", async () => { await signOut(auth); location.href = "index.html"; });
+document.querySelectorAll("[data-weather-metric]").forEach(button => {
+  button.addEventListener("click", () => {
+    activeChartMetric = button.dataset.weatherMetric;
+    document.querySelectorAll("[data-weather-metric]").forEach(item => {
+      const selected = item === button;
+      item.classList.toggle("active", selected);
+      item.setAttribute("aria-pressed", String(selected));
+    });
+    if (latestForecast) renderForecastChart(latestForecast);
+  });
+});
 
 onAuthStateChanged(auth, async user => {
   loginLink.hidden = Boolean(user);
@@ -45,11 +111,12 @@ function buildForecastUrl(locationData) {
   url.search = new URLSearchParams({
     latitude: String(locationData.latitude),
     longitude: String(locationData.longitude),
-    current: "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m",
-    hourly: "temperature_2m,relative_humidity_2m,precipitation_probability,precipitation,weather_code,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,visibility,wind_speed_10m,wind_gusts_10m",
+    current: "temperature_2m,relative_humidity_2m,apparent_temperature,surface_pressure,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m",
+    hourly: "temperature_2m,apparent_temperature,dew_point_2m,surface_pressure,relative_humidity_2m,precipitation_probability,precipitation,weather_code,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,visibility,wind_speed_10m,wind_gusts_10m",
     daily: "sunrise,sunset,weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
     timezone: "Asia/Seoul",
-    forecast_days: "3"
+    past_days: "1",
+    forecast_days: "4"
   }).toString();
   return url;
 }
@@ -162,10 +229,16 @@ function validateForecast(data) {
   if (!data?.current || !Array.isArray(data?.hourly?.time) || !Array.isArray(data?.daily?.time)) {
     throw new Error("예보 데이터 형식이 올바르지 않습니다.");
   }
+  const requiredHourly = ["temperature_2m", "apparent_temperature", "dew_point_2m", "surface_pressure", "relative_humidity_2m", "precipitation_probability", "precipitation", "cloud_cover", "visibility", "wind_speed_10m", "wind_gusts_10m"];
+  if (requiredHourly.some(field => !Array.isArray(data.hourly[field]))) {
+    throw new Error("그래프에 필요한 시간대별 예보 데이터가 누락되었습니다.");
+  }
 }
 
 function renderWeather(data) {
+  latestForecast = data;
   renderCurrent(data);
+  renderForecastChart(data);
   renderNight(data);
   renderDaily(data);
   renderAstronomy();
@@ -174,20 +247,141 @@ function renderWeather(data) {
 function renderCurrent(data) {
   const current = data.current;
   const currentTime = parseForecastTime(current.time);
-  const nearestIndex = nearestHourlyIndex(data.hourly.time, currentTime);
   const condition = weatherCondition(current.weather_code);
   document.getElementById("weather-icon").textContent = condition.icon;
   document.getElementById("current-weather-title").textContent = condition.label;
   document.getElementById("current-temperature").textContent = `${round(current.temperature_2m)}°`;
   document.getElementById("current-updated").textContent = `${formatDateTime(currentTime)} 기준 · ${activeLocation.label}`;
-  setText("metric-cloud", `${round(current.cloud_cover)}%`);
-  setText("metric-humidity", `${round(current.relative_humidity_2m)}%`);
-  setText("metric-precipitation-probability", `${round(data.hourly.precipitation_probability[nearestIndex])}%`);
-  setText("metric-precipitation", `${number(current.precipitation, 1)} mm`);
-  setText("metric-visibility", `${number(data.hourly.visibility[nearestIndex] / 1000, 1)} km`);
-  setText("metric-wind", `${number(current.wind_speed_10m, 1)} km/h ${windDirection(current.wind_direction_10m)}`);
-  setText("metric-gust", `${number(current.wind_gusts_10m, 1)} km/h`);
-  setText("metric-apparent", `${number(current.apparent_temperature, 1)}°C`);
+}
+
+function renderForecastChart(data) {
+  const container = document.getElementById("forecast-chart");
+  const legend = document.getElementById("forecast-chart-legend");
+  const summary = document.getElementById("forecast-chart-summary");
+  const period = document.getElementById("forecast-chart-period");
+  const config = CHART_CONFIGS[activeChartMetric] || CHART_CONFIGS.temperature;
+  const times = data.hourly.time.map(parseForecastTime);
+  const validSeries = config.series.map(series => ({
+    ...series,
+    values: (data.hourly[series.key] || []).map(value => {
+      const numeric = Number(value);
+      return Number.isFinite(numeric) ? series.transform(numeric) : null;
+    })
+  }));
+  const allValues = validSeries.flatMap(series => series.values.filter(Number.isFinite));
+  container.replaceChildren();
+  legend.replaceChildren();
+  if (!times.length || !allValues.length) {
+    summary.textContent = `${config.label} 자료를 표시할 수 없습니다.`;
+    const svg = svgElement("svg", { viewBox: "0 0 960 320", "aria-hidden": "true" });
+    const message = svgElement("text", { x: 480, y: 160, class: "chart-empty" });
+    message.textContent = "사용 가능한 시간대별 자료가 없습니다.";
+    svg.appendChild(message);
+    container.appendChild(svg);
+    return;
+  }
+
+  const firstTime = times[0];
+  const lastTime = times.at(-1);
+  period.textContent = `${formatChartTime(firstTime)}–${formatChartTime(lastTime)}`;
+  const width = 960;
+  const height = 320;
+  const margin = { top: 24, right: 24, bottom: 54, left: 68 };
+  const plotWidth = width - margin.left - margin.right;
+  const plotHeight = height - margin.top - margin.bottom;
+  let minimum;
+  let maximum;
+  if (config.fixedRange) {
+    [minimum, maximum] = config.fixedRange;
+  } else {
+    minimum = Math.min(...allValues);
+    maximum = Math.max(...allValues);
+    const padding = Math.max((maximum - minimum) * .12, config.unit === "hPa" ? 2 : 1);
+    minimum = config.minZero ? Math.max(0, minimum - padding) : minimum - padding;
+    maximum += padding;
+  }
+  if (maximum <= minimum) maximum = minimum + 1;
+  const startMs = firstTime.valueOf();
+  const endMs = Math.max(lastTime.valueOf(), startMs + 1);
+  const x = date => margin.left + ((date.valueOf() - startMs) / (endMs - startMs)) * plotWidth;
+  const y = value => margin.top + (1 - (value - minimum) / (maximum - minimum)) * plotHeight;
+  const svg = svgElement("svg", {
+    viewBox: `0 0 ${width} ${height}`,
+    role: "img",
+    "aria-label": `${config.label} ${formatChartTime(firstTime)}부터 ${formatChartTime(lastTime)}까지의 변화`
+  });
+
+  for (let index = 0; index <= 4; index += 1) {
+    const ratio = index / 4;
+    const gridY = margin.top + ratio * plotHeight;
+    const value = maximum - ratio * (maximum - minimum);
+    svg.appendChild(svgElement("line", { x1: margin.left, y1: gridY, x2: width - margin.right, y2: gridY, class: "chart-grid" }));
+    const label = svgElement("text", { x: margin.left - 10, y: gridY + 4, class: "chart-axis-label", "text-anchor": "end" });
+    label.textContent = `${formatChartValue(value, config.unit)} ${config.unit}`;
+    svg.appendChild(label);
+  }
+
+  for (let index = 0; index <= 4; index += 1) {
+    const ratio = index / 4;
+    const tickTime = new Date(startMs + ratio * (endMs - startMs));
+    const tickX = margin.left + ratio * plotWidth;
+    svg.appendChild(svgElement("line", { x1: tickX, y1: margin.top, x2: tickX, y2: height - margin.bottom, class: "chart-grid" }));
+    const label = svgElement("text", { x: tickX, y: height - 24, class: "chart-axis-label", "text-anchor": "middle" });
+    label.textContent = formatChartTick(tickTime);
+    svg.appendChild(label);
+  }
+
+  validSeries.forEach(series => {
+    let pathData = "";
+    let drawing = false;
+    series.values.forEach((value, index) => {
+      if (!Number.isFinite(value) || !times[index]) {
+        drawing = false;
+        return;
+      }
+      pathData += `${drawing ? " L" : "M"} ${x(times[index]).toFixed(2)} ${y(value).toFixed(2)}`;
+      drawing = true;
+    });
+    if (pathData) svg.appendChild(svgElement("path", { d: pathData, class: "chart-series", stroke: series.color }));
+    const item = document.createElement("span");
+    const swatch = document.createElement("i");
+    swatch.style.background = series.color;
+    item.append(swatch, document.createTextNode(series.label));
+    legend.appendChild(item);
+  });
+
+  const now = new Date();
+  if (now >= firstTime && now <= lastTime) {
+    const nowX = x(now);
+    svg.appendChild(svgElement("line", { x1: nowX, y1: margin.top, x2: nowX, y2: height - margin.bottom, class: "chart-current-line" }));
+    const nowLabel = svgElement("text", { x: nowX, y: margin.top + 13, class: "chart-axis-label", "text-anchor": "middle" });
+    nowLabel.textContent = "현재";
+    svg.appendChild(nowLabel);
+  }
+  container.appendChild(svg);
+
+  const nearest = nearestHourlyIndex(data.hourly.time, now);
+  const currentValues = validSeries.map(series => `${series.label} ${formatChartValue(series.values[nearest], config.unit)} ${config.unit}`);
+  summary.textContent = `${config.label} · ${currentValues.join(" · ")} · 전체 범위 ${formatChartValue(Math.min(...allValues), config.unit)}–${formatChartValue(Math.max(...allValues), config.unit)} ${config.unit}`;
+}
+
+function svgElement(name, attributes) {
+  const element = document.createElementNS(SVG_NS, name);
+  Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, String(value)));
+  return element;
+}
+
+function formatChartValue(value, unit) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return "-";
+  return Number(value).toFixed(unit === "%" ? 0 : 1);
+}
+
+function formatChartTick(value) {
+  return new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", hour12: false }).format(value);
+}
+
+function formatChartTime(value) {
+  return new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }).format(value);
 }
 
 function nearestHourlyIndex(times, target) {
@@ -259,23 +453,28 @@ function renderNight(data) {
 function renderDaily(data) {
   const container = document.getElementById("daily-forecast");
   container.replaceChildren();
-  data.daily.time.forEach((date, index) => {
-    const condition = weatherCondition(data.daily.weather_code[index]);
+  const today = seoulDateKey(new Date());
+  const visibleDays = data.daily.time
+    .map((date, sourceIndex) => ({ date, sourceIndex }))
+    .filter(item => item.date >= today)
+    .slice(0, 4);
+  visibleDays.forEach(({ date, sourceIndex }, displayIndex) => {
+    const condition = weatherCondition(data.daily.weather_code[sourceIndex]);
     const card = document.createElement("article");
     card.className = "daily-card";
     const heading = document.createElement("div");
     const title = document.createElement("h3");
-    title.textContent = formatDate(date, index);
+    title.textContent = formatDate(date, displayIndex);
     const icon = document.createElement("span");
     icon.className = "daily-icon";
     icon.textContent = condition.icon;
     heading.append(title, icon);
     const temperature = document.createElement("strong");
-    temperature.textContent = `${round(data.daily.temperature_2m_min[index])}° / ${round(data.daily.temperature_2m_max[index])}°`;
+    temperature.textContent = `${round(data.daily.temperature_2m_min[sourceIndex])}° / ${round(data.daily.temperature_2m_max[sourceIndex])}°`;
     const detail = document.createElement("p");
-    detail.textContent = `${condition.label} · 강수 확률 ${round(data.daily.precipitation_probability_max[index])}%`;
+    detail.textContent = `${condition.label} · 강수 확률 ${round(data.daily.precipitation_probability_max[sourceIndex])}%`;
     const sun = document.createElement("p");
-    sun.textContent = `일출 ${formatHour(parseForecastTime(data.daily.sunrise[index]))} · 일몰 ${formatHour(parseForecastTime(data.daily.sunset[index]))}`;
+    sun.textContent = `일출 ${formatHour(parseForecastTime(data.daily.sunrise[sourceIndex]))} · 일몰 ${formatHour(parseForecastTime(data.daily.sunset[sourceIndex]))}`;
     card.append(heading, temperature, detail, sun);
     container.appendChild(card);
   });
@@ -436,8 +635,12 @@ function formatDateTime(value) { return new Intl.DateTimeFormat("ko-KR", { timeZ
 function formatHour(value) { return new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hour12: false }).format(value); }
 function formatOptionalTime(value) { return value ? formatHour(value) : "해당 없음"; }
 function formatDay(value) { return new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", weekday: "short" }).format(value); }
+function seoulDateKey(value) {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(value);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
 function formatDate(value, index) { return index === 0 ? "오늘" : new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", weekday: "short" }).format(parseForecastTime(`${value}T12:00`)); }
 function number(value, digits = 0) { return Number.isFinite(Number(value)) ? Number(value).toFixed(digits) : "-"; }
 function round(value) { return Number.isFinite(Number(value)) ? Math.round(Number(value)) : "-"; }
 function clamp(value, min, max) { return Math.min(max, Math.max(min, Number(value) || 0)); }
-function setText(id, value) { document.getElementById(id).textContent = value; }

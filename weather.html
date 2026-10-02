@@ -7,7 +7,7 @@
   <link rel="apple-touch-icon" href="logo.png">
   <title>DEEP SKY | 날씨</title>
   <link rel="stylesheet" href="css/common.css?v=20260925-global-night-mode">
-  <link rel="stylesheet" href="css/weather.css?v=20260925-global-night-mode">
+  <link rel="stylesheet" href="css/weather.css?v=20261002-weather-history-chart">
 </head>
 <body>
 <div class="auth-bar">
@@ -66,15 +66,24 @@
     </article>
   </section>
 
-  <section class="current-metrics" aria-label="현재 기상 지표">
-    <article><span>구름량</span><strong id="metric-cloud">-</strong></article>
-    <article><span>습도</span><strong id="metric-humidity">-</strong></article>
-    <article><span>강수 확률</span><strong id="metric-precipitation-probability">-</strong></article>
-    <article><span>강수량</span><strong id="metric-precipitation">-</strong></article>
-    <article><span>시정</span><strong id="metric-visibility">-</strong></article>
-    <article><span>바람</span><strong id="metric-wind">-</strong></article>
-    <article><span>돌풍</span><strong id="metric-gust">-</strong></article>
-    <article><span>체감온도</span><strong id="metric-apparent">-</strong></article>
+  <section class="weather-panel weather-chart-panel" aria-labelledby="forecast-chart-title">
+    <div class="panel-heading">
+      <div><p class="weather-eyebrow">관측 환경 변화</p><h2 id="forecast-chart-title">시간대별 기상 요소</h2></div>
+      <p id="forecast-chart-period">어제부터 3일 후까지</p>
+    </div>
+    <div class="forecast-chart-controls" role="group" aria-label="그래프 기상 요소 선택">
+      <button class="chart-metric-button active" type="button" data-weather-metric="temperature" aria-pressed="true">기온·체감·이슬점</button>
+      <button class="chart-metric-button" type="button" data-weather-metric="pressure" aria-pressed="false">기압</button>
+      <button class="chart-metric-button" type="button" data-weather-metric="moisture" aria-pressed="false">습도·구름</button>
+      <button class="chart-metric-button" type="button" data-weather-metric="precipitationChance" aria-pressed="false">강수 확률</button>
+      <button class="chart-metric-button" type="button" data-weather-metric="precipitationAmount" aria-pressed="false">강수량</button>
+      <button class="chart-metric-button" type="button" data-weather-metric="wind" aria-pressed="false">바람·돌풍</button>
+      <button class="chart-metric-button" type="button" data-weather-metric="visibility" aria-pressed="false">시정</button>
+    </div>
+    <div id="forecast-chart-summary" class="forecast-chart-summary" aria-live="polite">예보 그래프를 불러오는 중입니다.</div>
+    <div id="forecast-chart" class="forecast-chart" role="img" aria-label="시간대별 기상 요소 예보 그래프"></div>
+    <div id="forecast-chart-legend" class="forecast-chart-legend" aria-label="그래프 범례"></div>
+    <p class="forecast-chart-note">세로선은 현재 시각입니다. 과거 구간은 최근 수치자료이며 미래 구간은 예보이므로 관측 직전에 다시 확인하세요.</p>
   </section>
 
   <section class="astronomy-panel" aria-labelledby="astronomy-title">
@@ -97,7 +106,7 @@
   </section>
 
   <section class="weather-panel" aria-labelledby="daily-forecast-title">
-    <div class="panel-heading"><div><p class="weather-eyebrow">3일 예보</p><h2 id="daily-forecast-title">3일 예보</h2></div></div>
+    <div class="panel-heading"><div><p class="weather-eyebrow">중기 예보</p><h2 id="daily-forecast-title">오늘부터 3일 후까지</h2></div></div>
     <div id="daily-forecast" class="daily-forecast"><p>예보를 불러오는 중입니다.</p></div>
   </section>
 
@@ -137,7 +146,7 @@
 </main>
 
 <footer><p>&copy; 2026 DEEP SKY | Bokseong Astro &amp; Space Club | All rights reserved.</p><p>Designed by jw-astro09 | Contact: 2jw5464@gmail.com</p></footer>
-<script type="module" src="js/weather.js?v=20260927-weather-proxy"></script>
+<script type="module" src="js/weather.js?v=20261002-weather-history-chart"></script>
 <script type="module" src="frontend-access-control.js?v=20260927-all-permissions"></script>
 </body>
 </html>

@@ -23,7 +23,7 @@ body { background: var(--bg-dark); color: var(--text-main); }
 .weather-status.error { color: var(--weather-bad); }
 
 .weather-overview { display: grid; grid-template-columns: 1.15fr .85fr; gap: 18px; }
-.weather-condition-card, .observing-score-card, .weather-panel, .current-metrics article, .weather-notice {
+.weather-condition-card, .observing-score-card, .weather-panel, .weather-notice {
   border: 1px solid var(--weather-line); border-radius: 12px; background: var(--weather-surface);
 }
 .weather-condition-card, .observing-score-card { min-height: 235px; padding: 26px; }
@@ -45,11 +45,6 @@ body { background: var(--bg-dark); color: var(--text-main); }
 .score-details summary { width: fit-content; cursor: pointer; color: #d9e8f2; font-weight: 700; }
 .score-details div { margin-top: 10px; line-height: 1.6; }
 
-.current-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0 34px; }
-.current-metrics article { min-width: 0; padding: 20px; }
-.current-metrics span { display: block; margin-bottom: 10px; color: var(--weather-muted); font-size: .78rem; }
-.current-metrics strong { font-size: 1.18rem; white-space: nowrap; }
-
 .astronomy-panel { margin: 18px 0 34px; padding: 26px; border: 1px solid var(--weather-line); border-radius: 12px; background: linear-gradient(135deg, rgba(53, 76, 160, .12), rgba(255, 255, 255, .025)); }
 .astronomy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .astronomy-grid article { display: flex; align-items: flex-start; gap: 14px; min-width: 0; padding: 20px; border: 1px solid var(--weather-line); border-radius: 12px; background: var(--weather-surface-strong); }
@@ -64,6 +59,24 @@ body { background: var(--bg-dark); color: var(--text-main); }
 .panel-heading > div { padding-left: 14px; border-left: 4px solid var(--accent); }
 .panel-heading h2 { margin: 5px 0 0; font-size: 1.45rem; }
 .panel-heading > p { margin: 0; color: var(--weather-muted); font-size: .9rem; }
+
+.weather-chart-panel { margin: 18px 0 34px; overflow: hidden; }
+.forecast-chart-controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 14px; }
+.chart-metric-button { padding: 9px 13px; border: 1px solid var(--weather-line); border-radius: 999px; background: transparent; color: var(--weather-muted); font: inherit; font-size: .8rem; font-weight: 750; cursor: pointer; }
+.chart-metric-button:hover, .chart-metric-button:focus-visible { border-color: var(--accent); color: var(--text-main); outline: none; }
+.chart-metric-button.active { border-color: var(--accent); background: rgba(91, 132, 255, .16); color: var(--text-main); }
+.forecast-chart-summary { min-height: 22px; margin-bottom: 10px; color: var(--weather-muted); font-size: .82rem; }
+.forecast-chart { width: 100%; min-height: 320px; overflow-x: auto; border: 1px solid var(--weather-line); border-radius: 12px; background: rgba(0, 0, 0, .16); }
+.forecast-chart svg { display: block; width: 100%; min-width: 760px; height: auto; }
+.forecast-chart .chart-grid { stroke: rgba(174, 181, 184, .2); stroke-width: 1; }
+.forecast-chart .chart-axis-label { fill: var(--weather-muted); font-size: 12px; }
+.forecast-chart .chart-current-line { stroke: #ff6b75; stroke-width: 1.5; stroke-dasharray: 6 5; }
+.forecast-chart .chart-series { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.forecast-chart .chart-empty { fill: var(--weather-muted); font-size: 16px; text-anchor: middle; }
+.forecast-chart-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; color: var(--weather-muted); font-size: .8rem; }
+.forecast-chart-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.forecast-chart-legend i { display: inline-block; width: 22px; height: 3px; border-radius: 999px; }
+.forecast-chart-note { margin: 12px 0 0; color: var(--weather-muted); font-size: .76rem; line-height: 1.6; }
 .night-table-wrap { overflow-x: auto; }
 .night-table { width: 100%; min-width: 760px; border-collapse: collapse; }
 .night-table th, .night-table td { padding: 15px 12px; border-bottom: 1px solid var(--weather-line); text-align: left; }
@@ -118,7 +131,6 @@ body { background: var(--bg-dark); color: var(--text-main); }
 
 @media (max-width: 900px) {
   .weather-overview { grid-template-columns: 1fr; }
-  .current-metrics { grid-template-columns: repeat(3, 1fr); }
   .astronomy-grid { grid-template-columns: 1fr; }
   .safety-links { align-items: stretch; flex-wrap: wrap; }
 }
@@ -131,10 +143,11 @@ body { background: var(--bg-dark); color: var(--text-main); }
   .weather-controls select { flex: 1 1 100%; }
   .weather-controls .btn { flex: 1 1 auto; }
   .weather-condition-card, .observing-score-card, .weather-panel { padding: 22px; }
-  .current-metrics { grid-template-columns: repeat(2, 1fr); }
   .astronomy-panel { padding: 20px; }
   .daily-forecast { grid-template-columns: 1fr; }
   .weather-tools-grid { grid-template-columns: 1fr; }
+  .forecast-chart-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chart-metric-button { width: 100%; }
   .weather-tool-wide { grid-column: auto; }
   .tool-card-heading { align-items: flex-start; flex-direction: column; }
   .tool-card-heading p { text-align: left; }
