@@ -69,7 +69,7 @@
   <section class="weather-panel weather-chart-panel" aria-labelledby="forecast-chart-title">
     <div class="panel-heading">
       <div><p class="weather-eyebrow">관측 환경 변화</p><h2 id="forecast-chart-title">시간대별 기상 요소</h2></div>
-      <p id="forecast-chart-period">어제부터 3일 후까지</p>
+      <p id="forecast-chart-period">조회 시각 기준 24시간 전–72시간 후 (KST)</p>
     </div>
     <div class="forecast-chart-controls" role="group" aria-label="그래프 기상 요소 선택">
       <button class="chart-metric-button active" type="button" data-weather-metric="temperature" aria-pressed="true">기온·체감·이슬점</button>
@@ -83,7 +83,7 @@
     <div id="forecast-chart-summary" class="forecast-chart-summary" aria-live="polite">예보 그래프를 불러오는 중입니다.</div>
     <div id="forecast-chart" class="forecast-chart" role="img" aria-label="시간대별 기상 요소 예보 그래프"></div>
     <div id="forecast-chart-legend" class="forecast-chart-legend" aria-label="그래프 범례"></div>
-    <p class="forecast-chart-note">세로선은 현재 시각입니다. 과거 구간은 최근 수치자료이며 미래 구간은 예보이므로 관측 직전에 다시 확인하세요.</p>
+    <p class="forecast-chart-note">세로선은 조회된 기준 시각입니다. 모든 시각은 KST이며, 과거 구간은 최근 수치자료이고 미래 구간은 예보이므로 관측 직전에 다시 확인하세요.</p>
   </section>
 
   <section class="astronomy-panel" aria-labelledby="astronomy-title">
@@ -146,7 +146,7 @@
 </main>
 
 <footer><p>&copy; 2026 DEEP SKY | Bokseong Astro &amp; Space Club | All rights reserved.</p><p>Designed by jw-astro09 | Contact: 2jw5464@gmail.com</p></footer>
-<script type="module" src="js/weather.js?v=20261002-weather-history-chart"></script>
+<script type="module" src="js/weather.js?v=20261002-kst-hour-window"></script>
 <script type="module" src="frontend-access-control.js?v=20260927-all-permissions"></script>
 </body>
 </html>

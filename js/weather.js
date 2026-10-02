@@ -9,7 +9,7 @@ const DEFAULT_LOCATION = Object.freeze({
   longitude: 127.4872
 });
 const CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
-const CACHE_PREFIX = "deepsky:weather-cache:v3";
+const CACHE_PREFIX = "deepsky:weather-cache:v4";
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 const SVG_NS = "http://www.w3.org/2000/svg";
 const CHART_CONFIGS = Object.freeze({
@@ -115,7 +115,8 @@ function buildForecastUrl(locationData) {
     hourly: "temperature_2m,apparent_temperature,dew_point_2m,surface_pressure,relative_humidity_2m,precipitation_probability,precipitation,weather_code,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,visibility,wind_speed_10m,wind_gusts_10m",
     daily: "sunrise,sunset,weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
     timezone: "Asia/Seoul",
-    past_days: "1",
+    past_hours: "24",
+    forecast_hours: "73",
     forecast_days: "4"
   }).toString();
   return url;
@@ -181,13 +182,13 @@ async function loadWeather({ preserveStatus = false } = {}) {
     validateForecast(data);
     renderWeather(data);
     writeCache(data);
-    status.textContent = `${activeLocation.label} 예보 갱신 완료 · ${formatDateTime(new Date())}`;
+    status.textContent = `${activeLocation.label} 예보 갱신 완료 · 조회 기준 ${formatDateTime(parseForecastTime(data.current.time))} KST`;
   } catch (error) {
     console.error(error);
     const cached = readCache();
     if (cached) {
       renderWeather(cached.data);
-      status.textContent = `실시간 예보를 불러오지 못해 ${formatDateTime(new Date(cached.savedAt))} 저장 자료를 표시합니다.`;
+      status.textContent = `실시간 예보를 불러오지 못해 저장 자료를 표시합니다 · 조회 기준 ${formatDateTime(parseForecastTime(cached.data.current.time))} KST`;
     } else {
       status.textContent = error.name === "AbortError"
         ? "예보 서버 응답 시간이 초과되었습니다. 새로고침을 눌러 다시 시도해 주세요."
@@ -260,10 +261,17 @@ function renderForecastChart(data) {
   const summary = document.getElementById("forecast-chart-summary");
   const period = document.getElementById("forecast-chart-period");
   const config = CHART_CONFIGS[activeChartMetric] || CHART_CONFIGS.temperature;
-  const times = data.hourly.time.map(parseForecastTime);
+  const referenceTime = parseForecastTime(data.current.time);
+  const windowStart = new Date(referenceTime.valueOf() - 24 * 60 * 60 * 1000);
+  const windowEnd = new Date(referenceTime.valueOf() + 72 * 60 * 60 * 1000);
+  const points = data.hourly.time
+    .map((value, index) => ({ time: parseForecastTime(value), index }))
+    .filter(point => point.time >= windowStart && point.time <= windowEnd);
+  const times = points.map(point => point.time);
   const validSeries = config.series.map(series => ({
     ...series,
-    values: (data.hourly[series.key] || []).map(value => {
+    values: points.map(point => {
+      const value = data.hourly[series.key]?.[point.index];
       const numeric = Number(value);
       return Number.isFinite(numeric) ? series.transform(numeric) : null;
     })
@@ -283,7 +291,7 @@ function renderForecastChart(data) {
 
   const firstTime = times[0];
   const lastTime = times.at(-1);
-  period.textContent = `${formatChartTime(firstTime)}–${formatChartTime(lastTime)}`;
+  period.textContent = `KST · ${formatChartTime(firstTime)}–${formatChartTime(lastTime)}`;
   const width = 960;
   const height = 320;
   const margin = { top: 24, right: 24, bottom: 54, left: 68 };
@@ -350,19 +358,18 @@ function renderForecastChart(data) {
     legend.appendChild(item);
   });
 
-  const now = new Date();
-  if (now >= firstTime && now <= lastTime) {
-    const nowX = x(now);
-    svg.appendChild(svgElement("line", { x1: nowX, y1: margin.top, x2: nowX, y2: height - margin.bottom, class: "chart-current-line" }));
-    const nowLabel = svgElement("text", { x: nowX, y: margin.top + 13, class: "chart-axis-label", "text-anchor": "middle" });
-    nowLabel.textContent = "현재";
-    svg.appendChild(nowLabel);
+  if (referenceTime >= firstTime && referenceTime <= lastTime) {
+    const referenceX = x(referenceTime);
+    svg.appendChild(svgElement("line", { x1: referenceX, y1: margin.top, x2: referenceX, y2: height - margin.bottom, class: "chart-current-line" }));
+    const referenceLabel = svgElement("text", { x: referenceX, y: margin.top + 13, class: "chart-axis-label", "text-anchor": "middle" });
+    referenceLabel.textContent = "조회 기준";
+    svg.appendChild(referenceLabel);
   }
   container.appendChild(svg);
 
-  const nearest = nearestHourlyIndex(data.hourly.time, now);
+  const nearest = nearestHourlyIndex(times, referenceTime);
   const currentValues = validSeries.map(series => `${series.label} ${formatChartValue(series.values[nearest], config.unit)} ${config.unit}`);
-  summary.textContent = `${config.label} · ${currentValues.join(" · ")} · 전체 범위 ${formatChartValue(Math.min(...allValues), config.unit)}–${formatChartValue(Math.max(...allValues), config.unit)} ${config.unit}`;
+  summary.textContent = `조회 기준 ${formatChartTime(referenceTime)} KST · ${config.label} · ${currentValues.join(" · ")} · 전체 범위 ${formatChartValue(Math.min(...allValues), config.unit)}–${formatChartValue(Math.max(...allValues), config.unit)} ${config.unit}`;
 }
 
 function svgElement(name, attributes) {

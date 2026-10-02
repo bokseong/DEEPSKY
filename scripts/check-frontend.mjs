@@ -212,7 +212,7 @@ for (const pattern of [
 ]) {
     if (!pattern.test(weatherHtml)) fail(path.join(root, "weather.html"), "관측용 날씨 기능 또는 기상청 안전 링크가 누락되었습니다.");
 }
-for (const pattern of [/CACHE_MAX_AGE/, /navigator\.geolocation/, /getMoonInfo/, /getAstronomicalTwilight/, /past_days:\s*"1"/, /forecast_days:\s*"4"/, /renderForecastChart/, /surface_pressure/, /dew_point_2m/]) {
+for (const pattern of [/CACHE_MAX_AGE/, /navigator\.geolocation/, /getMoonInfo/, /getAstronomicalTwilight/, /past_hours:\s*"24"/, /forecast_hours:\s*"73"/, /forecast_days:\s*"4"/, /renderForecastChart/, /referenceTime/, /surface_pressure/, /dew_point_2m/]) {
     if (!pattern.test(weatherSource)) fail(path.join(root, "js", "weather.js"), "날씨 복구·위치·천문·야간 모드 로직이 누락되었습니다.");
 }
 if (!/apiFetch\(["']\/api\/deepsky\/weather["']/.test(weatherSource)) {
