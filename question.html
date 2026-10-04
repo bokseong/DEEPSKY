@@ -46,29 +46,6 @@
 </nav>
 
 <main class="content-section">
-    <section id="school-announcement-section" class="announcement-feed-section" aria-labelledby="school-announcement-title">
-        <div class="announcement-heading-row">
-            <h2 id="school-announcement-title" class="section-title">동아리 공지</h2>
-            <button type="button" class="btn announcement-compose-toggle" hidden>공지 작성</button>
-        </div>
-        <form class="compact-form announcement-inline-form" hidden>
-            <h3 class="announcement-inline-title">새 공지</h3>
-            <input type="hidden" name="announcement-id">
-            <div class="announcement-form-grid">
-                <label>제목<input name="announcement-title" maxlength="120" required></label>
-                <label>중요도<select name="announcement-importance"><option value="normal">일반</option><option value="important">중요</option></select></label>
-            </div>
-            <div class="announcement-form-grid announcement-date-grid">
-                <label>게시 시작<input type="datetime-local" name="announcement-start"></label>
-                <label>게시 종료<input type="datetime-local" name="announcement-expiry"></label>
-            </div>
-            <label class="announcement-pinned-label"><input type="checkbox" name="announcement-pinned"> 상단 고정</label>
-            <label>내용<textarea name="announcement-content" maxlength="5000" rows="4"></textarea></label>
-            <p class="form-status announcement-inline-status" role="status"></p>
-            <div class="actions"><button type="button" class="btn announcement-inline-cancel">취소</button><button type="submit" class="btn btn-primary">저장</button></div>
-        </form>
-        <div id="school-announcement-list" class="announcement-feed"><div class="loading-state">공지사항을 불러오는 중입니다.</div></div>
-    </section>
     <div class="board-header">
         <h2 id="board-title">질문 게시판</h2>
         <button class="btn-write" id="write-btn" style="display:none;">글 작성</button>
