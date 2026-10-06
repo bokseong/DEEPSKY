@@ -69,17 +69,18 @@ let currentUser = null;
             document.getElementById("logout-btn").style.display = "inline";
             document.getElementById("login-link").style.display = "none";
             document.getElementById("write-btn").style.display = permissions[writePermissionKey] ? "inline" : "none";
-            await Promise.all([
-                loadPosts(),
-                initializeAnnouncementSection({
+            const pageTasks = [loadPosts()];
+            if (schoolKey !== "q") {
+                pageTasks.push(initializeAnnouncementSection({
                     section: document.getElementById("school-announcement-section"),
                     container: document.getElementById("school-announcement-list"),
                     user,
                     profile: userData,
                     scope: "all",
                     emptyMessage: "등록된 동아리 공지가 없습니다."
-                })
-            ]);
+                }));
+            }
+            await Promise.all(pageTasks);
         } catch (err) {
             console.error(err);
             location.replace("block.html");
