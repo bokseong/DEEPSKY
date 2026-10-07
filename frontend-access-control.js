@@ -1,5 +1,5 @@
 import "./js/night-mode.js?v=20260925-global-night-mode";
-import { auth, getCurrentPermissions, getCurrentProfile } from "./js/common.js?v=20260920-guest-permissions";
+import { auth, blockedAccessUrl, getCurrentPermissions, getCurrentProfile } from "./js/common.js?v=20261007-return-after-login";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const ROLES = {
     loggedIn: ["admin", "teacher", "deputy", "student", "member"]
@@ -105,7 +105,7 @@ function ruleForLink(link) {
 
     const page = url.pathname.split("/").pop() || "index.html";
     const rule = findRule(page);
-    return { rule, searchParams: url.searchParams };
+    return { rule, searchParams: url.searchParams, url };
 }
 
 function installNavGuards(role, permissions = {}) {
@@ -124,7 +124,7 @@ function installNavGuards(role, permissions = {}) {
         const currentPermissions = window.__deepskyNavPermissions || {};
         if (!canAccess(currentRole, target.rule, target.searchParams, currentPermissions)) {
             event.preventDefault();
-            location.href = "block.html";
+            location.href = blockedAccessUrl(`${target.url.pathname}${target.url.search}${target.url.hash}`);
         }
     });
 }
@@ -161,7 +161,6 @@ onAuthStateChanged(auth, async user => {
 
     const rule = findRule();
     if (!canAccess(role, rule, new URLSearchParams(location.search), permissions)) {
-        const isLoginRequired = role === "guest" && currentPage() !== "block.html";
-        location.replace(isLoginRequired ? "login.html" : "block.html");
+        location.replace(blockedAccessUrl());
     }
 });

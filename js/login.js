@@ -1,15 +1,18 @@
-import { apiRequest, auth, authPersistenceReady } from "./common.js?v=20260826-session-auth";
+import { apiRequest, auth, authPersistenceReady, safeInternalReturnTarget, signupWithReturnUrl } from "./common.js?v=20261007-return-after-login";
 import { signInWithEmailAndPassword, GithubAuthProvider, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const returnTarget = safeInternalReturnTarget(new URLSearchParams(location.search).get("returnTo"));
+const signupTarget = signupWithReturnUrl(returnTarget);
 
 async function continueAfterAuthentication(user) {
     if (!user.emailVerified) {
-        location.href = "signup.html";
+        location.href = signupTarget;
         return;
     }
     const response = await apiRequest("/api/deepsky/account-status", {}, user);
     if (!response.ok) throw new Error("계정 상태를 확인할 수 없습니다.");
     const account = await response.json();
-    location.href = account.exists ? "index.html" : "signup.html";
+    location.href = account.exists ? (returnTarget || "index.html") : signupTarget;
 }
 
 document.getElementById("login-form").addEventListener("submit", async event => {
@@ -32,7 +35,7 @@ document.getElementById("login-form").addEventListener("submit", async event => 
         await continueAfterAuthentication(credential.user);
     } catch (error) {
         if (error?.code === "auth/user-not-found") {
-            location.href = "signup.html";
+            location.href = signupTarget;
             return;
         }
         alert("로그인에 실패했습니다. 이메일과 비밀번호를 확인해 주세요.");

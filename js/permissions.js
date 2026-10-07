@@ -1,4 +1,4 @@
-import { apiRequest, auth, getCurrentProfile } from "./common.js?v=20260920-guest-permissions";
+import { apiRequest, auth, blockedAccessUrl, getCurrentProfile } from "./common.js?v=20261007-return-after-login";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const state = {
@@ -75,7 +75,7 @@ const permissionGroups = [
 
 logoutButton.addEventListener("click", async () => {
     await signOut(auth);
-    location.replace("login.html");
+    location.replace(blockedAccessUrl());
 });
 
 refreshButton.addEventListener("click", () => loadPermissions());

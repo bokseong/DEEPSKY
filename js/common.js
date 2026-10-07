@@ -19,6 +19,50 @@ const RETRYABLE_RESPONSE_STATUSES = new Set([408, 425, 500, 502, 503, 504]);
 
 export let API_BASE_URL = CONFIGURED_API_BASE_URL;
 
+const AUTH_FLOW_PAGES = new Set(["block.html", "login.html", "signup.html"]);
+
+export function safeInternalReturnTarget(value, fallback = "") {
+    const raw = String(value || "").trim();
+    if (!raw || raw.startsWith("//") || /[\u0000-\u001f\u007f\\]/.test(raw)) return fallback;
+    try {
+        const target = new URL(raw, location.href);
+        const appRoot = new URL(".", location.href);
+        if (
+            !["http:", "https:"].includes(target.protocol) ||
+            target.origin !== location.origin ||
+            !target.pathname.startsWith(appRoot.pathname)
+        ) return fallback;
+
+        const relativePath = target.pathname.slice(appRoot.pathname.length);
+        const page = relativePath.split("/").pop() || "index.html";
+        if (!relativePath || AUTH_FLOW_PAGES.has(page)) return fallback;
+        return `${relativePath}${target.search}${target.hash}`;
+    } catch {
+        return fallback;
+    }
+}
+
+export function currentInternalTarget() {
+    return safeInternalReturnTarget(location.href, "index.html");
+}
+
+function authFlowUrl(page, target) {
+    const safeTarget = safeInternalReturnTarget(target);
+    return safeTarget ? `${page}?returnTo=${encodeURIComponent(safeTarget)}` : page;
+}
+
+export function blockedAccessUrl(target = currentInternalTarget()) {
+    return authFlowUrl("block.html", target);
+}
+
+export function loginWithReturnUrl(target) {
+    return authFlowUrl("login.html", target);
+}
+
+export function signupWithReturnUrl(target) {
+    return authFlowUrl("signup.html", target);
+}
+
 export function normalizeSafeLinkUrl(value, { allowUpload = false, resolveUpload = false } = {}) {
     return normalizeLinkUrl(value, { allowUpload, resolveUpload, apiBaseUrl: API_BASE_URL });
 }

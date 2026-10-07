@@ -2,7 +2,7 @@ import { apiFetch, auth, authHeaders as getAuthHeaders, getCurrentPermissions, g
 import { createDraftController, uploadFilesWithProgress } from "./write-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
-        b: { collection:"club-board", name:"DEEP SKY 동아리", roles:["admin", "teacher", "deputy", "student"], categories:["천체 관측 데이터", "보고서", "훈련 자료", "소스 코드", "기타"], boardUrl:"talk.html", viewUrl:"school-view.html?school=b" },
+        b: { collection:"club-board", name:"DEEP SKY 동아리", roles:["admin", "teacher", "deputy", "student"], categories:["천체 관측 데이터", "보고서", "발표", "훈련 자료", "소스 코드", "기타"], boardUrl:"talk.html", viewUrl:"school-view.html?school=b" },
         q: { collection:"questions", name:"DEEP SKY 질문", roles:["admin", "teacher", "deputy", "student", "member"], categories:["천문 관측", "데이터 처리", "장비", "웹사이트 이용", "기타"], boardUrl:"question.html", viewUrl:"school-view.html?school=q" }
     };
     const params = new URLSearchParams(location.search);

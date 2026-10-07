@@ -1,4 +1,4 @@
-import { apiFetch, auth, authHeaders, getCurrentPermissions, getCurrentProfile, normalizeSafeLinkUrl } from "./common.js";
+import { apiFetch, auth, authHeaders, blockedAccessUrl, getCurrentPermissions, getCurrentProfile, normalizeSafeLinkUrl } from "./common.js?v=20261007-return-after-login";
 import { createDraftController, uploadFilesWithProgress } from "./write-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const COLLECTION = "resources";
@@ -15,7 +15,7 @@ const editPostId = new URLSearchParams(window.location.search).get('id');
     document.getElementById('btnAddLink').addEventListener('click', () => addLinkField());
 
     onAuthStateChanged(auth, async (user) => {
-        if (!user) { alert('로그인이 필요합니다.'); location.replace('login.html'); return; }
+        if (!user) { alert('로그인이 필요합니다.'); location.replace(blockedAccessUrl()); return; }
         try {
             const [userData, permissions] = await Promise.all([
                 getCurrentProfile(user),

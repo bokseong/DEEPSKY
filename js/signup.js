@@ -1,5 +1,8 @@
-import { auth, authPersistenceReady, updateCurrentProfile } from "./common.js?v=20260826-session-auth";
+import { auth, authPersistenceReady, loginWithReturnUrl, safeInternalReturnTarget, updateCurrentProfile } from "./common.js?v=20261007-return-after-login";
 import { createUserWithEmailAndPassword, onAuthStateChanged, sendEmailVerification, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const returnTarget=safeInternalReturnTarget(new URLSearchParams(location.search).get("returnTo"));
+const loginTarget=loginWithReturnUrl(returnTarget);
 
 onAuthStateChanged(auth,user=>{
   if(!user)return;
@@ -37,12 +40,12 @@ document.getElementById("signup-form").addEventListener("submit",async e=>{
         await signOut(auth);
       }
       alert("인증 메일을 보냈습니다. 이메일 인증 후 다시 로그인해 주세요.");
-      location.href="login.html";
+      location.href=loginTarget;
       return;
     }
     await updateCurrentProfile({name},user);
     alert("회원 정보가 등록되었습니다.");
-    location.href="login.html";
+    location.href=loginTarget;
   }catch(err){
     alert("회원가입에 실패했습니다: "+err.message);
   }finally{

@@ -1,4 +1,4 @@
-import { apiFetch, apiRequest, auth, authHeaders, getCurrentProfile, updateCurrentProfile } from "./common.js";
+import { apiFetch, apiRequest, auth, authHeaders, blockedAccessUrl, getCurrentProfile, updateCurrentProfile } from "./common.js?v=20261007-return-after-login";
 import { getNightModeStrength, setNightModeStrength } from "./night-mode.js?v=20260925-global-night-mode";
 import { EmailAuthProvider, onAuthStateChanged, reauthenticateWithCredential, sendPasswordResetEmail, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
@@ -41,7 +41,7 @@ document.getElementById("card-logout-btn").onclick = document.getElementById("lo
 
 onAuthStateChanged(auth, async user => {
     if (!user) {
-        location.href = "login.html";
+        location.href = blockedAccessUrl();
         return;
     }
     try {
