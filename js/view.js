@@ -1,4 +1,4 @@
-import { apiFetch, apiFetchUrl, auth, authHeaders, getCurrentProfile, normalizeSafeLinkUrl } from "./common.js?v=20260920-guest-permissions";
+import { API_BASE_URL, apiFetch, auth, authHeaders, getCurrentProfile, normalizeSafeLinkUrl } from "./common.js?v=20261007-stream-download";
 import { appendCommentReportButton, setupPostTools } from "./post-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const COLLECTION = "resources";
@@ -181,31 +181,31 @@ let currentUser = null;
         finally { btn.disabled = false; btn.innerText = '등록'; }
     });
 
-    async function resolveAttachmentUrl(url, filename, mode) {
+    function normalizeUploadPath(url) {
         const attachmentUrl = new URL(url);
-
-        // 기존 자료는 /api/download?path=...&mode=download 형식으로 저장되어
-        // 있으므로, 현재 로그인 권한으로 용도별 단기 서명 URL을 다시 발급한다.
         if (attachmentUrl.pathname === '/api/download') {
-            const path = attachmentUrl.searchParams.get('path');
-            if (!path) throw new Error('첨부파일 경로가 올바르지 않습니다.');
-
-            const response = await apiFetch('/api/download-link', {
-                method: 'POST',
-                headers: await getHeaders(true),
-                body: JSON.stringify({ path, filename, mode })
-            });
-            const data = await response.json().catch(() => ({}));
-            if (!response.ok || !data.url) {
-                throw new Error(data.error || '파일 열기 주소를 만들 수 없습니다.');
-            }
-            return new URL(data.url, API_BASE_URL).href;
+            const legacyPath = attachmentUrl.searchParams.get('path') || '';
+            const match = legacyPath.match(/^\/uploads\/([^/]+)\/(.+)$/);
+            if (!match) throw new Error('첨부파일 경로가 올바르지 않습니다.');
+            return `/api/deepsky/uploads/${match[1]}/${match[2]}`;
         }
+        if (!attachmentUrl.pathname.startsWith('/api/deepsky/uploads/')) {
+            throw new Error('첨부파일 경로가 올바르지 않습니다.');
+        }
+        return attachmentUrl.pathname;
+    }
 
-        // 새 자료 저장소의 파일 주소는 download 쿼리만으로 표시 방식을 구분한다.
-        if (mode === 'download') attachmentUrl.searchParams.set('download', '1');
-        else attachmentUrl.searchParams.delete('download');
-        return attachmentUrl.href;
+    async function createAttachmentAccessUrl(url, filename, mode) {
+        const response = await apiFetch('/api/deepsky/uploads/download-link', {
+            method: 'POST',
+            headers: await getHeaders(true),
+            body: JSON.stringify({ url: normalizeUploadPath(url), filename, mode })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.url) {
+            throw new Error(data.error || '파일 열기 주소를 만들 수 없습니다.');
+        }
+        return new URL(data.url, API_BASE_URL).href;
     }
 
     function getPreviewMimeType(filename, contentType) {
@@ -236,34 +236,27 @@ let currentUser = null;
         let previewWindow = null;
         try {
             if (mode === 'preview') {
+                if (!getPreviewMimeType(filename, '')) {
+                    throw new Error('이 파일 형식은 미리보기를 지원하지 않습니다. 다운로드 버튼을 사용해 주세요.');
+                }
                 previewWindow = window.open('about:blank', '_blank');
                 if (!previewWindow) throw new Error('팝업이 차단되어 미리보기를 열 수 없습니다.');
                 previewWindow.opener = null;
                 previewWindow.document.title = '파일 미리보기';
                 previewWindow.document.body.textContent = '파일을 불러오는 중입니다...';
             }
-            const requestUrl = await resolveAttachmentUrl(url, filename, mode);
-            const res = await apiFetchUrl(requestUrl, { headers: await getHeaders() });
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || '파일을 열 수 없습니다.');
-            }
-            const blob = await res.blob();
+            const requestUrl = await createAttachmentAccessUrl(url, filename, mode);
             if (mode === 'download') {
-                const objectUrl = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = objectUrl;
+                a.href = requestUrl;
                 a.download = filename;
+                a.rel = 'noopener';
+                document.body.appendChild(a);
                 a.click();
-                setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+                a.remove();
                 return;
             }
-            const previewType = getPreviewMimeType(filename, blob.type);
-            if (!previewType) throw new Error('이 파일 형식은 미리보기를 지원하지 않습니다. 다운로드 버튼을 사용해 주세요.');
-            const previewBlob = blob.type === previewType ? blob : new Blob([blob], { type: previewType });
-            const objectUrl = URL.createObjectURL(previewBlob);
-            previewWindow.location.href = objectUrl;
-            setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+            previewWindow.location.replace(requestUrl);
         } catch (err) {
             if (previewWindow && !previewWindow.closed) previewWindow.close();
             alert(err.message || '파일을 열 수 없습니다.');
