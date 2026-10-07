@@ -19,6 +19,7 @@ let currentUser = null;
     let currentUserName = "익명";
     let editPost = null;
     let draftController = null;
+    let retainedAttachments = [];
 
     document.getElementById("form-title").textContent = editId ? `${school.name} 자료 수정` : `${school.name} 자료 등록`;
     document.getElementById("submit-btn").textContent = editId ? "수정 완료" : "등록";
@@ -110,12 +111,17 @@ let currentUser = null;
                 links: [...document.querySelectorAll(".link-row")].map(row => ({
                     name: row.querySelector(".link-name").value,
                     url: row.querySelector(".link-url").value
-                }))
+                })),
+                attachments: retainedAttachments
             }),
             restore: draft => {
                 document.getElementById("post-title").value = draft.title || "";
                 document.getElementById("post-content").value = draft.content || "";
                 document.getElementById("category").value = normalizeBoardCategory(draft.category);
+                if (Array.isArray(draft.attachments)) {
+                    retainedAttachments = draft.attachments.filter(isStoredAttachment).map(link => ({ ...link, type:"file" }));
+                    renderExistingAttachments();
+                }
                 document.getElementById("link-container").innerHTML = "";
                 (draft.links?.length ? draft.links : [{}]).forEach(link => addLinkField(link.url || "", link.name || ""));
             }
@@ -130,8 +136,12 @@ let currentUser = null;
         document.getElementById("category").value = normalizeBoardCategory(editPost.category);
         document.getElementById("post-title").value = editPost.title || "";
         document.getElementById("post-content").value = editPost.content || "";
+        const storedLinks = Array.isArray(editPost.links) ? editPost.links : [];
+        retainedAttachments = storedLinks.filter(isStoredAttachment).map(link => ({ ...link, type:"file" }));
+        renderExistingAttachments();
         document.getElementById("link-container").innerHTML = "";
-        const links = editPost.links && editPost.links.length ? editPost.links : [{}];
+        const sharedLinks = storedLinks.filter(link => !isStoredAttachment(link));
+        const links = sharedLinks.length ? sharedLinks : [{}];
         links.forEach(link => addLinkField(link.url || "", link.name || ""));
     }
 
@@ -150,6 +160,7 @@ let currentUser = null;
         }
         const links = linkEntries.filter(link => link.url);
         links.forEach(link => delete link.invalid);
+        links.unshift(...retainedAttachments.map(link => ({ ...link, type:"file" })));
         const submitBtn = document.getElementById("submit-btn");
         submitBtn.disabled = true;
         submitBtn.textContent = "저장 중...";
@@ -171,4 +182,35 @@ let currentUser = null;
             submitBtn.disabled = false;
             submitBtn.textContent = editId ? "수정 완료" : "등록";
         }
+    }
+
+    function isStoredAttachment(link) {
+        const url = String(link?.url || "");
+        return link?.type === "file" || url.startsWith("/api/deepsky/uploads/");
+    }
+
+    function renderExistingAttachments() {
+        const group = document.getElementById("existing-attachment-group");
+        const list = document.getElementById("existing-attachment-list");
+        list.replaceChildren();
+        group.hidden = retainedAttachments.length === 0;
+        retainedAttachments.forEach((attachment, index) => {
+            const item = document.createElement("div");
+            item.className = "existing-attachment-item";
+            const name = document.createElement("span");
+            name.className = "existing-attachment-name";
+            name.textContent = attachment.name || `첨부파일 ${index + 1}`;
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.className = "existing-attachment-remove";
+            remove.textContent = "첨부 해제";
+            remove.setAttribute("aria-label", `${name.textContent} 첨부 해제`);
+            remove.onclick = () => {
+                retainedAttachments.splice(index, 1);
+                renderExistingAttachments();
+                draftController?.save();
+            };
+            item.append(name, remove);
+            list.appendChild(item);
+        });
     }

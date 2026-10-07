@@ -9,6 +9,7 @@ const editPostId = new URLSearchParams(window.location.search).get('id');
     let currentPermissions = {};
     let currentUserName = '익명';
     let draftController = null;
+    let retainedAttachments = [];
 
     const logoutBtn = document.getElementById('logout-btn');
     logoutBtn.addEventListener('click', async () => { if (confirm('로그아웃 하시겠습니까?')) { await signOut(auth); location.replace('index.html'); } });
@@ -55,10 +56,12 @@ const editPostId = new URLSearchParams(window.location.search).get('id');
         document.getElementById('postTitle').value = data.title || '';
         document.getElementById('postContent').value = data.content || data.description || '';
         document.getElementById('category').value = normalizeResourceCategory(data.category);
-        if (data.links && data.links.length > 0) {
-            document.getElementById('linkContainer').innerHTML = '';
-            data.links.forEach(link => addLinkField(link.url, link.name));
-        }
+        const storedLinks = Array.isArray(data.links) ? data.links : [];
+        retainedAttachments = storedLinks.filter(isStoredAttachment).map(link => ({ ...link, type: 'file' }));
+        renderExistingAttachments();
+        const sharedLinks = storedLinks.filter(link => !isStoredAttachment(link));
+        document.getElementById('linkContainer').innerHTML = '';
+        (sharedLinks.length ? sharedLinks : [{}]).forEach(link => addLinkField(link.url || '', link.name || ''));
     }
 
     async function submitPost() {
@@ -76,6 +79,7 @@ const editPostId = new URLSearchParams(window.location.search).get('id');
             return { url, name, type: url.startsWith('/api/deepsky/uploads/') ? 'file' : 'link' };
         }).filter(Boolean);
         if (links.some(link => link.invalid)) { alert('첨부 링크는 인증 정보가 없는 http/https 주소만 사용할 수 있습니다.'); return; }
+        links.unshift(...retainedAttachments.map(link => ({ ...link, type: 'file' })));
         const submitBtn = document.getElementById('submitBtn');
         submitBtn.disabled = true;
         submitBtn.innerText = '처리 중...';
@@ -121,12 +125,17 @@ const editPostId = new URLSearchParams(window.location.search).get('id');
                 links: Array.from(document.querySelectorAll('.postFileUrl')).map((input, index) => ({
                     url: input.value,
                     name: document.querySelectorAll('.postFileName')[index].value
-                }))
+                })),
+                attachments: retainedAttachments
             }),
             restore: draft => {
                 document.getElementById('postTitle').value = draft.title || '';
                 document.getElementById('postContent').value = draft.content || '';
                 document.getElementById('category').value = normalizeResourceCategory(draft.category);
+                if (Array.isArray(draft.attachments)) {
+                    retainedAttachments = draft.attachments.filter(isStoredAttachment).map(link => ({ ...link, type: 'file' }));
+                    renderExistingAttachments();
+                }
                 document.getElementById('linkContainer').innerHTML = '';
                 (draft.links?.length ? draft.links : [{}]).forEach(link => addLinkField(link.url || '', link.name || ''));
             }
@@ -142,14 +151,12 @@ const editPostId = new URLSearchParams(window.location.search).get('id');
         urlInput.value = url;
         urlInput.placeholder = '링크 주소 (https://...)';
         urlInput.setAttribute('aria-label', '공유 링크 주소');
-        urlInput.style.cssText = 'flex:2; margin-bottom:0;';
         const nameInput = document.createElement('input');
         nameInput.type = 'text';
         nameInput.className = 'postFileName';
         nameInput.value = name;
         nameInput.placeholder = '이름';
         nameInput.setAttribute('aria-label', '공유 링크 이름');
-        nameInput.style.cssText = 'flex:1; margin-bottom:0;';
         const removeButton = document.createElement('button');
         removeButton.type = 'button';
         removeButton.className = 'btn-remove-link';
@@ -159,5 +166,36 @@ const editPostId = new URLSearchParams(window.location.search).get('id');
         div.append(urlInput, nameInput, removeButton);
         document.getElementById('linkContainer').appendChild(div);
         removeButton.onclick = () => div.remove();
+    }
+
+    function isStoredAttachment(link) {
+        const url = String(link?.url || '');
+        return link?.type === 'file' || url.startsWith('/api/deepsky/uploads/');
+    }
+
+    function renderExistingAttachments() {
+        const group = document.getElementById('existingAttachmentGroup');
+        const list = document.getElementById('existingAttachmentList');
+        list.replaceChildren();
+        group.hidden = retainedAttachments.length === 0;
+        retainedAttachments.forEach((attachment, index) => {
+            const item = document.createElement('div');
+            item.className = 'existing-attachment-item';
+            const name = document.createElement('span');
+            name.className = 'existing-attachment-name';
+            name.textContent = attachment.name || `첨부파일 ${index + 1}`;
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'existing-attachment-remove';
+            remove.textContent = '첨부 해제';
+            remove.setAttribute('aria-label', `${name.textContent} 첨부 해제`);
+            remove.onclick = () => {
+                retainedAttachments.splice(index, 1);
+                renderExistingAttachments();
+                draftController?.save();
+            };
+            item.append(name, remove);
+            list.appendChild(item);
+        });
     }
     document.getElementById('submitBtn').addEventListener('click', submitPost);

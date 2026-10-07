@@ -8,7 +8,7 @@
     <title>DEEP SKY | 자료 작성</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/common.css?v=20260925-global-night-mode">
-    <link rel="stylesheet" href="css/write.css">
+    <link rel="stylesheet" href="css/write.css?v=20261008-edit-attachments">
 </head>
 <body>
 <div class="auth-bar">
@@ -33,13 +33,17 @@
             <p class="field-label">공유 링크 (구글 드라이브 등)</p>
             <div id="linkContainer">
                 <div class="link-item">
-                    <input type="url" class="postFileUrl" aria-label="공유 링크 주소" placeholder="링크 주소 (https://...)" style="flex:2; margin-bottom:0;">
-                    <input type="text" class="postFileName" aria-label="공유 링크 이름" placeholder="이름 (예: 관측자료.zip)" style="flex:1; margin-bottom:0;">
+                    <input type="url" class="postFileUrl" aria-label="공유 링크 주소" placeholder="링크 주소 (https://...)">
+                    <input type="text" class="postFileName" aria-label="공유 링크 이름" placeholder="링크 이름 (예: 관측 원본 폴더)">
                     <button type="button" id="btnAddLink" style="width:40px; background:var(--accent); color:black; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">+</button>
                 </div>
             </div>
         </div>
         <label for="fileInput">첨부파일</label>
+        <div id="existingAttachmentGroup" class="existing-attachment-group" hidden>
+            <p class="field-label">현재 첨부파일</p>
+            <div id="existingAttachmentList" class="existing-attachment-list"></div>
+        </div>
         <input type="file" id="fileInput" multiple>
         <p style="margin:-10px 0 20px; color:#888; font-size:13px;">파일 크기 제한 없이 업로드할 수 있습니다. 위험한 실행 파일 형식은 차단됩니다.</p>
         <div id="uploadProgressWrap" class="progress-wrap" hidden><progress id="uploadProgress" max="100" value="0"></progress><div class="section-heading-row"><span id="uploadStatus" class="form-status"></span><button id="cancelUploadBtn" class="btn" type="button">업로드 취소</button></div></div>
@@ -54,7 +58,7 @@
   <p>&copy; 2026 DEEP SKY | Bokseong Astro &amp; Space Club | All rights reserved.</p>
   <p>Designed by jw-astro09 | Contact: 2jw5464@gmail.com</p>
 </footer>
-<script type="module" src="js/write.js?v=20261007-return-after-login"></script>
+<script type="module" src="js/write.js?v=20261008-edit-attachments"></script>
 <script type="module" src="frontend-access-control.js?v=20261007-return-after-login"></script>
 </body>
 </html>

@@ -17,9 +17,15 @@
         label { display:block; margin:18px 0 8px; color:#ccc; font-size:.9rem; }
         input, textarea, select { width:100%; box-sizing:border-box; background:rgba(0,0,0,.3); border:1px solid var(--border-color); color:white; border-radius:6px; padding:11px 12px; font-family:inherit; font-size:1rem; outline:none; }
         textarea { min-height:260px; resize:vertical; }
-        .link-row { display:flex; gap:10px; margin-bottom:10px; }
-        .link-row input:first-child { flex:1; }
-        .link-row input:last-child { flex:2; }
+        .link-row { display:flex; gap:10px; margin-bottom:10px; align-items:stretch; }
+        .link-row .link-name { flex:1 1 260px; min-width:220px; }
+        .link-row .link-url { flex:1.35 1 340px; min-width:220px; }
+        .existing-attachment-group { margin:0 0 16px; padding:14px; border:1px solid rgba(0,229,255,.35); border-radius:8px; background:rgba(0,229,255,.05); }
+        .existing-attachment-group > p { margin:0 0 10px; color:#ccc; font-size:.9rem; }
+        .existing-attachment-list { display:flex; flex-direction:column; gap:8px; }
+        .existing-attachment-item { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border-radius:6px; background:rgba(0,0,0,.3); }
+        .existing-attachment-name { min-width:0; overflow-wrap:anywhere; }
+        .existing-attachment-remove { flex:0 0 auto; min-height:34px; padding:6px 12px; border:1px solid #ff6b6b; border-radius:5px; background:transparent; color:#ff9b9b; cursor:pointer; }
         .actions { display:flex; justify-content:flex-end; gap:10px; margin-top:24px; flex-wrap:wrap; }
         .btn-primary { border-color:var(--accent); color:var(--accent); }
         .btn-primary:hover { background:var(--accent); color:#000; }
@@ -35,6 +41,7 @@
             .container { margin-top:94px; padding:0 16px; }
             .editor { padding:20px; }
             .link-row { flex-direction:column; }
+            .link-row .link-name, .link-row .link-url { min-width:0; width:100%; }
         }
 
         .sub-nav-container { scrollbar-width:none !important; -ms-overflow-style:none !important; }
