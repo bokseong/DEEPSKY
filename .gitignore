@@ -1,0 +1,20 @@
+# Local dependencies and generated output
+node_modules/
+coverage/
+dist/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Runtime logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# Editor and operating-system metadata
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

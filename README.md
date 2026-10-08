@@ -2,7 +2,7 @@
 
 복성고등학교 천문·항공우주 동아리 DEEP SKY의 공식 웹사이트입니다.
 
-This is an official website of DEEP SKY(Astronomy and Aerospce Club of Suncheon Bokseong High School in Republic of Korea)
+This is the official website of DEEP SKY, the Astronomy and Aerospace Club of Suncheon Bokseong High School, Republic of Korea.
 
 - 동아리 소개, 활동 사진, 자료실 및 동아리 게시판
 - 관측 일정, 공지사항과 알림
@@ -12,13 +12,3 @@ This is an official website of DEEP SKY(Astronomy and Aerospce Club of Suncheon 
 배포 주소: [bokseong.github.io/DEEPSKY](https://bokseong.github.io/DEEPSKY/)
 
 기상 예보 데이터는 [Open-Meteo](https://open-meteo.com/)를 사용하며 CC BY 4.0 조건에 따라 출처를 표시합니다.
-
-
-
-<!-- ### 역대 동아리 임원 정보 -->
-<!-- 동아리 활동 중 도움이 필요할 때 바로 전대 부장들에게 빠르게 도움을 요청하거나 조언을 구할 수 있게 하기 위한 목적으로 제작 -->
-<!-- | 연도 | 부장 | 부장 메일 | 차장 | 차장 메일 | 담당 교사 | -->
-<!-- |---|---|---|---|---|---| -->
-<!-- | 2026 | 이정우(jw-astro09) | 2jw5464@gmail.com | - | - | - | -->
-<!-- | 2027 | - | - | - | - | - | -->
-<!-- | 2028 | - | - | - | - | - | -->
