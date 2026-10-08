@@ -35,6 +35,7 @@ const pageHeroFiles = [
     "weather.html", "search.html", "notifications.html", "suggest.html",
     "mypage.html", "admin.html"
 ];
+const accessControlVersion = "20261007-return-after-login";
 
 for (const file of htmlFiles) {
     const html = fs.readFileSync(file, "utf8");
@@ -42,8 +43,8 @@ for (const file of htmlFiles) {
     if (!/css\/common\.css\?v=(?:20260925-global-night-mode|20260930-notification-delete)/.test(html)) {
         fail(file, "공통 야간 모드 스타일의 캐시 버전이 적용되지 않았습니다.");
     }
-    if (!/frontend-access-control\.js\?v=20260927-all-permissions/.test(html)) {
-        fail(file, "공통 야간 모드가 포함된 접근 제어 스크립트 버전이 적용되지 않았습니다.");
+    if (!html.includes(`frontend-access-control.js?v=${accessControlVersion}`)) {
+        fail(file, "공통 접근 제어 스크립트의 현재 캐시 버전이 적용되지 않았습니다.");
     }
 
     for (const match of html.matchAll(/<img\b[^>]*>/gi)) {
