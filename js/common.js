@@ -381,15 +381,15 @@ function normalizeNavigation() {
         { href: "index.html", label: "홈" },
         { href: "introduction.html", label: "소개" },
         { href: "talk.html", label: "동아리 게시판" },
-        { href: "question.html", label: "질문 게시판" },
+        { href: "question.html", label: "Q&A" },
         { href: "photo.html", label: "사진 게시판" },
         { href: "resource.html", label: "자료실" },
         { href: "weather.html", label: "날씨" },
         { href: "search.html", label: "통합 검색" },
         { href: "notifications.html", label: "알림" },
         { href: "suggest.html", label: "건의" },
-        { href: "mypage.html", label: "마이페이지" },
-        { href: "admin.html", label: "관리자" }
+        { href: "mypage.html", label: "회원 정보 수정" },
+        { href: "admin.html", label: "관리&운영" }
     ];
     const page = location.pathname.split("/").pop() || "index.html";
     const school = new URLSearchParams(location.search).get("school");
