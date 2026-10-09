@@ -286,6 +286,29 @@ textarea {
     font-size: 1rem;
 }
 
+select {
+    background-color: #070b0d;
+    color: #f7fbfc;
+    color-scheme: dark;
+}
+
+select option,
+select optgroup {
+    background-color: #070b0d;
+    color: #f7fbfc;
+}
+
+select option:checked {
+    background-color: #0f5964;
+    color: #fff;
+}
+
+select:disabled {
+    background-color: #1b2023;
+    color: #c7ced1;
+    opacity: 1;
+}
+
 textarea {
     min-height: 140px;
     resize: vertical;

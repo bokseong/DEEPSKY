@@ -40,7 +40,7 @@ const accessControlVersion = "20261007-return-after-login";
 for (const file of htmlFiles) {
     const html = fs.readFileSync(file, "utf8");
 
-    if (!/css\/common\.css\?v=(?:20260925-global-night-mode|20260930-notification-delete)/.test(html)) {
+    if (!html.includes("css/common.css?v=20261009-select-contrast")) {
         fail(file, "공통 야간 모드 스타일의 캐시 버전이 적용되지 않았습니다.");
     }
     if (!html.includes(`frontend-access-control.js?v=${accessControlVersion}`)) {

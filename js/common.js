@@ -388,7 +388,7 @@ function normalizeNavigation() {
         { href: "search.html", label: "통합 검색" },
         { href: "notifications.html", label: "알림" },
         { href: "suggest.html", label: "건의" },
-        { href: "mypage.html", label: "회원 정보 수정" },
+        { href: "mypage.html", label: "회원 정보" },
         { href: "admin.html", label: "관리&운영" }
     ];
     const page = location.pathname.split("/").pop() || "index.html";
