@@ -66,6 +66,7 @@
             <div id="existing-attachment-list" class="existing-attachment-list"></div>
         </div>
         <input id="file-input" type="file" multiple aria-label="첨부 파일">
+        <p id="guest-upload-note" hidden>비회원 질문에는 파일을 첨부할 수 없습니다. 파일 첨부가 필요하면 로그인해 주세요.</p>
         <div id="upload-progress-wrap" hidden>
             <progress id="upload-progress" max="100" value="0"></progress>
             <div><span id="upload-status" role="status"></span><button id="cancel-upload" class="btn" type="button">업로드 취소</button></div>
@@ -87,7 +88,7 @@
     <p>Designed by jw-astro09 | Contact: 2jw5464@gmail.com</p>
 </footer>
 
-<script type="module" src="js/school-write.js?v=20261008-edit-attachments"></script>
+<script type="module" src="js/school-write.js?v=20261011-guest-question"></script>
 <script type="module" src="frontend-access-control.js?v=20261007-return-after-login"></script>
 </body>
 </html>

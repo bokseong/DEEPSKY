@@ -50,7 +50,7 @@ let currentUser = null;
             document.getElementById("user-name").style.display = "none";
             document.getElementById("logout-btn").style.display = "none";
             document.getElementById("login-link").style.display = "inline";
-            document.getElementById("write-btn").style.display = "none";
+            document.getElementById("write-btn").style.display = currentPermissions[writePermissionKey] ? "inline" : "none";
             await loadPosts();
             return;
         }

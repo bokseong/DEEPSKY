@@ -1,9 +1,9 @@
-import { apiFetch, auth, authHeaders as getAuthHeaders, getCurrentPermissions, getCurrentProfile, normalizeSafeLinkUrl } from "./common.js";
+import { apiFetch, auth, getCurrentPermissions, getCurrentProfile, normalizeSafeLinkUrl, optionalAuthHeaders } from "./common.js";
 import { createDraftController, uploadFilesWithProgress } from "./write-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
         b: { collection:"club-board", name:"DEEP SKY 동아리", roles:["admin", "teacher", "deputy", "student"], categories:["천체 관측 데이터", "보고서", "발표", "훈련 자료", "소스 코드", "기타"], boardUrl:"talk.html", viewUrl:"school-view.html?school=b" },
-        q: { collection:"questions", name:"DEEP SKY 질문", roles:["admin", "teacher", "deputy", "student", "member"], categories:["천문 관측", "데이터 처리", "장비", "웹사이트 이용", "기타"], boardUrl:"question.html", viewUrl:"school-view.html?school=q" }
+        q: { collection:"questions", name:"DEEP SKY 질문", roles:["admin", "teacher", "deputy", "student", "member", "guest"], categories:["천문 관측", "데이터 처리", "장비", "웹사이트 이용", "기타"], boardUrl:"question.html", viewUrl:"school-view.html?school=q" }
     };
     const params = new URLSearchParams(location.search);
     const school = SCHOOLS[params.get("school")];
@@ -33,11 +33,35 @@ let currentUser = null;
 
     const writePermissionKey = params.get("school") === "q" ? "questions.write" : "boards.write.school";
     const canEditPost = () => editPost && currentUser && (editPost.uid === currentUser.uid || currentPermissions["boards.manage.school"]);
-    const authHeaders = async () => getAuthHeaders(currentUser);
+    const authHeaders = async () => optionalAuthHeaders(currentUser);
     document.getElementById("logout-btn").onclick = async () => { if (confirm("로그아웃 하시겠습니까?")) { await signOut(auth); location.href = "index.html"; } };
 
     onAuthStateChanged(auth, async (user) => {
-        if (!user) { location.replace("block.html"); return; }
+        if (!user) {
+            try {
+                const permissions = await getCurrentPermissions(null);
+                if (editId || params.get("school") !== "q" || !permissions[writePermissionKey]) {
+                    location.replace("block.html");
+                    return;
+                }
+                currentUser = null;
+                currentRole = "guest";
+                currentPermissions = permissions;
+                currentUserName = "비회원";
+                document.getElementById("user-name").style.display = "none";
+                document.getElementById("logout-btn").style.display = "none";
+                document.getElementById("login-link").style.display = "inline";
+                const fileInput = document.getElementById("file-input");
+                fileInput.value = "";
+                fileInput.disabled = true;
+                document.getElementById("guest-upload-note").hidden = false;
+                setupDraft();
+            } catch (err) {
+                console.error(err);
+                location.replace("block.html");
+            }
+            return;
+        }
         try {
             const [data, permissions] = await Promise.all([
                 getCurrentProfile(user),
@@ -53,6 +77,8 @@ let currentUser = null;
             document.getElementById("user-name").textContent = `${currentUserName}님`;
             document.getElementById("logout-btn").style.display = "inline";
             document.getElementById("login-link").style.display = "none";
+            document.getElementById("file-input").disabled = false;
+            document.getElementById("guest-upload-note").hidden = true;
             if (editId) await loadEditData();
             setupDraft();
         } catch (err) {
