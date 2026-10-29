@@ -314,6 +314,23 @@ for (const name of ["view.js", "school-view.js", "write.js", "school-write.js"])
     }
 }
 
+for (const name of ["view.js", "school-view.js"]) {
+    const file = path.join(root, "js", name);
+    const source = fs.readFileSync(file, "utf8");
+    for (const pattern of [
+        /apiFetchUrl\(requestUrl/,
+        /["']ngrok-skip-browser-warning["']\s*:\s*["']69420["']/,
+        /URL\.createObjectURL\(await fileResponse\.blob\(\)\)/
+    ]) {
+        if (!pattern.test(source)) {
+            fail(file, "첨부파일을 ngrok 대기 화면 없이 Blob으로 여는 로직이 누락되었습니다.");
+        }
+    }
+    if (/\.href\s*=\s*requestUrl/.test(source) || /location\.replace\(requestUrl\)/.test(source)) {
+        fail(file, "첨부파일 URL로 직접 이동하여 ngrok 대기 화면이 표시될 수 있습니다.");
+    }
+}
+
 for (const file of files) {
     const size = fs.statSync(file).size;
     if (size > 5 * 1024 * 1024) fail(file, `파일이 5MB를 초과합니다 (${(size / 1024 / 1024).toFixed(1)}MB).`);

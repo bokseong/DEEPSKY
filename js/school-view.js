@@ -1,4 +1,4 @@
-import { API_BASE_URL, apiFetch, auth, getCurrentPermissions, getCurrentProfile, normalizeSafeLinkUrl, optionalAuthHeaders } from "./common.js?v=20261007-stream-download";
+import { API_BASE_URL, apiFetch, apiFetchUrl, auth, getCurrentPermissions, getCurrentProfile, normalizeSafeLinkUrl, optionalAuthHeaders } from "./common.js?v=20261029-ngrok-free-download";
 import { appendCommentReportButton, setupPostTools } from "./post-tools.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 const SCHOOLS = {
@@ -232,6 +232,7 @@ let currentUser = null;
 
     async function openAttachment(url, filename, mode = "preview") {
         let previewWindow = null;
+        let objectUrl = "";
         try {
             if (mode === "preview") {
                 if (!getPreviewMimeType(filename, "")) {
@@ -244,18 +245,30 @@ let currentUser = null;
                 previewWindow.document.body.textContent = "파일을 불러오는 중입니다...";
             }
             const requestUrl = await createAttachmentAccessUrl(url, filename, mode);
+            const fileResponse = await apiFetchUrl(requestUrl, {
+                headers: { "ngrok-skip-browser-warning": "69420" },
+                cache: "no-store"
+            });
+            if (!fileResponse.ok) {
+                const data = await fileResponse.json().catch(() => ({}));
+                throw new Error(data.error || `파일을 불러오지 못했습니다. (${fileResponse.status})`);
+            }
+            objectUrl = URL.createObjectURL(await fileResponse.blob());
             if (mode === "download") {
                 const a = document.createElement("a");
-                a.href = requestUrl;
+                a.href = objectUrl;
                 a.download = filename;
                 a.rel = "noopener";
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
+                setTimeout(() => URL.revokeObjectURL(objectUrl), 30_000);
                 return;
             }
-            previewWindow.location.replace(requestUrl);
+            previewWindow.location.replace(objectUrl);
+            setTimeout(() => URL.revokeObjectURL(objectUrl), 10 * 60_000);
         } catch (err) {
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
             if (previewWindow && !previewWindow.closed) previewWindow.close();
             alert(err.message || "파일을 열 수 없습니다.");
         }
