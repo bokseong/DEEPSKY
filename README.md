@@ -5,10 +5,10 @@
 This is the official website of DEEP SKY, the Astronomy and Aerospace Club of Suncheon Bokseong High School, Republic of Korea.
 
 - 동아리 소개, 활동 사진, 자료실 및 동아리 게시판
-- 동아리 관련 질문에 대한 답변은 1일 이내로 답변드릴 예정입니다. 급한 경우에는 footer에 기재된 메일로 연락 부탁드립니다.
 - 관측 일정, 공지사항과 알림
 - 순천 현재 기상, 야간 관측 조건 및 상세 관측 도구
 - Firebase Authentication 로그인과 자체 서버에 데이터 저장
+- 동아리 관련 질문에 대한 답변은 1일 이내로 답변드릴 예정입니다. 급한 경우에는 footer에 기재된 메일로 연락 부탁드립니다.
 
 배포 주소: [bokseong.github.io/DEEPSKY](https://bokseong.github.io/DEEPSKY/)
 
