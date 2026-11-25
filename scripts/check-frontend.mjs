@@ -46,6 +46,9 @@ for (const file of htmlFiles) {
     if (!html.includes(`frontend-access-control.js?v=${accessControlVersion}`)) {
         fail(file, "공통 접근 제어 스크립트의 현재 캐시 버전이 적용되지 않았습니다.");
     }
+    if (!html.includes('href="about.html#privacy"') || !html.includes('href="about.html#terms"')) {
+        fail(file, "footer에 개인정보 수집·이용 안내와 홈페이지 이용약관 링크가 필요합니다.");
+    }
 
     for (const match of html.matchAll(/<img\b[^>]*>/gi)) {
         if (!/\balt\s*=/i.test(match[0])) fail(file, "img 요소에 alt 속성이 없습니다.");
@@ -89,6 +92,14 @@ for (const file of htmlFiles) {
         if (!/\brel\s*=\s*["'][^"']*\bnoopener\b[^"']*["']/i.test(match[0])) {
             fail(file, "target=_blank 링크에 rel=noopener가 없습니다.");
         }
+    }
+}
+
+const policyFile = path.join(root, "about.html");
+const policyHtml = fs.readFileSync(policyFile, "utf8");
+for (const [anchor, label] of [["privacy", "개인정보 수집·이용 안내"], ["terms", "홈페이지 이용약관"]]) {
+    if (!new RegExp(`id=["']${anchor}["']`).test(policyHtml) || !policyHtml.includes(label)) {
+        fail(policyFile, `${label} 본문 또는 앵커가 없습니다.`);
     }
 }
 

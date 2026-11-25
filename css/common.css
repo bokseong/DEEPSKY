@@ -1077,6 +1077,117 @@ footer a:focus-visible {
     color: inherit;
 }
 
+.policy-main {
+    width: min(1080px, calc(100% - 40px));
+    margin: 56px auto 100px;
+}
+
+.policy-lead {
+    margin: 0 0 24px;
+    color: #b9c7cc;
+    font-size: 1rem;
+}
+
+.policy-index {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0 0 24px;
+}
+
+.policy-index a {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    color: var(--text-main);
+    background: var(--card-bg);
+    text-decoration: none;
+    font-size: .9rem;
+}
+
+.policy-index a:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.policy-card {
+    margin-bottom: 24px;
+    padding: clamp(22px, 4vw, 36px);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--card-bg);
+}
+
+.policy-card h2 {
+    margin: 0 0 10px;
+    padding-left: 14px;
+    border-left: 4px solid var(--accent);
+    font-size: clamp(1.4rem, 3vw, 1.8rem);
+}
+
+.policy-card h3 {
+    margin: 30px 0 9px;
+    color: var(--accent);
+    font-size: 1.05rem;
+}
+
+.policy-card p,
+.policy-card li {
+    color: #cbd4d8;
+}
+
+.policy-card ul,
+.policy-card ol {
+    margin: 10px 0;
+    padding-left: 1.35rem;
+}
+
+.policy-card li + li {
+    margin-top: 8px;
+}
+
+.policy-meta {
+    margin: 0;
+    color: #8ea0a7 !important;
+    font-size: .88rem;
+}
+
+.policy-table-wrap {
+    overflow-x: auto;
+    margin: 16px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.policy-table {
+    width: 100%;
+    min-width: 670px;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.policy-table th,
+.policy-table td {
+    padding: 13px 15px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: top;
+}
+
+.policy-table th {
+    color: var(--accent);
+    background: rgba(0, 229, 255, .06);
+    font-size: .9rem;
+}
+
+.policy-table td {
+    color: #cbd4d8;
+    font-size: .92rem;
+}
+
+.policy-table tr:last-child td {
+    border-bottom: 0;
+}
+
 html.night-mode-active {
     --bg-dark: #030000;
     --accent: #ff554b;
